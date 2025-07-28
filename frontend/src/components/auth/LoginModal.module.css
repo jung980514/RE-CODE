@@ -1,0 +1,372 @@
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  opacity: 0;
+  animation: fadeIn 0.3s ease forwards;
+}
+
+.overlayClose {
+  animation: fadeOut 0.3s ease forwards;
+}
+
+.modal {
+  background: #FFFFFD;
+  border-radius: 20px;
+  width: 766px;
+  padding: 35px;
+  position: relative;
+  border: 1px solid #000000;
+  transform: translateY(20px);
+  opacity: 0;
+  animation: slideUp 0.3s ease forwards;
+}
+
+.modalOpen {
+  animation: slideUp 0.3s ease forwards;
+}
+
+.modalClose {
+  animation: slideDown 0.3s ease forwards;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* 새로운 닫기 키프레임 */
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes slideDown {
+  from {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 40px;
+  position: relative;
+}
+
+.titleWrapper {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.title {
+  font-family: 'Paperlogy';
+  font-weight: 700;
+  font-size: 40px;
+  color: #3D3D3D;
+  letter-spacing: 0.8px;
+  margin: 0;
+  white-space: nowrap;
+}
+
+.closeButton {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  transition: transform 0.2s ease;
+  margin-left: auto;
+  color: #525252;
+}
+
+.closeButton:hover {
+  transform: scale(1.1);
+}
+
+.headerButton:hover {
+  transform: scale(1.1);
+  color: #000;
+}
+
+.headerIcon {
+  width: 28px;
+  height: 28px;
+}
+
+.inputGroup {
+  margin-bottom: 30px;
+}
+
+.inputGroup label {
+  display: block;
+  font-family: 'Pretendard';
+  font-weight: 500;
+  font-size: 23px;
+  color: #3D3D3D;
+  letter-spacing: 0.46px;
+  margin-bottom: 12px;
+}
+
+.inputGroup input {
+  width: 100%;
+  height: 64px;
+  border: 1px solid #000000;
+  border-radius: 15px;
+  padding: 0 20px;
+  font-family: 'Pretendard';
+  font-size: 21px;
+  letter-spacing: 0.42px;
+  background: transparent;
+  transition: border-color 0.2s ease;
+}
+
+.inputGroup input:focus {
+  outline: none;
+  border-color: #22C55E;
+}
+
+.inputGroup input::placeholder {
+  color: #3D3D3D;
+  font-family: 'Pretendard';
+}
+
+.passwordInputWrapper {
+  position: relative;
+  width: 100%;
+}
+
+.passwordInputWrapper input {
+  padding-right: 50px;
+}
+
+.passwordToggle {
+  position: absolute;
+  right: 15px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: #888;
+  padding: 0;
+  display: flex;
+  align-items: center;
+}
+.passwordToggleIcon {
+  width: 24px;
+  height: 24px;
+}
+
+.optionsRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.checkboxLabel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: 'Pretendard';
+  font-weight: 500;
+  font-size: 17px;
+  color: #000000;
+  cursor: pointer;
+}
+
+.checkbox {
+  appearance: none;
+  -webkit-appearance: none;
+  position: relative;
+  width: 18px;
+  height: 18px;
+  border: 1px solid #18181B;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background-color: #FFFFFD;
+  vertical-align: middle;
+}
+
+.checkbox:checked {
+  background-color: #22C55E;
+  border-color: #22C55E;
+}
+
+.checkbox:checked::after {
+  content: '';
+  position: absolute;
+  display: block;
+  top: 2px;
+  left: 6px;
+  width: 5px;
+  height: 10px;
+  border: solid white;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.findAccountButton {
+  background: none;
+  border: none;
+  font-family: 'Pretendard';
+  font-weight: 350;
+  font-size: 17px;
+  color: #EA580C;
+  cursor: pointer;
+  transition: color 0.2s ease;
+  padding: 4px 8px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.findAccountButton:hover {
+  color: #C2410C;
+  background-color: #F4F4F5;
+}
+
+.loginButton {
+  width: 100%;
+  height: 63px;
+  background: #22C55E;
+  border: none;
+  border-radius: 8px;
+  color: white;
+  font-family: 'Pretendard';
+  font-size: 20px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 20px;
+  transition: background-color 0.2s ease;
+}
+
+.loginButton:hover {
+  background: #16A34A;
+}
+
+.signupButton {
+  width: 100%;
+  height: 58px;
+  background: transparent;
+  border: 1px solid #FDBA74;
+  border-radius: 8px;
+  color: #EA580C;
+  font-family: 'Pretendard';
+  font-size: 20px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+}
+
+.signupButton:hover {
+  background: #F4F4F5;
+  color: #000000;
+}
+
+.kakaoButton {
+  width: 65%;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  margin: 20px 110px;
+  transition: transform 0.2s ease;
+}
+
+.kakaoButton:hover {
+  transform: translateY(-2px);
+}
+
+.kakaoImage {
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+}
+
+.buttonIcon {
+  width: 18px;
+  height: 30px;
+  transition: transform 0.2s ease;
+}
+
+.loginButton:hover .buttonIcon,
+.signupButton:hover .buttonIcon {
+  transform: translateX(4px);
+}
+
+.divider {
+  position: relative;
+  text-align: center;
+  margin: 20px 0;
+}
+
+.divider::before,
+.divider::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  width: calc(50% - 30px);
+  height: 1px;
+  background-color: #E5E7EB;
+}
+
+.divider::before {
+  left: 0;
+}
+
+.divider::after {
+  right: 0;
+}
+
+.divider span {
+  background: #FFFFFF;
+  padding: 0 10px;
+  color: #6B7280;
+  font-family: 'Pretendard';
+  font-weight: 350;
+  font-size: 14px;
+}

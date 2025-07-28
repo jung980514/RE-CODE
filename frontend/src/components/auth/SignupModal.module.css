@@ -1,0 +1,202 @@
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  opacity: 0;
+  animation: fadeIn 0.3s ease forwards;
+}
+
+.overlayClose {
+  animation: fadeOut 0.3s ease forwards;
+}
+
+.modal {
+  background: #FFFFFF;
+  border-radius: 20px;
+  width: 1096px;
+  padding: 40px;
+  position: relative;
+  border: 1px solid #000000;
+  transform: translateY(20px);
+  opacity: 0;
+  animation: slideUp 0.3s ease forwards;
+}
+
+.modalOpen {
+  animation: slideUp 0.3s ease forwards;
+}
+
+.modalClose {
+  animation: slideDown 0.3s ease forwards;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideDown {
+  from {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+}
+
+.header {
+  margin-bottom: 40px;
+}
+
+.title {
+  font-family: 'Paperlogy';
+  font-weight: 700;
+  font-size: 40px;
+  color: #3D3D3D;
+  letter-spacing: 0.8px;
+  margin: 0;
+  margin-bottom: 10px;
+}
+
+.subtitle {
+  font-family: 'Pretendard';
+  font-weight: 500;
+  font-size: 25px;
+  color: #595959;
+  letter-spacing: 0.5px;
+  margin: 0;
+}
+
+.logoContainer {
+  position: relative;
+  text-align: center;
+  margin-bottom: 60px;
+  margin-left: 60px;
+  
+}
+
+.logoText {
+  font-family: 'Paperlogy', sans-serif;
+  font-size: 60px;
+  font-weight: bold;
+  color: #3d3d3d;
+  text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.2);
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  transform: translateY(-50%);
+  text-align: center;
+}
+
+.logoIcon {
+  width: 116px;
+  height: 121px;
+  object-fit: contain;
+}
+
+.logo {
+  width: 554px;
+  height: 71px;
+  object-fit: contain;
+}
+
+.content {
+  text-align: center;
+}
+
+.signupQuestion {
+  font-family: 'Pretendard';
+  font-weight: 400;
+  font-size: 48px;
+  color: #000000;
+  letter-spacing: 0.96px;
+  margin: 0 0 40px 0;
+}
+
+.signupButton {
+  width: 695px;
+  height: 106px;
+  border-radius: 30px;
+  border: none;
+  font-family: 'Pretendard';
+  font-weight: 400;
+  font-size: 45px;
+  color: #FFFFFF;
+  letter-spacing: 0.9px;
+  cursor: pointer;
+  margin-bottom: 20px;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.signupButton:hover {
+  transform: translateY(-2px);
+  opacity: 0.9;
+}
+
+@media (max-width: 1100px) {
+  .logoContainer {
+    display: none;
+  }
+}
+
+.guardianButton {
+  background-color: #6422F2;
+}
+
+.seniorButton {
+  background-color: #2C4001;
+}
+
+.cancelButton {
+  width: 341px;
+  height: 76px;
+  background-color: #F26835;
+  border: none;
+  border-radius: 15px;
+  font-family: 'Paperlogy';
+  font-weight: 600;
+  font-size: 36px;
+  color: #FFFFFF;
+  cursor: pointer;
+  margin-top: 20px;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.cancelButton:hover {
+  transform: translateY(-2px);
+  opacity: 0.9;
+}
