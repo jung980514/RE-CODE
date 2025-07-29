@@ -1,0 +1,435 @@
+/* 모달 오버레이 */
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  opacity: 0;
+  transition: opacity 0.3s ease-in-out;
+}
+
+.overlayOpen {
+  opacity: 1;
+}
+
+.overlayClose {
+  opacity: 0;
+}
+
+/* 모달 컨테이너 - Figma 디자인에 맞춤 */
+.modal {
+  background: white;
+  border-radius: 20px;
+  border: 1px solid #000000;
+  width: 1125px;
+  height: 949px;
+  position: relative;
+  transform: scale(0.8);
+  transition: transform 0.3s ease-in-out;
+  overflow-y: auto;
+  padding: 40px;
+  box-sizing: border-box;
+}
+
+.modalOpen {
+  transform: scale(1);
+}
+
+.modalClose {
+  transform: scale(0.8);
+}
+
+/* 뒤로가기 화살표 */
+.backArrow {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: #3d3d3d;
+  padding: 8px;
+  border-radius: 50%;
+  transition: background-color 0.2s;
+}
+
+.backArrow:hover {
+  background-color: #f5f5f5;
+}
+
+/* 가상키보드 버튼 */
+.virtualKeyboardButton {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 50%;
+  transition: background-color 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.virtualKeyboardButton:hover {
+  background-color: #f5f5f5;
+}
+
+/* 헤더 */
+.header {
+  text-align: center;
+  margin-bottom: 40px;
+  margin-top: 60px;
+}
+
+.title {
+  font-family: 'Paperlogy', sans-serif;
+  font-weight: 700;
+  font-size: 40px;
+  color: #3d3d3d;
+  margin: 0 0 10px 0;
+  letter-spacing: 0.8px;
+}
+
+.subtitle {
+  font-family: 'Pretendard', sans-serif;
+  font-weight: 500;
+  font-size: 25px;
+  color: #595959;
+  margin: 0;
+  letter-spacing: 0.5px;
+}
+
+/* 폼 */
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* 2열 레이아웃 */
+.formColumns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 40px;
+  margin-bottom: 30px;
+}
+
+.leftColumn,
+.rightColumn {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* 입력 그룹 */
+.inputGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.label {
+  font-family: 'Paperlogy', sans-serif;
+  font-weight: 500;
+  font-size: 23px;
+  color: #595959;
+  letter-spacing: 0.46px;
+}
+
+.input {
+  width: 100%;
+  height: 64px;
+  border: 1px solid #000000;
+  border-radius: 15px;
+  padding: 0 20px;
+  font-family: 'Poppins', sans-serif;
+  font-size: 21px;
+  color: #3d3d3d;
+  background-color: #ffffff;
+  box-sizing: border-box;
+}
+
+.input::placeholder {
+  color: #3d3d3d;
+  font-weight: 400;
+  letter-spacing: 0.42px;
+}
+
+.inputHint {
+  font-family: 'Poppins', sans-serif;
+  font-weight: 700;
+  font-size: 12px;
+  color: #3d3d3d;
+  margin: 0;
+  letter-spacing: 0.24px;
+}
+
+/* 셀렉트 박스 */
+.select {
+  width: 100%;
+  height: 64px;
+  border: 1px solid #000000;
+  border-radius: 15px;
+  padding: 0 20px;
+  font-family: 'Poppins', sans-serif;
+  font-size: 21px;
+  color: #3d3d3d;
+  background-color: #ffffff;
+  box-sizing: border-box;
+  cursor: pointer;
+}
+
+/* 날짜 입력 컨테이너 */
+.dateInputContainer {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.dateInput {
+  width: 100%;
+  height: 64px;
+  border: 1px solid #000000;
+  border-radius: 15px;
+  padding: 0 20px;
+  font-family: 'Poppins', sans-serif;
+  font-size: 21px;
+  color: #3d3d3d;
+  background-color: #ffffff;
+  box-sizing: border-box;
+}
+
+.calendarIcon {
+  position: absolute;
+  right: 20px;
+  font-size: 20px;
+  color: #3d3d3d;
+  pointer-events: none;
+}
+
+/* 비밀번호 힌트 */
+.passwordHint {
+  font-family: 'Paperlogy', sans-serif;
+  font-weight: 700;
+  font-size: 12px;
+  color: #3d3d3d;
+  margin: 0;
+  letter-spacing: 0.24px;
+}
+
+/* 프로필 섹션 */
+.profileSection {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.profileImageContainer {
+  position: relative;
+  width: 162px;
+  height: 165px;
+  border-radius: 50%;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #f5f5f5;
+  border: 1px solid #ddd;
+}
+
+.profileImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.profilePlaceholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  font-size: 40px;
+  color: #999;
+}
+
+.uploadButton {
+  position: absolute;
+  bottom: 5px;
+  right: 5px;
+  width: 30px;
+  height: 30px;
+  background-color: #0a7aff;
+  border: none;
+  border-radius: 50%;
+  color: white;
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s;
+}
+
+.uploadButton:hover {
+  background-color: #0056cc;
+}
+
+.profileLabel {
+  font-family: 'Paperlogy', sans-serif;
+  font-weight: 500;
+  font-size: 23px;
+  color: #3d3d3d;
+  letter-spacing: 0.46px;
+}
+
+.profileInput {
+  display: none;
+}
+
+/* 약관 동의 섹션 */
+.agreementSection {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  margin: 20px 0;
+}
+
+.agreementItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.checkbox {
+  width: 28px;
+  height: 28px;
+  accent-color: #0a7aff;
+  cursor: pointer;
+}
+
+.agreementLabel {
+  flex: 1;
+  font-family: 'Paperlogy', sans-serif;
+  font-weight: 700;
+  font-size: 21px;
+  color: #3d3d3d;
+  letter-spacing: 0.42px;
+  cursor: pointer;
+}
+
+.viewTermsButton {
+  background: none;
+  border: none;
+  font-family: 'Paperlogy', sans-serif;
+  font-weight: 700;
+  font-size: 15px;
+  color: #3d3d3d;
+  cursor: pointer;
+  letter-spacing: 0.3px;
+  text-decoration: underline;
+}
+
+.viewTermsButton:hover {
+  color: #0a7aff;
+}
+
+/* 버튼 그룹 */
+.buttonGroup {
+  display: flex;
+  gap: 20px;
+  justify-content: center;
+  margin-top: 30px;
+}
+
+.submitButton {
+  width: 341px;
+  height: 76px;
+  background-color: #9cbf50;
+  border: none;
+  border-radius: 15px;
+  color: #ffffff;
+  font-family: 'Paperlogy', sans-serif;
+  font-weight: 600;
+  font-size: 36px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.submitButton:hover {
+  background-color: #8bb045;
+}
+
+.cancelButton {
+  width: 341px;
+  height: 76px;
+  background-color: #f26835;
+  border: none;
+  border-radius: 15px;
+  color: #ffffff;
+  font-family: 'Paperlogy', sans-serif;
+  font-weight: 600;
+  font-size: 36px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.cancelButton:hover {
+  background-color: #e55a2b;
+}
+
+/* 반응형 디자인 */
+@media (max-width: 1200px) {
+  .modal {
+    width: 90vw;
+    height: 90vh;
+    max-width: 1125px;
+    max-height: 903px;
+  }
+  
+  .formColumns {
+    gap: 20px;
+  }
+}
+
+@media (max-width: 768px) {
+  .modal {
+    width: 95vw;
+    height: 95vh;
+    padding: 20px;
+  }
+  
+  .formColumns {
+    grid-template-columns: 1fr;
+    gap: 15px;
+  }
+  
+  .title {
+    font-size: 32px;
+  }
+  
+  .subtitle {
+    font-size: 20px;
+  }
+  
+  .buttonGroup {
+    flex-direction: column;
+  }
+  
+  .submitButton,
+  .cancelButton {
+    width: 100%;
+  }
+} 
