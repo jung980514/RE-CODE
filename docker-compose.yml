@@ -21,7 +21,7 @@ services:
       - "80:80"
       - "443:443"
     volumes:
-      - ssl_certs:/etc/letsencrypt
+      - /etc/letsencrypt:/etc/letsencrypt:ro
     depends_on:
       - frontend
       - backend
@@ -31,9 +31,6 @@ services:
 networks:
   app-network:
     driver: bridge
-
-volumes:
-  ssl_certs:
     driver: local
     driver_opts:
       type: none
