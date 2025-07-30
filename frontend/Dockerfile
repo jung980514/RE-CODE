@@ -28,8 +28,25 @@ WORKDIR /usr/src/app
 COPY --from=deps /usr/src/app/node_modules ./node_modules
 COPY . .
 
-# 구축 환경에 따라 env 변수를 다르게 가져가야 하는 경우 환경 변수를 이용해서 env를 구분해준다.
-COPY .env.${ENV_MODE} ./.env.production
+# 환경 변수 설정 (환경별 .env 파일 대신 환경 변수 사용)
+ENV NODE_ENV=${ENV_MODE}
+ENV NEXT_PUBLIC_ENV=${ENV_MODE}
+
+# 환경별 환경 변수 설정
+RUN if [ "$ENV_MODE" = "dev" ]; then \
+        echo "NODE_ENV=development" > .env.production && \
+        echo "NEXT_PUBLIC_API_URL=http://localhost:8088" >> .env.production && \
+        echo "NEXT_PUBLIC_ENV=dev" >> .env.production; \
+    elif [ "$ENV_MODE" = "staging" ]; then \
+        echo "NODE_ENV=staging" > .env.production && \
+        echo "NEXT_PUBLIC_API_URL=https://staging.recode-my-life.site" >> .env.production && \
+        echo "NEXT_PUBLIC_ENV=staging" >> .env.production; \
+    else \
+        echo "NODE_ENV=production" > .env.production && \
+        echo "NEXT_PUBLIC_API_URL=https://recode-my-life.site" >> .env.production && \
+        echo "NEXT_PUBLIC_ENV=prod" >> .env.production; \
+    fi
+
 RUN npm run build
 
 ###########################################################

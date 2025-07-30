@@ -164,7 +164,9 @@ pipeline {
                         script {
                             dir('frontend') {  // 프론트엔드 디렉토리로 이동
                                 def imageTag = "${DOCKER_REGISTRY}/${FRONTEND_IMAGE}:${params.DEPLOY_ENV}-${BUILD_NUMBER}"  // 이미지 태그 생성
-                                def dockerImage = docker.build(imageTag, "--build-arg ENV_MODE=${params.DEPLOY_ENV} .")  // 환경별 빌드 ARG 전달
+                                
+                                // 환경별 빌드 ARG 전달 및 빌드
+                                def dockerImage = docker.build(imageTag, "--build-arg ENV_MODE=${params.DEPLOY_ENV} .")
                                 
                                 // Docker Hub에 이미지 푸시
                                 docker.withRegistry('https://index.docker.io/v1/', 'dockerhub-credentials') {
@@ -278,40 +280,56 @@ pipeline {
                             export NGINX_DOMAIN=staging.recode-my-life.site
                         fi
                         
-                        # 최신 이미지 풀링
-                        docker-compose pull || echo "Pull failed, but continuing..."
+                        echo "Environment variables set:"
+                        echo "ENV: $ENV"
+                        echo "BUILD_NUMBER: $BUILD_NUMBER"
+                        echo "NODE_ENV: $NODE_ENV"
+                        echo "SSL_CERT_PATH: $SSL_CERT_PATH"
+                        echo "NGINX_DOMAIN: $NGINX_DOMAIN"
                         
-                        # 헬스 체크와 함께 배포
-                        # 프로젝트 컨테이너만 중지 (모든 컨테이너 중지 안함)
+                        # 기존 컨테이너 중지
+                        echo "Stopping existing containers..."
                         docker-compose down --timeout 10 || true
                         
                         # 포트 충돌 확인 및 충돌하는 컨테이너만 중지
-                        if docker ps --format 'table {{.Names}}\t{{.Ports}}' | grep -q ':8088->' || docker ps --format 'table {{.Names}}\t{{.Ports}}' | grep -q ':8448->' || docker ps --format 'table {{.Names}}\t{{.Ports}}' | grep -q ':3000->' || docker ps --format 'table {{.Names}}\t{{.Ports}}' | grep -q ':8081->'; then
+                        echo "Checking for port conflicts..."
+                        if docker ps --format 'table {{.Names}}\t{{.Ports}}' | grep -q ':8088->' || docker ps --format 'table {{.Names}}\t{{.Ports}}' | grep -q ':80->' || docker ps --format 'table {{.Names}}\t{{.Ports}}' | grep -q ':443->'; then
                             echo "Port conflicts detected, stopping conflicting containers..."
                             docker ps --format '{{.Names}}' | grep -E '(nginx|frontend|backend)' | xargs -r docker stop || true
                         fi
                         
+                        # 최신 이미지 풀링
+                        echo "Pulling latest images..."
+                        docker-compose pull || echo "Pull failed, but continuing..."
+                        
                         # 새 컨테이너 배포
+                        echo "Starting new containers..."
                         docker-compose up -d || echo "Deployment failed, but continuing..."
+                        
+                        # 컨테이너 상태 확인
+                        echo "Checking container status..."
+                        sleep 10
+                        docker-compose ps
+                        
+                        # 헬스 체크 대기
+                        echo "Waiting for services to be ready..."
                         sleep 30
-                        docker-compose ps || echo "Could not check container status"
                     """
                     
                     // 서비스가 정상적으로 실행될 때까지 대기 (최대 5분)
                     timeout(time: 5, unit: 'MINUTES') {
                         sh """
-                            echo "Checking if services are running..."
-                            docker-compose ps
-                            
-                            # 컨테이너가 준비될 때까지 대기
-                            sleep 30
+                            echo "Performing final health check..."
                             
                             # 컨테이너 실행 상태 확인
                             if docker-compose ps | grep -q "Up"; then
                                 echo "✅ Services are running successfully"
+                                echo "Container status:"
+                                docker-compose ps
                             else
                                 echo "❌ Some services failed to start"
-                                docker-compose logs
+                                echo "Container logs:"
+                                docker-compose logs --tail=50
                                 echo "Continuing despite service failures..."
                             fi
                         """
