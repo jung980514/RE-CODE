@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    image: hj00b/recode-backend:latest
+    container_name: recode-backend
+    ports:
+      - "8088:8088"
+    networks:
+      - app-network
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    image: hj00b/recode-frontend:latest
+    container_name: recode-frontend
+    expose:
+      - "3030"
+    depends_on:
+      - backend
+    networks:
+      - app-network
+  nginx:
+    image: hj00b/recode-nginx:latest
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro  # Nginx 설정 파일 마운트 (읽기 전용)
+      - /etc/letsencrypt:/etc/letsencrypt:ro # SSL 인증서 마운트 (읽기 전용)
+    depends_on:
+      - frontend
+      - backend
+
+    networks:
+      - app-network
+networks:
+  app-network:
+    driver: bridge
