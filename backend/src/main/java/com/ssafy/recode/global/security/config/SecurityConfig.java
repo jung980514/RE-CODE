@@ -103,7 +103,12 @@ public class SecurityConfig {
         // 인가 정책 설정
         http
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/user/login/page", "api/user/login", "/api/user/register", "/api/reissue", "/login/oauth2/code/**", "/index.html").permitAll() // 공개 URL
+                        .requestMatchers("/**","/api/user/login/page", "api/user/login", "/api/user/register", "/api/reissue", "/login/oauth2/code/**", "/index.html").permitAll() // 공개 URL
+                    .requestMatchers(
+                                "/v3/api-docs/**",
+                                "/swagger-ui/**",
+                                "/swagger-ui.html",
+                                "/webjars/**").permitAll()
                         .anyRequest().authenticated() // 나머지는 인증 필요
                 );
 
@@ -135,7 +140,12 @@ public class SecurityConfig {
                 .requestMatchers("/favicon.ico")
 
                 // Spring Boot 기본 에러 페이지 요청: 인증처리 방지
-                .requestMatchers("/error");
+                .requestMatchers("/error")
+                .requestMatchers(
+                            "/v3/api-docs/**",
+                            "/swagger-ui/**",
+                            "/swagger-ui.html",
+                            "/webjars/**");
 
                 // H2 웹 콘솔은 개발 편의용으로 보안 필터에서 제외
 //                .requestMatchers(toH2Console());
