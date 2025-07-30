@@ -34,3 +34,8 @@ networks:
 
 volumes:
   ssl_certs:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /etc/letsencrypt
