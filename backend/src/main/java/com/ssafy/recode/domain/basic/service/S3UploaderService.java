@@ -22,38 +22,44 @@ public class S3UploaderService {
 
   private final S3Client s3Client;
 
-  /** S3 버킷 이름 */
   @Value("${cloud.aws.s3.bucket}")
   private String bucket;
 
-  /** S3 키 접두사, 반드시 “answer/” 로 끝나야 함 */
   @Value("${aws.s3.prefix}")
   private String prefix;
 
-  /** ffmpeg 실행 경로 */
   @Value("${ffmpeg.path}")
   private String ffmpegPath;
 
-  /**
-   * MP4 MultipartFile을 받아 WAV 로 컨버팅 후 S3에 업로드.
-   * @return S3 키, 예) answer/123e4567-abcd_intro.wav
-   */
   public String uploadAsWav(MultipartFile multipartFile) {
     try {
-      // 1) 임시 mp4 파일 생성
+      // 1) 임시 MP4 파일 생성
       String orig = multipartFile.getOriginalFilename();
       String base = orig != null
           ? orig.replaceFirst("\\.[^.]+$", "")
           : UUID.randomUUID().toString();
       String uuid = UUID.randomUUID().toString();
-
       Path tmpMp4 = Files.createTempFile("upload-mp4-", "-" + uuid + ".mp4");
       multipartFile.transferTo(tmpMp4);
 
-      // 2) 임시 wav 파일 경로
+      // ─────────────────────────────────────────────
+      // 2) **MP4를 S3에 업로드**
+      String mp4FileName = uuid + "_" + base + ".mp4";
+      String mp4Key      = prefix + mp4FileName;  // ex) answer/uuid_base.mp4
+      s3Client.putObject(
+          PutObjectRequest.builder()
+              .bucket(bucket)
+              .key(mp4Key)
+              .build(),
+          tmpMp4
+      );
+      System.out.println("📤 MP4 업로드 완료: " + mp4Key);
+      // ─────────────────────────────────────────────
+
+      // 3) 임시 WAV 파일 경로 생성
       Path tmpWav = tmpMp4.resolveSibling(uuid + "_" + base + ".wav");
 
-      // ffmpeg 로 wav 변환 (16kHz, mono)
+      // 4) ffmpeg 로 WAV 변환 (16kHz, mono)
       new ProcessBuilder(
           ffmpegPath,
           "-i", tmpMp4.toString(),
@@ -66,23 +72,24 @@ public class S3UploaderService {
           .start()
           .waitFor();
 
-      // 3) S3 에 업로드
-      String fileName = tmpWav.getFileName().toString();               // "uuid_base.wav"
-      String key      = prefix + fileName;                            // "answer/uuid_base.wav"
+      // 5) WAV를 S3에 업로드
+      String wavFileName = tmpWav.getFileName().toString();   // "uuid_base.wav"
+      String wavKey      = prefix + wavFileName;              // "answer/uuid_base.wav"
       s3Client.putObject(
           PutObjectRequest.builder()
               .bucket(bucket)
-              .key(key)
+              .key(wavKey)
               .build(),
           tmpWav
       );
+      System.out.println("📤 WAV 업로드 완료: " + wavKey);
 
-      // 4) 임시 파일 정리
+      // 6) 임시 파일 삭제
       Files.deleteIfExists(tmpMp4);
       Files.deleteIfExists(tmpWav);
 
-      // 5) 업로드된 S3 key 반환
-      return key;
+      // 7) 변환된 WAV 키 반환
+      return wavKey;
 
     } catch (Exception e) {
       throw new RuntimeException("S3UploaderService 실패: " + e.getMessage(), e);
