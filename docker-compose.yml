@@ -12,6 +12,8 @@ services:
     build: ./frontend
     expose:
       - "3030"
+    environment:
+      - PORT=3030
     networks:
       - app-network
 
