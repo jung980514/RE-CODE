@@ -10,8 +10,8 @@ WORKDIR /usr/src/app
 # Dependency install을 위해 package.json, package-lock.json 복사 
 COPY package.json package-lock.json ./ 
 
-# Dependency 설치
-RUN npm ci --only=production
+# 모든 dependencies 설치 (devDependencies 포함)
+RUN npm ci
 
 ###########################################################
 
