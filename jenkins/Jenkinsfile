@@ -6,6 +6,15 @@ pipeline {
     // Jenkins 에이전트 설정 - 'new-node' 라벨이 지정된 노드에서 실행
     agent { label 'new-node' }
 
+    // GitHub webhook 트리거 설정
+    triggers {
+        // GitHub에서 push 이벤트가 발생하면 자동으로 빌드 트리거
+        githubPush()
+        
+        // 또는 SCM 폴링 (webhook이 작동하지 않을 때 대안)
+        // pollSCM('H/5 * * * *')  // 5분마다 폴링
+    }
+
     // 환경 변수 설정 - 빌드 과정에서 사용될 변수들
     environment {
         DOCKER_REGISTRY = 'hj00b'                    // Docker Hub 레지스트리 이름
@@ -245,22 +254,28 @@ pipeline {
             }
             steps {
                 script {
-                    def composeFile = "docker-compose.${params.DEPLOY_ENV}.yml"  // 환경별 docker-compose 파일
+                    def envFile = "env.${params.DEPLOY_ENV}"  // 환경별 환경 변수 파일
                     
-                    // docker-compose 파일 존재 여부 확인 및 배포 실행
+                    // 환경 변수 파일 존재 여부 확인 및 배포 실행
                     sh """
-                        if [ -f "${composeFile}" ]; then
-                            echo "Found ${composeFile}, proceeding with deployment..."
+                        if [ -f "${envFile}" ]; then
+                            echo "Found ${envFile}, proceeding with deployment..."
                             
                             # 환경 변수 설정
                             export BUILD_NUMBER=${BUILD_NUMBER}
+                            export ENV=${params.DEPLOY_ENV}
+                            
+                            # 환경 변수 파일 로드
+                            set -a
+                            source ${envFile}
+                            set +a
                             
                             # 최신 이미지 풀링
-                            docker-compose -f ${composeFile} pull || echo "Pull failed, but continuing..."
+                            docker-compose pull || echo "Pull failed, but continuing..."
                             
                             # 헬스 체크와 함께 배포
                             # 프로젝트 컨테이너만 중지 (모든 컨테이너 중지 안함)
-                            docker-compose -f ${composeFile} down --timeout 10 || true
+                            docker-compose down --timeout 10 || true
                             
                             # 포트 충돌 확인 및 충돌하는 컨테이너만 중지
                             if docker ps --format 'table {{.Names}}\t{{.Ports}}' | grep -q ':8088->' || docker ps --format 'table {{.Names}}\t{{.Ports}}' | grep -q ':8448->' || docker ps --format 'table {{.Names}}\t{{.Ports}}' | grep -q ':3000->' || docker ps --format 'table {{.Names}}\t{{.Ports}}' | grep -q ':8081->'; then
@@ -269,13 +284,13 @@ pipeline {
                             fi
                             
                             # 새 컨테이너 배포
-                            docker-compose -f ${composeFile} up -d || echo "Deployment failed, but continuing..."
+                            docker-compose up -d || echo "Deployment failed, but continuing..."
                             sleep 30
-                            docker-compose -f ${composeFile} ps || echo "Could not check container status"
+                            docker-compose ps || echo "Could not check container status"
                         else
-                            echo "⚠️ ${composeFile} not found, skipping deployment"
-                            echo "Available compose files:"
-                            ls -la docker-compose*.yml || echo "No compose files found"
+                            echo "⚠️ ${envFile} not found, skipping deployment"
+                            echo "Available env files:"
+                            ls -la env.* || echo "No env files found"
                         fi
                     """
                     
@@ -283,17 +298,17 @@ pipeline {
                     timeout(time: 5, unit: 'MINUTES') {
                         sh """
                             echo "Checking if services are running..."
-                            docker-compose -f ${composeFile} ps
+                            docker-compose ps
                             
                             # 컨테이너가 준비될 때까지 대기
                             sleep 30
                             
                             # 컨테이너 실행 상태 확인
-                            if docker-compose -f ${composeFile} ps | grep -q "Up"; then
+                            if docker-compose ps | grep -q "Up"; then
                                 echo "✅ Services are running successfully"
                             else
                                 echo "❌ Some services failed to start"
-                                docker-compose -f ${composeFile} logs
+                                docker-compose logs
                                 echo "Continuing despite service failures..."
                             fi
                         """
@@ -313,28 +328,34 @@ pipeline {
             }
             steps {
                 script {
-                    def composeFile = "docker-compose.prod.yml"
+                    def envFile = "env.prod"
                     
                     // 프로덕션 배포 (추가 안전 검사 포함)
                     sh """
                         # 환경 변수 설정
                         export BUILD_NUMBER=${BUILD_NUMBER}
+                        export ENV=prod
+                        
+                        # 환경 변수 파일 로드
+                        set -a
+                        source ${envFile}
+                        set +a
                         
                         # 최신 이미지 풀링
-                        docker-compose -f ${composeFile} pull
+                        docker-compose pull
                         
                         # Blue-green 배포 방식 적용
                         # 백업 생성
-                        docker-compose -f ${composeFile} down --timeout 30 || true
+                        docker-compose down --timeout 30 || true
                         
                         # 새 버전 배포
-                        docker-compose -f ${composeFile} up -d
+                        docker-compose up -d
                         
                         # 헬스 체크 대기
                         sleep 60
                         
                         # 배포 검증
-                        docker-compose -f ${composeFile} ps
+                        docker-compose ps
                         curl -f https://recode-my-life.site/health
                         curl -f https://i13e105.p.ssafy.io/health
                     """
