@@ -1,5 +1,6 @@
 package com.ssafy.recode.global.security.config;
 
+import static org.springframework.security.config.Customizer.withDefaults;
 import com.ssafy.recode.domain.auth.repository.RefreshTokenRepository;
 import com.ssafy.recode.domain.auth.service.RefreshTokenService;
 import com.ssafy.recode.global.oauth.OAuth2SuccessHandler;
@@ -77,6 +78,7 @@ public class SecurityConfig {
         JWTLoginFilter jwtLoginFilter = new JWTLoginFilter(authenticationManager, jwtUtil, refreshTokenService);
 
         // 기본 보안 기능 비활성화 (JWT 기반이므로 세션 사용 X)
+        http.cors(withDefaults());
         http.csrf(csrf -> csrf.disable());
         http.formLogin(form -> form.disable());
         http.httpBasic(basic -> basic.disable());
@@ -103,12 +105,8 @@ public class SecurityConfig {
         // 인가 정책 설정
         http
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/v3/api-docs/**","/swagger-ui/**","/swagger-ui.html","/webjars/**").permitAll()
                         .requestMatchers("/**","/api/user/login/page", "api/user/login", "/api/user/register", "/api/reissue", "/login/oauth2/code/**", "/index.html").permitAll() // 공개 URL
-                    .requestMatchers(
-                                "/v3/api-docs/**",
-                                "/swagger-ui/**",
-                                "/swagger-ui.html",
-                                "/webjars/**").permitAll()
                         .anyRequest().authenticated() // 나머지는 인증 필요
                 );
 
