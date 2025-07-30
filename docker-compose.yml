@@ -31,8 +31,3 @@ services:
 networks:
   app-network:
     driver: bridge
-    driver: local
-    driver_opts:
-      type: none
-      o: bind
-      device: /etc/letsencrypt
