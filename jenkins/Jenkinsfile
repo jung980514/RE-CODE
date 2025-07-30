@@ -193,23 +193,23 @@ pipeline {
                         script {
                             dir('nginx') {  // Nginx 디렉토리로 이동
                                 // SSL 인증서 디렉토리 생성 및 인증서 복사
-                                sh '''
+                                sh """
                                     mkdir -p ssl
                                     # 저장소에 SSL 인증서가 있는지 확인
-                                    if [ -d "ssl" ] && [ "$(ls -A ssl)" ]; then
+                                    if [ -d "ssl" ] && [ "\$(ls -A ssl)" ]; then
                                         echo "SSL certificates found in repository"
                                     else
                                         echo "⚠️ SSL certificates not found in repository"
                                         echo "SSL certificates will be mounted at runtime for production"
                                         # 개발 환경용 더미 SSL 파일 생성
-                                        if [ "$DEPLOY_ENV" != "prod" ]; then
+                                        if [ "${params.DEPLOY_ENV}" != "prod" ]; then
                                             echo "Creating dummy SSL files for development..."
-                                            openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
-                                                -keyout ssl/dummy.key -out ssl/dummy.crt \
+                                            openssl req -x509 -nodes -days 365 -newkey rsa:2048 \\
+                                                -keyout ssl/dummy.key -out ssl/dummy.crt \\
                                                 -subj "/C=KR/ST=Seoul/L=Seoul/O=Dev/CN=localhost" 2>/dev/null || true
                                         fi
                                     fi
-                                '''
+                                """
                                 
                                 def imageTag = "${DOCKER_REGISTRY}/${NGINX_IMAGE}:${params.DEPLOY_ENV}-${BUILD_NUMBER}"  // 이미지 태그 생성
                                 def dockerImage = docker.build(imageTag)  // Docker 이미지 빌드
@@ -247,9 +247,9 @@ pipeline {
             steps {
                 script {
                     // Trivy를 사용하여 Docker 이미지의 보안 취약점 스캔
-                    sh 'docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image hj00b/backend:${params.DEPLOY_ENV}-${BUILD_NUMBER}'
-                    sh 'docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image hj00b/frontend:${params.DEPLOY_ENV}-${BUILD_NUMBER}'
-                    sh 'docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image hj00b/nginx:${params.DEPLOY_ENV}-${BUILD_NUMBER}'
+                    sh "docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image hj00b/backend:${params.DEPLOY_ENV}-${BUILD_NUMBER}"
+                    sh "docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image hj00b/frontend:${params.DEPLOY_ENV}-${BUILD_NUMBER}"
+                    sh "docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image hj00b/nginx:${params.DEPLOY_ENV}-${BUILD_NUMBER}"
                 }
             }
         }
@@ -281,11 +281,11 @@ pipeline {
                         fi
                         
                         echo "Environment variables set:"
-                        echo "ENV: $ENV"
-                        echo "BUILD_NUMBER: $BUILD_NUMBER"
-                        echo "NODE_ENV: $NODE_ENV"
-                        echo "SSL_CERT_PATH: $SSL_CERT_PATH"
-                        echo "NGINX_DOMAIN: $NGINX_DOMAIN"
+                        echo "ENV: \${ENV}"
+                        echo "BUILD_NUMBER: \${BUILD_NUMBER}"
+                        echo "NODE_ENV: \${NODE_ENV}"
+                        echo "SSL_CERT_PATH: \${SSL_CERT_PATH}"
+                        echo "NGINX_DOMAIN: \${NGINX_DOMAIN}"
                         
                         # 기존 컨테이너 중지
                         echo "Stopping existing containers..."
