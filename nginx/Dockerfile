@@ -4,7 +4,7 @@ FROM nginx:1.25-alpine
 COPY nginx.conf /etc/nginx/nginx.conf
 
 # Create SSL directory for certificates that will be mounted at runtime
-RUN mkdir -p /etc/nginx/ssl
+RUN mkdir -p /etc/letsencrypt
 
 # Expose ports
 EXPOSE 80

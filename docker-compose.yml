@@ -3,15 +3,15 @@ version: '3.8'
 services:
   backend:
     build: ./backend
-    ports:
-      - "8088:8088"
+    expose:
+      - "8088"
     networks:
       - app-network
 
   frontend:
     build: ./frontend
-    ports:
-      - "3030:3030"
+    expose:
+      - "3030"
     networks:
       - app-network
 
