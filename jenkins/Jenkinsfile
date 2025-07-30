@@ -6,10 +6,15 @@ pipeline {
     // Jenkins 에이전트 설정 - 'new-node' 라벨이 지정된 노드에서 실행
     agent { label 'new-node' }
 
-    // GitHub webhook 트리거 설정
+    // GitLab webhook 트리거 설정
     triggers {
-        // GitHub에서 push 이벤트가 발생하면 자동으로 빌드 트리거
-        githubPush()
+        // GitLab에서 push 이벤트가 발생하면 자동으로 빌드 트리거
+        gitlab(
+            triggerOnPush: true,
+            triggerOnMergeRequest: true,
+            branchFilterType: 'All',
+            secretToken: 'your-gitlab-webhook-secret'
+        )
         
         // 또는 SCM 폴링 (webhook이 작동하지 않을 때 대안)
         // pollSCM('H/5 * * * *')  // 5분마다 폴링
@@ -254,44 +259,42 @@ pipeline {
             }
             steps {
                 script {
-                    def envFile = "env.${params.DEPLOY_ENV}"  // 환경별 환경 변수 파일
-                    
-                    // 환경 변수 파일 존재 여부 확인 및 배포 실행
+                    // 환경 변수 설정
                     sh """
-                        if [ -f "${envFile}" ]; then
-                            echo "Found ${envFile}, proceeding with deployment..."
-                            
-                            # 환경 변수 설정
-                            export BUILD_NUMBER=${BUILD_NUMBER}
-                            export ENV=${params.DEPLOY_ENV}
-                            
-                            # 환경 변수 파일 로드
-                            set -a
-                            source ${envFile}
-                            set +a
-                            
-                            # 최신 이미지 풀링
-                            docker-compose pull || echo "Pull failed, but continuing..."
-                            
-                            # 헬스 체크와 함께 배포
-                            # 프로젝트 컨테이너만 중지 (모든 컨테이너 중지 안함)
-                            docker-compose down --timeout 10 || true
-                            
-                            # 포트 충돌 확인 및 충돌하는 컨테이너만 중지
-                            if docker ps --format 'table {{.Names}}\t{{.Ports}}' | grep -q ':8088->' || docker ps --format 'table {{.Names}}\t{{.Ports}}' | grep -q ':8448->' || docker ps --format 'table {{.Names}}\t{{.Ports}}' | grep -q ':3000->' || docker ps --format 'table {{.Names}}\t{{.Ports}}' | grep -q ':8081->'; then
-                                echo "Port conflicts detected, stopping conflicting containers..."
-                                docker ps --format '{{.Names}}' | grep -E '(nginx|frontend|backend)' | xargs -r docker stop || true
-                            fi
-                            
-                            # 새 컨테이너 배포
-                            docker-compose up -d || echo "Deployment failed, but continuing..."
-                            sleep 30
-                            docker-compose ps || echo "Could not check container status"
-                        else
-                            echo "⚠️ ${envFile} not found, skipping deployment"
-                            echo "Available env files:"
-                            ls -la env.* || echo "No env files found"
+                        echo "Deploying to ${params.DEPLOY_ENV} environment..."
+                        
+                        # 환경 변수 설정
+                        export BUILD_NUMBER=${BUILD_NUMBER}
+                        export ENV=${params.DEPLOY_ENV}
+                        
+                        # 환경별 환경 변수 설정
+                        if [ "${params.DEPLOY_ENV}" = "dev" ]; then
+                            export NODE_ENV=development
+                            export SSL_CERT_PATH=./nginx/ssl
+                            export NGINX_DOMAIN=localhost
+                        elif [ "${params.DEPLOY_ENV}" = "staging" ]; then
+                            export NODE_ENV=staging
+                            export SSL_CERT_PATH=./nginx/ssl
+                            export NGINX_DOMAIN=staging.recode-my-life.site
                         fi
+                        
+                        # 최신 이미지 풀링
+                        docker-compose pull || echo "Pull failed, but continuing..."
+                        
+                        # 헬스 체크와 함께 배포
+                        # 프로젝트 컨테이너만 중지 (모든 컨테이너 중지 안함)
+                        docker-compose down --timeout 10 || true
+                        
+                        # 포트 충돌 확인 및 충돌하는 컨테이너만 중지
+                        if docker ps --format 'table {{.Names}}\t{{.Ports}}' | grep -q ':8088->' || docker ps --format 'table {{.Names}}\t{{.Ports}}' | grep -q ':8448->' || docker ps --format 'table {{.Names}}\t{{.Ports}}' | grep -q ':3000->' || docker ps --format 'table {{.Names}}\t{{.Ports}}' | grep -q ':8081->'; then
+                            echo "Port conflicts detected, stopping conflicting containers..."
+                            docker ps --format '{{.Names}}' | grep -E '(nginx|frontend|backend)' | xargs -r docker stop || true
+                        fi
+                        
+                        # 새 컨테이너 배포
+                        docker-compose up -d || echo "Deployment failed, but continuing..."
+                        sleep 30
+                        docker-compose ps || echo "Could not check container status"
                     """
                     
                     // 서비스가 정상적으로 실행될 때까지 대기 (최대 5분)
@@ -328,18 +331,14 @@ pipeline {
             }
             steps {
                 script {
-                    def envFile = "env.prod"
-                    
                     // 프로덕션 배포 (추가 안전 검사 포함)
                     sh """
                         # 환경 변수 설정
                         export BUILD_NUMBER=${BUILD_NUMBER}
                         export ENV=prod
-                        
-                        # 환경 변수 파일 로드
-                        set -a
-                        source ${envFile}
-                        set +a
+                        export NODE_ENV=production
+                        export SSL_CERT_PATH=/etc/letsencrypt
+                        export NGINX_DOMAIN=recode-my-life.site
                         
                         # 최신 이미지 풀링
                         docker-compose pull

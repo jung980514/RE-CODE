@@ -11,27 +11,34 @@ BUILD_NUMBER=${2:-latest}
 
 echo "🚀 Starting deployment to ${ENV} environment with build ${BUILD_NUMBER}"
 
-# 환경 변수 파일 확인
-ENV_FILE="env.${ENV}"
-if [ ! -f "$ENV_FILE" ]; then
-    echo "❌ Environment file ${ENV_FILE} not found!"
-    echo "Available environments: dev, staging, prod"
-    exit 1
-fi
-
-# 환경 변수 로드
-echo "📋 Loading environment variables from ${ENV_FILE}"
-set -a
-source "$ENV_FILE"
-set +a
-
 # 환경 변수 설정
 export ENV=$ENV
 export BUILD_NUMBER=$BUILD_NUMBER
 
+# 환경별 환경 변수 설정
+if [ "$ENV" = "dev" ]; then
+    export NODE_ENV=development
+    export SSL_CERT_PATH=./nginx/ssl
+    export NGINX_DOMAIN=localhost
+elif [ "$ENV" = "staging" ]; then
+    export NODE_ENV=staging
+    export SSL_CERT_PATH=./nginx/ssl
+    export NGINX_DOMAIN=staging.recode-my-life.site
+elif [ "$ENV" = "prod" ]; then
+    export NODE_ENV=production
+    export SSL_CERT_PATH=/etc/letsencrypt
+    export NGINX_DOMAIN=recode-my-life.site
+else
+    echo "❌ Invalid environment: $ENV"
+    echo "Available environments: dev, staging, prod"
+    exit 1
+fi
+
 echo "🔧 Environment: $ENV"
 echo "🏗️  Build Number: $BUILD_NUMBER"
-echo "🐳 Docker Registry: $DOCKER_REGISTRY"
+echo "🌐 Node Environment: $NODE_ENV"
+echo "🔒 SSL Cert Path: $SSL_CERT_PATH"
+echo "🌍 Nginx Domain: $NGINX_DOMAIN"
 
 # 기존 컨테이너 중지
 echo "🛑 Stopping existing containers..."
