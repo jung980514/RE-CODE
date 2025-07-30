@@ -1,17 +1,21 @@
 package com.ssafy.recode.domain.basic.controller;
 
 import com.ssafy.recode.domain.basic.service.BasicAnswerService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-@RestController                                         // REST API 컨트롤러
-@RequiredArgsConstructor                               // final 필드 생성자 자동 생성
-@RequestMapping("/api/answers/basic")                         // URL 매핑 (필요시 변경 가능)
+@RestController
+@RequiredArgsConstructor
+@RequestMapping("/api/answers/basic")
+@Tag(name = "BasicAnswer", description = "기초 질문 답변 저장 및 적합도 평가 API")
 public class BasicAnswerController {
 
-  private final BasicAnswerService basicAnswerService;  // 비즈니스 로직 서비스
+  private final BasicAnswerService basicAnswerService;
 
   /**
    * MP4 파일을 받아 WAV로 변환·S3 업로드 후,
@@ -23,10 +27,19 @@ public class BasicAnswerController {
    * @return 평가 요청 수락 메시지
    */
   @PostMapping
+  @Operation(
+      summary = "기본 답변 제출",
+      description = "MP4 비디오 파일을 받아 WAV로 변환하고 S3에 업로드한 뒤, 비동기 평가 파이프라인을 실행합니다."
+  )
   public ResponseEntity<String> submitAnswer(
+      @Parameter(description = "basic_questions 테이블의 질문 ID", required = true)
       @RequestParam Long questionId,
+
+      @Parameter(description = "요청한 사용자 ID", required = true)
       @RequestParam Long userId,
-      @RequestParam MultipartFile videoFile
+
+      @Parameter(description = "업로드할 MP4 파일", required = true, schema = @io.swagger.v3.oas.annotations.media.Schema(type = "string", format = "binary"))
+      @RequestParam("videoFile") MultipartFile videoFile
   ) {
     // 1) MP4 → WAV 변환 후 S3 업로드
     String wavKey = basicAnswerService.uploadVideoAsWav(videoFile);
