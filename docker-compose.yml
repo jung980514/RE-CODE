@@ -1,0 +1,35 @@
+version: '3.8'
+
+services:
+  backend:
+    build: ./backend
+    expose:
+      - "8088"
+    networks:
+      - app-network
+
+  frontend:
+    build: ./frontend
+    expose:
+      - "3030"
+    environment:
+      - PORT=3030
+    networks:
+      - app-network
+
+  nginx:
+    build: ./nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+    depends_on:
+      - frontend
+      - backend
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
