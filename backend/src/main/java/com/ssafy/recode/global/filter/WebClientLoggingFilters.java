@@ -1,4 +1,3 @@
-// src/main/java/com/example/videosttbackend/filter/WebClientLoggingFilters.java
 package com.ssafy.recode.global.filter;
 
 import org.slf4j.Logger;
