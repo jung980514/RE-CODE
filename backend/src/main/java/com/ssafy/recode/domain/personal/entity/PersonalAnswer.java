@@ -1,4 +1,4 @@
-package com.ssafy.recode.domain.basic.entity;
+package com.ssafy.recode.domain.personal.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
@@ -7,13 +7,13 @@ import org.hibernate.annotations.CreationTimestamp;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "basic_answers")
+@Table(name = "personal_answers")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class BasicAnswer {
+public class PersonalAnswer {
 
   /** primary key */
   @Id

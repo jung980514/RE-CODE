@@ -6,15 +6,15 @@ import lombok.Data;
 import org.springframework.web.multipart.MultipartFile;
 
 @Data
-@Schema(name = "BasicAnswerRequest", description = "기초 답변 제출 요청 DTO")
-public class BasicAnswerRequestDto {
+@Schema(name = "PersonalAnswerRequest", description = "개인화 질문 답변 제출 요청 DTO")
+public class PersonalAnswerRequestDto {
 
     @NotNull
-    @Schema(description = "basic_questions 테이블의 질문 ID", example = "1")
+    @Schema(description = "personal_questions 테이블의 질문 ID", example = "1")
     private Long questionId;
 
     @NotNull
-    @Schema(description = "요청한 사용자 ID", example = "1")
+    @Schema(description = "답변을 등록하는 사용자 ID", example = "1")
     private Long userId;
 
     @NotNull

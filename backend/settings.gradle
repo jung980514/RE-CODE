@@ -9,4 +9,4 @@ dependencyResolutionManagement {
         mavenCentral()
     }
 }
-rootProject.name = 'video-stt-backend'
+rootProject.name = 'recode'

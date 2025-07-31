@@ -11,6 +11,6 @@ import lombok.NoArgsConstructor;
 @Schema(description = "기본 답변 제출 응답 DTO")
 public class BasicAnswerResponseDto {
 
-    @Schema(description = "처리 결과 메시지", example = "업로드 완료, 평가를 진행 중입니다.")
+    @Schema(description = "처리 결과 메시지", example = "기초 질문 영상 업로드 완료, 답변이 저장되었습니다.")
     private String message;
 }

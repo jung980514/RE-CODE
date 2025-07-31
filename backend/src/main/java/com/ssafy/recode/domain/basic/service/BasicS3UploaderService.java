@@ -18,7 +18,7 @@ import java.util.UUID;
  */
 @Service
 @RequiredArgsConstructor
-public class S3UploaderService {
+public class BasicS3UploaderService {
 
   private final S3Client s3Client;
 
@@ -45,7 +45,7 @@ public class S3UploaderService {
       // ─────────────────────────────────────────────
       // 2) **MP4를 S3에 업로드**
       String mp4FileName = uuid + "_" + base + ".mp4";
-      String mp4Key      = prefix + mp4FileName;  // ex) answer/uuid_base.mp4
+      String mp4Key      = prefix + "basic/" +mp4FileName;  // ex) answer/uuid_base.mp4
       s3Client.putObject(
           PutObjectRequest.builder()
               .bucket(bucket)
@@ -74,7 +74,7 @@ public class S3UploaderService {
 
       // 5) WAV를 S3에 업로드
       String wavFileName = tmpWav.getFileName().toString();   // "uuid_base.wav"
-      String wavKey      = prefix + wavFileName;              // "answer/uuid_base.wav"
+      String wavKey      = prefix + "basic/" +wavFileName;              // "answer/uuid_base.wav"
       s3Client.putObject(
           PutObjectRequest.builder()
               .bucket(bucket)
@@ -92,7 +92,7 @@ public class S3UploaderService {
       return wavKey;
 
     } catch (Exception e) {
-      throw new RuntimeException("S3UploaderService 실패: " + e.getMessage(), e);
+      throw new RuntimeException("BasicS3UploaderService 실패: " + e.getMessage(), e);
     }
   }
 }

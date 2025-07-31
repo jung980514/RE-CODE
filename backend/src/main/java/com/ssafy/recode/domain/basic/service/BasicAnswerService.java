@@ -16,9 +16,9 @@ import jakarta.persistence.PersistenceContext;
 public class BasicAnswerService {
 
   private final VideoTranscriptionService transcriptionService;
-  private final PromptEvaluationService evaluationService;
+  private final BasicPromptEvaluationService basicEvaluationService;
   private final BasicQuestionRepository basicQuestionRepository;
-  private final S3UploaderService s3UploaderService;
+  private final BasicS3UploaderService basicS3UploaderService;
 
   @PersistenceContext
   private EntityManager entityManager;
@@ -29,7 +29,7 @@ public class BasicAnswerService {
    * @return 업로드된 WAV 파일의 S3 key
    */
   public String uploadVideoAsWav(MultipartFile file) {
-    return s3UploaderService.uploadAsWav(file);
+    return basicS3UploaderService.uploadAsWav(file);
   }
 
   /**
@@ -53,7 +53,7 @@ public class BasicAnswerService {
           .orElseThrow(() -> new IllegalArgumentException("Invalid questionId: " + questionId));
 
       // 3) LLM 평가 → 0~100 점수
-      double score = evaluationService.evaluateAnswer(question.getContent(), sttText);
+      double score = basicEvaluationService.evaluateAnswer(question.getContent(), sttText);
 
       // 4) match 여부 (예: 70점 이상이면 true)
       boolean match = score >= 70.0;
@@ -65,8 +65,7 @@ public class BasicAnswerService {
       BasicAnswer answer = BasicAnswer.builder()
           .questionId(questionId)
           .userId(userId)
-          .sttText(sttText)
-          .keywords(sttText)
+          .answer(sttText)
           .score(score)
           .isMatch(match)
           .videoPath(mp4Key)
