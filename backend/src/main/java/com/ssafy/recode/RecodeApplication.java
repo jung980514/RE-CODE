@@ -16,7 +16,8 @@ import org.springframework.scheduling.annotation.EnableAsync;
         description="치매 예방 웹플랫폼 Re:code의 회상훈련 관련 API 문서",
         contact=@Contact(name="팀 고정삼김", email="jung980514@naver.com")
     ),
-    servers=@Server(url="http://localhost:8080")
+    servers={@Server(url="http://localhost:8088"),
+              @Server(url="https://recode-my-life.site")}
 )
 @EnableAsync
 public class RecodeApplication {

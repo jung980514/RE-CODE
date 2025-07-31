@@ -2,6 +2,8 @@ package com.ssafy.recode.domain.basic.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
@@ -29,14 +31,18 @@ public class PromptEvaluationService {
    */
   public double evaluateAnswer(String question, String answer) throws Exception {
     // 1) 내부 프롬프트 생성
+    String today = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy년 M월 d일"));
     String prompt = """
-      당신은 교육용 채점 전문가입니다.
+      당신은 채점 전문가입니다.
+      오늘 날짜는 %s 입니다.
       아래 질문과 학생의 답변을 보고,
-      “이 답변이 질문에 얼마나 적절한지” 0에서 100 사이 정수로만 숫자를 대답해 주세요.
+      “이 답변이 질문에 얼마나 적절한지” 0에서 100 사이 정수로만 답해주세요.
+      정답이 명확한(날짜·시간·수치) 질문은 오늘 날짜와 완벽히 일치할 때만 100점을 주고,
+      조금이라도 어긋나면 0점에 가깝게 평가하세요.
 
       질문: "%s"
       학생 답변: "%s"
-      """.formatted(question, answer);
+      """.formatted(today, question, answer);
 
     // 2) SummarizationService와 동일한 JSON 스키마 사용
     Map<String,Object> requestBody = Map.of(
