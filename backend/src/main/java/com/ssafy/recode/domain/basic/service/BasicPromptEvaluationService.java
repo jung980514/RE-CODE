@@ -16,7 +16,7 @@ import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
-public class PromptEvaluationService {
+public class BasicPromptEvaluationService {
 
   @Value("${gms.api-key}")
   private String apiKey;
