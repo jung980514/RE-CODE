@@ -48,11 +48,21 @@ public class CookieUtils {
      * @param response HttpServletResponse
      */
     public static void clearCookie(HttpServletResponse response) {
-        Cookie cookie = new Cookie(REFRESH_TOKEN, null);
-        cookie.setMaxAge(0); // 즉시 만료
-        cookie.setPath("/");
+        Cookie refreshCookie = new Cookie(REFRESH_TOKEN, null);
+        refreshCookie.setMaxAge(0); // 즉시 만료
+        refreshCookie.setPath("/");
+        response.addCookie(refreshCookie);
 
-        response.addCookie(cookie);
+        Cookie accessCookie = new Cookie(ACCESS_TOKEN, null);
+        accessCookie.setMaxAge(0); // 즉시 만료
+        accessCookie.setPath("/");
+        response.addCookie(accessCookie);
+
+        Cookie uuidCookie = new Cookie(UUID, null);
+        uuidCookie.setMaxAge(0); // 즉시 만료
+        uuidCookie.setPath("/");
+        response.addCookie(uuidCookie);
+
         response.setStatus(HttpServletResponse.SC_OK);
     }
 

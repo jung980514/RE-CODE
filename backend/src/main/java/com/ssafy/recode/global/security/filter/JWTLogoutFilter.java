@@ -2,6 +2,7 @@ package com.ssafy.recode.global.security.filter;
 
 import com.ssafy.recode.domain.auth.repository.RefreshTokenRepository;
 import com.ssafy.recode.global.constant.AuthConstant;
+import com.ssafy.recode.global.dto.response.ApiResponse;
 import com.ssafy.recode.global.error.ErrorCode;
 import com.ssafy.recode.global.security.util.CookieUtils;
 import com.ssafy.recode.global.security.util.FilterResponseUtils;
@@ -20,7 +21,7 @@ import org.springframework.web.filter.GenericFilterBean;
  *
  * 로그아웃 요청 시 RefreshToken을 검증 후 DB에서 삭제하고,
  * 관련 쿠키를 제거하는 로그아웃 전용 커스텀 필터입니다.
- * - POST /api/logout 만 필터 대상으로 작동합니다.
+ * - POST /api/user/logout 만 필터 대상으로 작동합니다.
  * - RefreshToken은 Cookie에서 추출됩니다.
  * - 토큰이 DB에 없거나 만료되었으면 삭제만 수행합니다.
  *
@@ -46,7 +47,7 @@ public class JWTLogoutFilter extends GenericFilterBean {
 
     /**
      * 실제 필터 로직 수행 메서드
-     * - /api/logout 경로이면서 POST 요청일 때만 작동
+     * - /api/user/logout 경로이면서 POST 요청일 때만 작동
      * - 쿠키에서 RefreshToken 추출 후 DB 검증 → 삭제
      */
     private void doFilter(HttpServletRequest request,
@@ -96,8 +97,10 @@ public class JWTLogoutFilter extends GenericFilterBean {
         // 쿠키 제거
         CookieUtils.clearCookie(response);
 
+        ApiResponse<?> successResponse = new ApiResponse<>("success", 200, "로그아웃이 성공적으로 처리되었습니다.", null);
+        FilterResponseUtils.success(response, successResponse);
         // 다음 필터로 전달
-        filterChain.doFilter(request, response);
+//        filterChain.doFilter(request, response);
     }
 
     /**
@@ -108,9 +111,9 @@ public class JWTLogoutFilter extends GenericFilterBean {
     }
 
     /**
-     * 로그아웃 요청인지 확인 (/api/logout 경로)
+     * 로그아웃 요청인지 확인 (/api/user/logout 경로)
      */
     private boolean isUrlLogout(String requestUri) {
-        return requestUri.matches("^/api/logout$");
+        return requestUri.matches("^/api/user/logout$");
     }
 }
