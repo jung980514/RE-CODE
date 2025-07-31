@@ -1,6 +1,6 @@
 # README
 
-![favicon](./docs/favicon.ico)
+![favicon](./docs/favicon.png)
 
 # Re:code - 디지털 회상 치료 플랫폼
 
