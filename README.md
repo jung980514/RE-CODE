@@ -1,6 +1,6 @@
 # README
 
-[favicon.ico](favicon.ico)
+![favicon](./docs/favicon.ico)
 
 # Re:code - 디지털 회상 치료 플랫폼
 
@@ -49,7 +49,7 @@
 
 ## 🧩 시스템 구성도 (ERD)
 
-![13기_공통PJT_중간발표_E105_고정삼.김.🍙-ERD.png](erdv2.png)
+![ERD](./docs/13기_공통PJT_중간발표_E105_고정삼.김.🍙-ERD.png)
 
 ---
 
