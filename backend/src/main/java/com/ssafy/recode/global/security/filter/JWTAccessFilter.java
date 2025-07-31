@@ -138,7 +138,7 @@ public class JWTAccessFilter extends OncePerRequestFilter {
      * 로그인 관련 경로는 필터 적용 제외
      */
     private boolean isUrlLogin(String requestUri) {
-        return requestUri.matches("^\\/api/user\\/(login|register)$") || requestUri.matches("/api/user/login/page");
+        return requestUri.matches("^\\/api/user\\/(login|register|logout)$") || requestUri.matches("/api/user/login/page");
     }
 
     /**

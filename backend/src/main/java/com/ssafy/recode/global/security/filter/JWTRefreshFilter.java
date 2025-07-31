@@ -17,7 +17,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 /**
  * JWTRefreshFilter
  *
- * /api/reissue 요청에 대해 쿠키에서 RefreshToken을 추출하여 유효성 검사 후
+ * /api/user/reissue 요청에 대해 쿠키에서 RefreshToken을 추출하여 유효성 검사 후
  * request 속성에 저장해주는 필터입니다.
  * - 리프레시 토큰이 유효하지 않으면 요청을 차단하고 에러 응답을 반환합니다.
  * - 유효한 경우 request.setAttribute()로 토큰을 다음 단계에 전달합니다.
@@ -33,7 +33,7 @@ public class JWTRefreshFilter extends OncePerRequestFilter {
     private final FilterResponseUtils filterResponseUtils;
 
     /**
-     * /api/reissue 요청에 대해 RefreshToken 쿠키를 검증하고
+     * /api/user/reissue 요청에 대해 RefreshToken 쿠키를 검증하고
      * 유효할 경우 request attribute에 저장합니다.
      */
     @Override
@@ -80,10 +80,10 @@ public class JWTRefreshFilter extends OncePerRequestFilter {
     }
 
     /**
-     * /api/reissue 또는 하위 경로인지 확인
-     * 예: /api/reissue, /api/reissue/renew
+     * /api/user/reissue 또는 하위 경로인지 확인
+     * 예: /api/user/reissue, /api/user/reissue/renew
      */
     private boolean isUrlRefresh(String requestUri) {
-        return requestUri.matches("^/api/reissue(?:/.*)?$");
+        return requestUri.matches("^/api/user/reissue(?:/.*)?$");
     }
 }
