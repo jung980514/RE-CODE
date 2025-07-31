@@ -57,8 +57,7 @@
 
 | 분류 | 기술 |
 | --- | --- |
-| 프론트엔드 | Next.JS, React, Typescript, Node.js / npm, Tailwind CSS, CSS
-Radix UI,  Lucide React, shadcn/ui , Framer Motion |
+| 프론트엔드 | Next.JS, React, Typescript, Node.js / npm, Tailwind CSS, CSS Radix UI,  Lucide React, shadcn/ui , Framer Motion |
 | 백엔드 | SpringBoot, Java 17, Gradle, JPA |
 | AI | Gemini-flash (LLM), Naver Clova STT, face-api.js, gpt-4o-tts |
 | 미디어 처리 | WebRTC |
