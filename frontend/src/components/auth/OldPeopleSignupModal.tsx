@@ -3,30 +3,29 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import { UserCircle2, Calendar as CalendarIcon } from 'lucide-react';
-import styles from './GuardianSignupModal.module.css';
+import styles from './OldPeopleSignupModal.module.css';
+import { VirtualKeyboard } from '@/components/common/VirtualKeyboard';
+import { register } from '@/lib/auth';
 import PrivacyPolicyModal from "@/components/common/PrivacyPolicyModal";
 import SensitivePolicyModal from '@/components/common/SensitivePolicyModal';
 import Datepicker from 'react-tailwindcss-datepicker';
-import { VirtualKeyboard } from '@/components/common/VirtualKeyboard';
-import { register } from '@/lib/auth';
 
 
-interface GuardianSignupModalProps {
+interface OldPeopleSignupModalProps {
   isOpen: boolean;
   onClose: () => void;
   onBackToSignup: () => void; // 회원가입 선택 화면으로 돌아가기 위한 함수
 }
 
-const GuardianSignupModal: React.FC<GuardianSignupModalProps> = ({ 
+const OldPeopleSignupModal: React.FC<OldPeopleSignupModalProps> = ({ 
   isOpen, 
   onClose, 
   onBackToSignup 
 }) => {
-  
   // 모달의 표시 상태와 애니메이션 상태를 분리
   const [isVisible, setIsVisible] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
-
+  
   // 가상키보드 상태
   const [showVirtualKeyboard, setShowVirtualKeyboard] = useState(false);
   const [activeInput, setActiveInput] = useState<string | null>(null);
@@ -41,7 +40,7 @@ const GuardianSignupModal: React.FC<GuardianSignupModalProps> = ({
   const mouseDownTargetRef = useRef<EventTarget | null>(null);
 
   // 폼 상태 관리 - 백엔드 API와 호환되는 초기값
-  const [guardianFormData, setGuardianFormData] = useState({
+  const [oldPeopleFormData, setOldPeopleFormData] = useState({
     name: '',
     phone: '',
     birthDate: '',
@@ -57,7 +56,6 @@ const GuardianSignupModal: React.FC<GuardianSignupModalProps> = ({
     endDate: null,
   });
 
-
   // isOpen 상태 변화에 따른 애니메이션 처리
   useEffect(() => {
     if (isOpen) {
@@ -71,16 +69,16 @@ const GuardianSignupModal: React.FC<GuardianSignupModalProps> = ({
       setIsAnimating(false);
       const timer = setTimeout(() => {
         setIsVisible(false);
+        setShowVirtualKeyboard(false); // 모달이 닫힐 때 키보드도 닫기
       }, 300);
-      setShowVirtualKeyboard(false); 
 
       return () => clearTimeout(timer);
     }
   }, [isOpen]);
 
   // 폼 데이터 변경 핸들러
-  const handleGuardianInputChange = (field: string, value: string | boolean | File) => {
-    setGuardianFormData(prev => ({
+  const handleInputChange = (field: string, value: string | boolean | File) => {
+    setOldPeopleFormData((prev: typeof oldPeopleFormData) => ({
       ...prev,
       [field]: value
     }));
@@ -89,7 +87,7 @@ const GuardianSignupModal: React.FC<GuardianSignupModalProps> = ({
   const handleBirthDateChange = (newValue: { startDate: string | null; endDate: string | null } | null) => {
     setBirthDateValue(newValue);
     if (newValue) {
-      handleGuardianInputChange('birthDate', newValue.startDate || '');
+      handleInputChange('birthDate', newValue.startDate || '');
     }
   };
 
@@ -109,7 +107,7 @@ const GuardianSignupModal: React.FC<GuardianSignupModalProps> = ({
   // 가상키보드에서 입력 처리
   const handleVirtualKeyboardInput = (key: string, replaceLast?: boolean) => {
     if (activeInput) {
-      setGuardianFormData((prev: typeof guardianFormData) => {
+      setOldPeopleFormData((prev: typeof oldPeopleFormData) => {
         const currentValue = String(prev[activeInput as keyof typeof prev]);
         const newValue = replaceLast 
           ? currentValue.slice(0, -1) + key
@@ -126,7 +124,7 @@ const GuardianSignupModal: React.FC<GuardianSignupModalProps> = ({
   // 가상키보드에서 백스페이스 처리
   const handleVirtualKeyboardBackspace = () => {
     if (activeInput) {
-      setGuardianFormData((prev: typeof guardianFormData) => ({
+      setOldPeopleFormData((prev: typeof oldPeopleFormData) => ({
         ...prev,
         [activeInput]: String(prev[activeInput as keyof typeof prev]).slice(0, -1)
       }));
@@ -136,7 +134,10 @@ const GuardianSignupModal: React.FC<GuardianSignupModalProps> = ({
   // 가상키보드에서 스페이스 처리
   const handleVirtualKeyboardSpace = () => {
     if (activeInput) {
-      setGuardianFormData((prev) => ({...prev, [activeInput]: String(prev[activeInput as keyof typeof prev]) + ' '}));
+      setOldPeopleFormData((prev: typeof oldPeopleFormData) => ({
+        ...prev,
+        [activeInput]: String(prev[activeInput as keyof typeof prev]) + ' '
+      }));
     }
   };
 
@@ -161,36 +162,36 @@ const GuardianSignupModal: React.FC<GuardianSignupModalProps> = ({
   };
 
   // 회원가입 제출 핸들러
-  const handleGuardianSubmit = async (event: React.FormEvent) => {
+  const handleOldPeopleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     
     // 비밀번호 확인
-    if (guardianFormData.password !== guardianFormData.confirmPassword) {
+    if (oldPeopleFormData.password !== oldPeopleFormData.confirmPassword) {
       alert('비밀번호가 일치하지 않습니다.');
       return;
     }
 
     // 필수 필드 검증
-    if (!guardianFormData.name || !guardianFormData.email || !guardianFormData.password || 
-        !guardianFormData.phone || !guardianFormData.birthDate) {
+    if (!oldPeopleFormData.name || !oldPeopleFormData.email || !oldPeopleFormData.password || 
+        !oldPeopleFormData.phone || !oldPeopleFormData.birthDate) {
       alert('모든 필수 항목을 입력해주세요.');
       return;
     }
 
     // 약관 동의 확인
-    if (!guardianFormData.agreeToPrivacy || !guardianFormData.agreeToSensitive) {
+    if (!oldPeopleFormData.agreeToPrivacy || !oldPeopleFormData.agreeToSensitive) {
       alert('모든 약관에 동의해주세요.');
       return;
     }
 
     try {
       const result = await register({
-        name: guardianFormData.name,
-        email: guardianFormData.email,
-        password: guardianFormData.password,
-        phone: guardianFormData.phone,
-        birthDate: guardianFormData.birthDate,
-        role: 'GUARDIAN'
+        name: oldPeopleFormData.name,
+        email: oldPeopleFormData.email,
+        password: oldPeopleFormData.password,
+        phone: oldPeopleFormData.phone,
+        birthDate: oldPeopleFormData.birthDate,
+        role: 'ELDER'
       });
       
       alert('회원가입이 완료되었습니다.');
@@ -238,25 +239,26 @@ const GuardianSignupModal: React.FC<GuardianSignupModalProps> = ({
         </button>
 
         <div className={styles.header}>
-          <h2 className={styles.title}>보호자 회원가입</h2>
+          <h2 className={styles.title}>노인 회원가입</h2>
           <p className={styles.subtitle}>
             몇가지 정보만 입력하시면 바로 시작하실 수 있어요!
           </p>
         </div>
 
-        <form onSubmit={handleGuardianSubmit} className={styles.form}>
+        <form onSubmit={handleOldPeopleSubmit} className={styles.form}>
           <div className={styles.formColumns}>
             {/* 1행: 이름 */}
             <div className={styles.inputGroup}>
               <label className={styles.label}>이름 *</label>
               <input
                 type="text"
-                value={guardianFormData.name}
-                onChange={(e) => handleGuardianInputChange('name', e.target.value)}
-                placeholder="이름을 입력해주세요."
+                value={oldPeopleFormData.name}
+                onChange={(e) => handleInputChange('name', e.target.value)}
+                placeholder="실명을 입력해주세요"
                 className={styles.input}
                 required
               />
+              <p className={styles.inputHint}>실명을 입력해주세요</p>
             </div>
 
             {/* 2행: 휴대전화(왼) - 생년월일(오) */}
@@ -264,12 +266,13 @@ const GuardianSignupModal: React.FC<GuardianSignupModalProps> = ({
               <label className={styles.label}>휴대전화 번호 *</label>
               <input
                 type="tel"
-                value={guardianFormData.phone}
-                onChange={(e) => handleGuardianInputChange('phone', e.target.value)}
-                placeholder="&apos;-&apos; 없이 입력해주세요."
+                value={oldPeopleFormData.phone}
+                onChange={(e) => handleInputChange('phone', e.target.value)}
+                placeholder="&apos;-&apos; 없이 입력해주세요"
                 className={styles.input}
                 required
               />
+              <p className={styles.inputHint}>&apos;-&apos; 없이 입력해주세요</p>
             </div>
             <div className={styles.inputGroup}>
               <label className={styles.label}>생년월일 *</label>
@@ -294,19 +297,22 @@ const GuardianSignupModal: React.FC<GuardianSignupModalProps> = ({
               <label className={styles.label}>비밀번호 *</label>
               <input
                 type="password"
-                value={guardianFormData.password}
-                onChange={(e) => handleGuardianInputChange('password', e.target.value)}
-                placeholder="영문, 숫자, 특수문자 포함 8자 이상"
+                value={oldPeopleFormData.password}
+                onChange={(e) => handleInputChange('password', e.target.value)}
+                placeholder="영문, 숫자, 특수문자 포함"
                 className={styles.input}
                 required
               />
+              <p className={styles.passwordHint}>
+                8자 이상, 영문/숫자/특수문자 포함
+              </p>
             </div>
             <div className={styles.inputGroup}>
               <label className={styles.label}>이메일 *</label>
               <input
                 type="email"
-                value={guardianFormData.email}
-                onChange={(e) => handleGuardianInputChange('email', e.target.value)}
+                value={oldPeopleFormData.email}
+                onChange={(e) => handleInputChange('email', e.target.value)}
                 placeholder="이메일을 입력해주세요"
                 className={styles.input}
                 required
@@ -318,12 +324,13 @@ const GuardianSignupModal: React.FC<GuardianSignupModalProps> = ({
               <label className={styles.label}>비밀번호 확인 *</label>
               <input
                 type="password"
-                value={guardianFormData.confirmPassword}
-                onChange={(e) => handleGuardianInputChange('confirmPassword', e.target.value)}
+                value={oldPeopleFormData.confirmPassword}
+                onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
                 placeholder="비밀번호를 다시 입력해주세요"
                 className={styles.input}
                 required
               />
+              <p className={styles.inputHint}>비밀번호를 다시 입력해주세요</p>
             </div>
           </div>
 
@@ -331,17 +338,14 @@ const GuardianSignupModal: React.FC<GuardianSignupModalProps> = ({
           <div className={styles.agreementSection}>
             <div className={styles.agreementItem}>
               <input
-                id="agreeToPrivacy" // id 추가
                 type="checkbox"
-                checked={guardianFormData.agreeToPrivacy}
-                onChange={(e) => handleGuardianInputChange('agreeToPrivacy', e.target.checked)}
+                id="agreeToPrivacy"
+                checked={oldPeopleFormData.agreeToPrivacy}
+                onChange={(e) => handleInputChange('agreeToPrivacy', e.target.checked)}
                 className={styles.checkbox}
                 required
               />
-              <label 
-                htmlFor="agreeToPrivacy" // htmlFor로 input과 연결
-                className={styles.agreementLabel}
-              >
+              <label className={styles.agreementLabel} htmlFor="agreeToPrivacy">
                 개인정보 수집 및 이용에 동의합니다.
               </label>
               <button type="button" className={styles.viewTermsButton} onClick={() => setShowPrivacyModal(true)}>
@@ -349,26 +353,22 @@ const GuardianSignupModal: React.FC<GuardianSignupModalProps> = ({
               </button>
             </div>
 
-
-<div className={styles.agreementItem}>
-  <input
-    id="agreeToSensitive" // id 추가
-    type="checkbox"
-    checked={guardianFormData.agreeToSensitive}
-    onChange={(e) => handleGuardianInputChange('agreeToSensitive', e.target.checked)}
-    className={styles.checkbox}
-    required
-  />
-  <label 
-    htmlFor="agreeToSensitive" // htmlFor로 input과 연결
-    className={styles.agreementLabel}
-  >
-    민감정보 수집 및 이용에 동의합니다.
-  </label>
-  <button type="button" className={styles.viewTermsButton} onClick={() => setShowSensitiveModal(true)}>
-    전문보기
-  </button>
-</div>
+            <div className={styles.agreementItem}>
+              <input
+                type="checkbox"
+                id="agreeToSensitive"
+                checked={oldPeopleFormData.agreeToSensitive}
+                onChange={(e) => handleInputChange('agreeToSensitive', e.target.checked)}
+                className={styles.checkbox}
+                required
+              />
+              <label className={styles.agreementLabel} htmlFor="agreeToSensitive">
+                민감정보 수집 및 이용에 동의합니다.
+              </label>
+              <button type="button" className={styles.viewTermsButton} onClick={() => setShowSensitiveModal(true)}>
+                전문보기
+              </button>
+            </div>
           </div>
 
           {/* 버튼 그룹 */}
@@ -387,6 +387,7 @@ const GuardianSignupModal: React.FC<GuardianSignupModalProps> = ({
         </form>
         </div>
       </div>
+      
       {/* 가상키보드를 오버레이 레벨에 배치하여 모달 외부로 나갈 수 있도록 함 */}
       <VirtualKeyboard
         isVisible={showVirtualKeyboard}
@@ -395,7 +396,7 @@ const GuardianSignupModal: React.FC<GuardianSignupModalProps> = ({
         onBackspace={handleVirtualKeyboardBackspace}
         onSpace={handleVirtualKeyboardSpace}
         onEnter={handleVirtualKeyboardEnter}
-        currentInputValue={activeInput ? String(guardianFormData[activeInput as keyof typeof guardianFormData]) : ''}
+        currentInputValue={activeInput ? String(oldPeopleFormData[activeInput as keyof typeof oldPeopleFormData]) : ''}
       />
       <PrivacyPolicyModal open={showPrivacyModal} onClose={() => setShowPrivacyModal(false)} />
       <SensitivePolicyModal open={showSensitiveModal} onClose={() => setShowSensitiveModal(false)} />
@@ -403,4 +404,4 @@ const GuardianSignupModal: React.FC<GuardianSignupModalProps> = ({
   );
 };
 
-export default GuardianSignupModal; 
+export default OldPeopleSignupModal; 

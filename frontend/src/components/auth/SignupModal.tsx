@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import styles from './SignupModal.module.css';
 import GuardianSignupModal from './GuardianSignupModal';
+import OldPeopleSignupModal from './OldPeopleSignupModal';
 
 interface SignupModalProps {
   isOpen: boolean;
@@ -17,6 +18,8 @@ const SignupModal: React.FC<SignupModalProps> = ({ isOpen, onClose }) => {
   
   // GuardianSignupModal 상태 관리
   const [showGuardianSignup, setShowGuardianSignup] = useState(false);
+  // OldPeopleSignupModal 상태 관리
+  const [showOldPeopleSignup, setShowOldPeopleSignup] = useState(false);
 
   // isOpen 상태 변화에 따른 애니메이션 처리
   useEffect(() => {
@@ -38,8 +41,7 @@ const SignupModal: React.FC<SignupModalProps> = ({ isOpen, onClose }) => {
   }, [isOpen]);
 
   const handleSeniorSignup = () => {
-    // TODO: Implement senior signup logic
-    console.log('Senior signup clicked');
+    setShowOldPeopleSignup(true);
   };
 
   const handleGuardianSignup = () => {
@@ -48,6 +50,7 @@ const SignupModal: React.FC<SignupModalProps> = ({ isOpen, onClose }) => {
 
   const handleBackToSignup = () => {
     setShowGuardianSignup(false);
+    setShowOldPeopleSignup(false);
   };
 
   // 모달이 완전히 숨겨진 상태에서는 렌더링하지 않음
@@ -117,6 +120,12 @@ const SignupModal: React.FC<SignupModalProps> = ({ isOpen, onClose }) => {
       <GuardianSignupModal
         isOpen={showGuardianSignup}
         onClose={() => setShowGuardianSignup(false)}
+        onBackToSignup={handleBackToSignup}
+      />
+      {/* OldPeopleSignupModal */}
+      <OldPeopleSignupModal
+        isOpen={showOldPeopleSignup}
+        onClose={() => setShowOldPeopleSignup(false)}
         onBackToSignup={handleBackToSignup}
       />
     </>

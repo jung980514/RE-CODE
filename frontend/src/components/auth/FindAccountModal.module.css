@@ -1,0 +1,255 @@
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  opacity: 0;
+}
+
+.overlayOpen {
+  animation: fadeIn 0.3s ease forwards;
+}
+
+.overlayClose {
+  animation: fadeOut 0.3s ease forwards;
+}
+
+.modal {
+  background: white;
+  border-radius: 20px;
+  padding: 2rem;
+  width: 100%;
+  max-width: 762px;
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+.modalOpen {
+  animation: slideUp 0.3s ease forwards;
+}
+
+.modalClose {
+  animation: slideDown 0.3s ease forwards;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideDown {
+  from {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+}
+
+.header {
+  text-align: center;
+  margin-bottom: 1.5rem;
+  position: relative;
+}
+
+.title {
+  font-family: 'Paperlogy';
+  font-weight: 700;
+  font-size: 40px;
+  color: #111827;
+  margin-bottom: 0.5rem;
+}
+
+.subtitle {
+  font-family: 'Pretendard';
+  font-weight: 300;
+  font-size: 24px;
+  color: #000000;
+  margin-bottom: 0.5rem;
+}
+
+.description {
+  font-family: 'Pretendard';
+  font-weight: 300;
+  font-size: 20px;
+  color: #000000;
+}
+
+.tabContainer {
+  background-color: #f3f4f6;
+  border-radius: 9999px;
+  padding: 4px;
+  margin-bottom: 2rem;
+}
+
+.tabList {
+  display: flex;
+  width: 100%;
+}
+
+.tab {
+  flex: 1;
+  padding: 0.75rem;
+  text-align: center;
+  font-family: 'Pretendard';
+  font-weight: 500;
+  font-size: 18px;
+  color: #4b5563;
+  border-radius: 9999px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.tabActive {
+  background-color: white;
+  color: #111827;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.inputGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.label {
+  font-family: 'Pretendard';
+  font-weight: 500;
+  font-size: 20px;
+  color: #111827;
+}
+
+.input {
+  padding: 1rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  font-family: 'Pretendard';
+  font-weight: 300;
+  font-size: 21px;
+  color: #111827;
+  font-weight: 400;
+}
+
+.input::placeholder {
+  color: #71717a;
+}
+
+.confirmButton {
+  background-color: #22c55e;
+  color: white;
+  padding: 1rem;
+  border-radius: 8px;
+  font-family: 'Pretendard';
+  font-weight: 500;
+  font-size: 20px;
+  margin-top: 1rem;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.confirmButton:hover {
+  background-color: #16a34a;
+  transition: transform 0.2s ease;
+}
+
+.buttonIcon {
+  transition: transform 0.2s ease;
+} 
+
+.confirmButton:hover .buttonIcon{
+  transform: translateX(4px);
+}
+
+
+.divider {
+  display: flex;
+  align-items: center;
+  margin: 1rem 0;
+}
+
+.divider::before,
+.divider::after {
+  content: '';
+  flex: 1;
+  border-top: 1px solid #e5e7eb;
+}
+
+.dividerText {
+  padding: 0 1rem;
+  font-family: 'Pretendard';
+  font-weight: 300;
+  font-size: 20px;
+  color: #6b7280;
+}
+
+.cancelButton {
+  background-color: #f97316;
+  color: white;
+  padding: 1rem;
+  border-radius: 8px;
+  font-family: 'Pretendard';
+  font-weight: 500;
+  font-size: 20px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.cancelButton:hover {
+  background-color: #ea580c;
+} 
+
+.keyboardButton {
+  position: absolute;
+  top: 0;
+  right: 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  transition: transform 0.2s ease;
+}
+
+.keyboardButton:hover {
+  transform: scale(1.1);
+}

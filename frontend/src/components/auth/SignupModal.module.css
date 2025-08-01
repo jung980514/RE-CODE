@@ -148,13 +148,13 @@
 }
 
 .signupButton {
-  width: 695px;
-  height: 106px;
-  border-radius: 30px;
+  width: 690px;
+  height: 85px;
+  border-radius: 8px;
   border: none;
   font-family: 'Pretendard';
   font-weight: 400;
-  font-size: 45px;
+  font-size: 35px;
   color: #FFFFFF;
   letter-spacing: 0.9px;
   cursor: pointer;
@@ -178,17 +178,17 @@
 }
 
 .seniorButton {
-  background-color: #2C4001;
+  background-color: #22C55E;
 }
 
 .cancelButton {
   width: 341px;
-  height: 76px;
+  height: 70px;
   background-color: #F26835;
   border: none;
-  border-radius: 15px;
-  font-family: 'Paperlogy';
-  font-weight: 600;
+  border-radius: 8px;
+  font-family: 'Pretendard';
+  font-weight: 400;
   font-size: 36px;
   color: #FFFFFF;
   cursor: pointer;

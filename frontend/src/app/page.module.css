@@ -90,14 +90,15 @@
   }
 }
 
-/* Introduction Section */
+/* Introduction Section */  
 .introduction {
   position: relative;
   width: 100%;
+  height: 1050px;
   background-image: url('/images/비로그인배경2.png');
   background-size: cover;
   background-position: center;
-  height: 950px;
+  height: 95  0px;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -281,3 +282,17 @@
     font-size: 36px;
   }
 } 
+
+/* 스크롤 애니메이션 */
+.animateOnScroll {
+  opacity: 0;
+  transform: translateY(30px);
+  transition:
+    opacity 0.8s ease-out,
+    transform 0.8s ease-out;
+}
+
+.animateOnScroll.visible {
+  opacity: 1;
+  transform: translateY(0);
+}

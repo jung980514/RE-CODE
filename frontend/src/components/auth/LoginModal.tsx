@@ -2,19 +2,24 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import { Eye, EyeOff, UserPlus } from 'lucide-react';
 import { VirtualKeyboard } from '@/components/common/VirtualKeyboard';
 import SignupModal from './SignupModal';
+import FindAccountModal from './FindAccountModal';
 import styles from './LoginModal.module.css';
+import { login } from '@/lib/auth';
 
 interface LoginModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onLoginSuccess: () => void;
 }
 
-const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
+const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLoginSuccess }) => {
+  const router = useRouter();
   const [formData, setFormData] = useState({
-    username: '',
+    email: '',
     password: '',
     rememberMe: false
   });
@@ -24,16 +29,22 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
   const [isAnimating, setIsAnimating] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+
   // 가상 키보드 관련 상태
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
-  const [activeInput, setActiveInput] = useState<'username' | 'password' | null>(
+  const [activeInput, setActiveInput] = useState<'email' | 'password' | null>(
     null,
   );
-  const usernameInputRef = useRef<HTMLInputElement>(null);
+  const emailInputRef = useRef<HTMLInputElement>(null);
   const passwordInputRef = useRef<HTMLInputElement>(null);
 
   // 회원가입 모달 상태
   const [showSignupModal, setShowSignupModal] = useState(false);
+  // 계정정보 찾기 모달 상태
+  const [showFindAccountModal, setShowFindAccountModal] = useState(false);
 
   // 마우스 다운 시작 위치를 추적하기 위한 ref
   const mouseDownTargetRef = useRef<EventTarget | null>(null);
@@ -63,10 +74,28 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
     }
   }, [isOpen]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: Implement login logic
-    console.log('Login attempt:', formData);
+    setIsLoading(true);
+    setError(null);
+    try {
+      const user = await login(formData.email, formData.password);
+      console.log('로그인 성공:', user);
+      // role에 따라 리다이렉트
+      if (user.role === 'ELDER') {
+        // 노인 계정: main-elder로 이동
+        router.push('/main-elder');
+      } else if (user.role === 'GUARDIAN') {
+        // 보호자 계정: main-guardian으로 이동
+        router.push('/main-guardian');
+      }
+      onLoginSuccess();
+    } catch (err: any) {
+      console.error('로그인 실패:', err);
+      setError(err.message || '로그인에 실패했습니다. 이메일과 비밀번호를 확인해주세요.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleKakaoLogin = () => {
@@ -78,6 +107,10 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
     setShowSignupModal(true);
   };
 
+  const handleFindAccountClick = () => {
+    setShowFindAccountModal(true);
+  };
+
   const handleToggleKeyboard = () => {
     setIsKeyboardVisible((prev) => !prev);
   };
@@ -87,7 +120,7 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
     // 커서를 항상 텍스트 맨 뒤로 이동시킵니다.
     setTimeout(() => {
       const inputRef =
-        activeInput === 'username' ? usernameInputRef : passwordInputRef;
+        activeInput === 'email' ? emailInputRef : passwordInputRef;
 
       if (inputRef.current) {
         const inputElement = inputRef.current;
@@ -98,7 +131,7 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
       }
     }, 0);
   };
-
+  
   // 가상 키보드 입력 처리
   const handleVirtualKeyPress = (key: string, replaceLast = false) => {
     if (!activeInput) return;
@@ -174,17 +207,20 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
             />
           </button>
         </div>
+
+        {error && <div className={styles.errorMessage}>{error}</div>}
+
         <form onSubmit={handleSubmit}>
           <div className={styles.inputGroup}>
-            <label htmlFor="username">아이디</label>
+            <label htmlFor="email">이메일</label>
             <input
-              ref={usernameInputRef}
+              ref={emailInputRef}
               type="text"
-              id="username"
-              placeholder="아이디를 입력하세요"
-              value={formData.username}
-              onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-              onFocus={() => setActiveInput('username')}
+              id="email"
+              placeholder="이메일을 입력하세요"
+              value={formData.email}
+              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              onFocus={() => setActiveInput('email')}
             />
           </div>
           <div className={styles.inputGroup}>
@@ -225,7 +261,11 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
               />
               로그인 상태 유지
             </label>
-            <button type="button" className={styles.findAccountButton}>
+            <button 
+              type="button" 
+              className={styles.findAccountButton}
+              onClick={handleFindAccountClick}
+            >
               아이디/비밀번호 찾기
             </button>
           </div>
@@ -235,16 +275,23 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
             onClick={handleKakaoLogin}
           >
             <Image
-              src="/icons/kakao_login_large_wide.png"
+              src="/icons/kakao.png"
               alt="Kakao"
-              width={258}
+              width={29}
               height={29}
               className={styles.kakaoImage}
             />
+            카카오 로그인
           </button>
-          <button type="submit" className={styles.loginButton}>
-            <span className={styles.buttonIcon}>→</span>
-            로그인
+          <button type="submit" className={styles.loginButton} disabled={isLoading}>
+            {isLoading ? (
+              <span className={styles.loadingSpinner}></span>
+            ) : (
+              <>
+                <span className={styles.buttonIcon}>→</span>
+                로그인
+              </>
+            )}
           </button>
           <div className={styles.divider}>
             <span>또는</span>
@@ -269,6 +316,12 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
       <SignupModal
         isOpen={showSignupModal}
         onClose={() => setShowSignupModal(false)}
+      />
+
+      {/* 계정정보 찾기 모달 */}
+      <FindAccountModal
+        isOpen={showFindAccountModal}
+        onClose={() => setShowFindAccountModal(false)}
       />
     </div>
   );

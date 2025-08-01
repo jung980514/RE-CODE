@@ -308,23 +308,31 @@
 }
 
 .kakaoButton {
-  width: 65%;
-  padding: 0;
+  width: 100%;
+  height: 63px;
+  background: #FEE500;
   border: none;
-  background: none;
+  border-radius: 8px;
+  color: #000000 85%;
+  font-family: 'Pretendard';
+  font-size: 20px;
+  font-weight: 500;
   cursor: pointer;
-  margin: 20px 110px;
-  transition: transform 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 20px;
+  transition: background-color 0.2s ease;
 }
 
 .kakaoButton:hover {
-  transform: translateY(-2px);
+  background: #c4b003;
 }
 
 .kakaoImage {
-  width: 100%;
-  height: auto;
   object-fit: contain;
+  margin: 0 0 0 0;
 }
 
 .buttonIcon {
