@@ -1,11 +1,15 @@
 package com.ssafy.recode.global.security.config;
 
 import com.ssafy.recode.global.security.resolver.CustomAuthenticationPrincipalArgumentResolver;
+import java.util.Arrays;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.web.method.support.HandlerMethodArgumentResolver;
-import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.PathMatchConfigurer;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
@@ -24,19 +28,6 @@ public class WebConfig implements WebMvcConfigurer{
     private final CustomAuthenticationPrincipalArgumentResolver argumentResolver;
 
     /**
-     * CORS 설정: 모든 도메인과 메서드 허용
-     */
-    @Override
-    public void addCorsMappings(CorsRegistry registry) {
-        registry.addMapping("/**")
-                .allowedOriginPatterns("*") // 모든 Origin 허용
-                .allowedMethods("GET","POST","PUT","DELETE","OPTIONS") // 주요 HTTP 메서드 허용
-                .allowedHeaders("*") // 모든 요청 헤더 허용
-                .allowCredentials(false); // 자격 증명 포함 안 함
-
-    }
-
-    /**
      * URL 경로 슬래시 허용 여부 설정
      * - 예: /api/test 와 /api/test/ 둘 다 허용
      */
@@ -52,5 +43,21 @@ public class WebConfig implements WebMvcConfigurer{
     @Override
     public void addArgumentResolvers(List<HandlerMethodArgumentResolver> resolvers) {
         resolvers.add(argumentResolver);
+    }
+
+    // Filter 수준에서 동작하기 위한 CorsConfigurationSource를 구성하고 적용하자.
+    // WebMvcConfigurer는 cors 설정은 무의미
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration configuration = new CorsConfiguration();
+        configuration.setAllowedOrigins(Arrays.asList("http://localhost:3000")); //로컬 테스트
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        configuration.setAllowedHeaders(Arrays.asList("*"));
+        configuration.setAllowCredentials(true); // 🔥 필수 설정
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/api/**", configuration);
+
+        return source;
     }
 }

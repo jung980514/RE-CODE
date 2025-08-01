@@ -1,6 +1,5 @@
 package com.ssafy.recode.global.security.config;
 
-import static org.springframework.security.config.Customizer.withDefaults;
 import com.ssafy.recode.domain.auth.repository.RefreshTokenRepository;
 import com.ssafy.recode.domain.auth.service.RefreshTokenService;
 import com.ssafy.recode.global.oauth.OAuth2SuccessHandler;
@@ -25,6 +24,7 @@ import org.springframework.security.oauth2.client.web.OAuth2LoginAuthenticationF
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.authentication.logout.LogoutFilter;
+import org.springframework.web.cors.CorsConfigurationSource;
 
 /**
  * SecurityConfig
@@ -73,12 +73,13 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http,
                                             AuthenticationManager authenticationManager,
                                             JWTUtils jwtUtil,
+                                            CorsConfigurationSource corsConfigurationSource,
                                             RefreshTokenService refreshTokenService) throws Exception {
 
         JWTLoginFilter jwtLoginFilter = new JWTLoginFilter(authenticationManager, jwtUtil, refreshTokenService);
 
         // 기본 보안 기능 비활성화 (JWT 기반이므로 세션 사용 X)
-        http.cors(withDefaults());
+        http.cors(cors -> cors.configurationSource(corsConfigurationSource));
         http.csrf(csrf -> csrf.disable());
         http.formLogin(form -> form.disable());
         http.httpBasic(basic -> basic.disable());
