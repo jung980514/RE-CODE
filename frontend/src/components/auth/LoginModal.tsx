@@ -8,7 +8,7 @@ import { VirtualKeyboard } from '@/components/common/VirtualKeyboard';
 import SignupModal from './SignupModal';
 import FindAccountModal from './FindAccountModal';
 import styles from './LoginModal.module.css';
-import { login } from '@/lib/auth';
+import { login } from '@/api/login';
 
 interface LoginModalProps {
   isOpen: boolean;
@@ -74,25 +74,32 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLoginSuccess
     }
   }, [isOpen]);
 
+  const handleInputChange = (field: 'email' | 'password', value: string) => {
+    if (error) {
+      setError(null);
+    }
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError(null);
     try {
-      const user = await login(formData.email, formData.password);
+      const user = await login({ email: formData.email, password: formData.password });
       console.log('로그인 성공:', user);
-      // role에 따라 리다이렉트
-      if (user.role === 'ELDER') {
+      // userType에 따라 리다이렉트
+      if (user.userType === 0) {
         // 노인 계정: main-elder로 이동
         router.push('/main-elder');
-      } else if (user.role === 'GUARDIAN') {
+      } else if (user.userType === 1) {
         // 보호자 계정: main-guardian으로 이동
         router.push('/main-guardian');
       }
       onLoginSuccess();
-    } catch (err: any) {
+    } catch (err) {
       console.error('로그인 실패:', err);
-      setError(err.message || '로그인에 실패했습니다. 이메일과 비밀번호를 확인해주세요.');
+      setError('로그인에 실패했습니다. 이메일과 비밀번호를 확인해주세요.');
     } finally {
       setIsLoading(false);
     }
@@ -207,9 +214,6 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLoginSuccess
             />
           </button>
         </div>
-
-        {error && <div className={styles.errorMessage}>{error}</div>}
-
         <form onSubmit={handleSubmit}>
           <div className={styles.inputGroup}>
             <label htmlFor="email">이메일</label>
@@ -219,8 +223,10 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLoginSuccess
               id="email"
               placeholder="이메일을 입력하세요"
               value={formData.email}
-              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              onChange={(e) => handleInputChange('email', e.target.value)}
               onFocus={() => setActiveInput('email')}
+              className={styles.input}
+              style={error ? { borderColor: '#ff4d4f' } : {}}
             />
           </div>
           <div className={styles.inputGroup}>
@@ -232,10 +238,10 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLoginSuccess
                 id="password"
                 placeholder="비밀번호를 입력하세요"
                 value={formData.password}
-                onChange={(e) =>
-                  setFormData({ ...formData, password: e.target.value })
-                }
+                onChange={(e) => handleInputChange('password', e.target.value)}
                 onFocus={() => setActiveInput('password')}
+                className={styles.input}
+                style={error ? { borderColor: '#ff4d4f' } : {}}
               />
               <button
                 type="button"
@@ -269,6 +275,7 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLoginSuccess
               아이디/비밀번호 찾기
             </button>
           </div>
+          {error && <div className={styles.errorMessage}>{error}</div>}
           <button 
             type="button" 
             className={styles.kakaoButton}
@@ -283,10 +290,12 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLoginSuccess
             />
             카카오 로그인
           </button>
-          <button type="submit" className={styles.loginButton} disabled={isLoading}>
-            {isLoading ? (
-              <span className={styles.loadingSpinner}></span>
-            ) : (
+          <button
+            type="submit"
+            className={styles.loginButton}
+            disabled={isLoading}
+          >
+            {isLoading ? <span className={styles.loadingSpinner}></span> : (
               <>
                 <span className={styles.buttonIcon}>→</span>
                 로그인

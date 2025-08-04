@@ -7,7 +7,6 @@ import Link from 'next/link';
 import styles from './Navbar.module.css';
 import LoginModal from '../auth/LoginModal';
 import SignupModal from '../auth/SignupModal';
-import { isLoggedIn, isElderUser, isGuardianUser, logout } from '@/lib/auth';
 
 const Navbar = () => {
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
@@ -16,34 +15,19 @@ const Navbar = () => {
   const router = useRouter();
 
   useEffect(() => {
-    // 컴포넌트가 마운트될 때 로그인 상태를 확인합니다.
-    const checkLoginStatus = () => {
-      const loggedIn = isLoggedIn();
-      setIsLoggedIn(loggedIn);
-    };
-    
-    checkLoginStatus();
-    
-    // 로그인 상태 변경을 감지하기 위한 이벤트 리스너
-    const handleStorageChange = () => {
-      checkLoginStatus();
-    };
-    
-    window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
+    // 컴포넌트가 마운트될 때 localStorage를 확인하여 로그인 상태를 설정합니다.
+    const token = localStorage.getItem('token');
+    if (token) {
+      setIsLoggedIn(true);
+    }
   }, []);
 
-  const handleLogout = async () => {
-    try {
-      await logout();
-      setIsLoggedIn(false);
-      router.replace('/'); // 로그아웃 후 메인으로 이동
-    } catch (error) {
-      console.error('로그아웃 실패:', error);
-      // 로그아웃 요청이 실패해도 로컬 상태는 정리
-      setIsLoggedIn(false);
-      router.replace('/');
-    }
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    // 필요하다면 다른 사용자 정보도 함께 삭제합니다.
+    // localStorage.removeItem('user');
+    setIsLoggedIn(false);
+    router.replace('/'); // 로그아웃 후 메인으로 이동
   };
 
   const handleLoginSuccess = () => {
@@ -54,8 +38,9 @@ const Navbar = () => {
   // 로고 링크 동적 처리
   let logoHref = "/";
   if (isLoggedIn) {
-    if (isElderUser()) logoHref = "/main-elder";
-    else if (isGuardianUser()) logoHref = "/main-guardian";
+    const userType = typeof window !== 'undefined' ? localStorage.getItem('userType') : null;
+    if (userType === "0") logoHref = "/main-elder";
+    else if (userType === "1") logoHref = "/main-guardian";
   }
   return (
     <>
@@ -78,7 +63,7 @@ const Navbar = () => {
             {isLoggedIn ? (
               <>
                 <Link href="/record" className={styles.authLink}>기록하기</Link>
-                <Link href="/mypage" className={styles.authLink}>회원정보</Link>
+                <Link href="/userinfo" className={styles.authLink}>회원정보</Link>
                 <Link href="/calender" className={styles.authLink}>회상캘린더</Link>
                 <button onClick={handleLogout} className={styles.authLink}>
                   로그아웃

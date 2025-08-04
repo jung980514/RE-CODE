@@ -5,7 +5,6 @@ import Image from 'next/image';
 import { UserCircle2, Calendar as CalendarIcon } from 'lucide-react';
 import styles from './OldPeopleSignupModal.module.css';
 import { VirtualKeyboard } from '@/components/common/VirtualKeyboard';
-import { register } from '@/lib/auth';
 import PrivacyPolicyModal from "@/components/common/PrivacyPolicyModal";
 import SensitivePolicyModal from '@/components/common/SensitivePolicyModal';
 import Datepicker from 'react-tailwindcss-datepicker';
@@ -39,12 +38,14 @@ const OldPeopleSignupModal: React.FC<OldPeopleSignupModalProps> = ({
   // 마우스 다운 시작 위치를 추적하기 위한 ref
   const mouseDownTargetRef = useRef<EventTarget | null>(null);
 
-  // 폼 상태 관리 - 백엔드 API와 호환되는 초기값
+  // 폼 상태 관리 - Figma 디자인에 맞춘 초기값
   const [oldPeopleFormData, setOldPeopleFormData] = useState({
     name: '',
-    phone: '',
+    phoneNumber: '',
     birthDate: '',
     email: '',
+    gender: '',
+    profileImage: null as File | null,
     password: '',
     confirmPassword: '',
     agreeToPrivacy: false,
@@ -91,7 +92,13 @@ const OldPeopleSignupModal: React.FC<OldPeopleSignupModalProps> = ({
     }
   };
 
-
+  // 프로필 이미지 업로드 핸들러
+  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      handleInputChange('profileImage', file);
+    }
+  };
 
   // 가상키보드 토글 핸들러
   const handleVirtualKeyboardToggle = () => {
@@ -162,43 +169,10 @@ const OldPeopleSignupModal: React.FC<OldPeopleSignupModalProps> = ({
   };
 
   // 회원가입 제출 핸들러
-  const handleOldPeopleSubmit = async (event: React.FormEvent) => {
+  const handleOldPeopleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
-    
-    // 비밀번호 확인
-    if (oldPeopleFormData.password !== oldPeopleFormData.confirmPassword) {
-      alert('비밀번호가 일치하지 않습니다.');
-      return;
-    }
-
-    // 필수 필드 검증
-    if (!oldPeopleFormData.name || !oldPeopleFormData.email || !oldPeopleFormData.password || 
-        !oldPeopleFormData.phone || !oldPeopleFormData.birthDate) {
-      alert('모든 필수 항목을 입력해주세요.');
-      return;
-    }
-
-    // 약관 동의 확인
-    if (!oldPeopleFormData.agreeToPrivacy || !oldPeopleFormData.agreeToSensitive) {
-      alert('모든 약관에 동의해주세요.');
-      return;
-    }
-
-    try {
-      const result = await register({
-        name: oldPeopleFormData.name,
-        email: oldPeopleFormData.email,
-        password: oldPeopleFormData.password,
-        phone: oldPeopleFormData.phone,
-        birthDate: oldPeopleFormData.birthDate,
-        role: 'ELDER'
-      });
-      
-      alert('회원가입이 완료되었습니다.');
-      onClose();
-    } catch (error: any) {
-      alert(error.message || '회원가입에 실패했습니다.');
-    }
+    // TODO: Implement signup logic
+    console.log('OldPeople signup data:', oldPeopleFormData);
   };
 
   // 모달이 완전히 숨겨진 상태에서는 렌더링하지 않음
@@ -239,7 +213,7 @@ const OldPeopleSignupModal: React.FC<OldPeopleSignupModalProps> = ({
         </button>
 
         <div className={styles.header}>
-          <h2 className={styles.title}>노인 회원가입</h2>
+          <h2 className={styles.title}>보호자 회원가입</h2>
           <p className={styles.subtitle}>
             몇가지 정보만 입력하시면 바로 시작하실 수 있어요!
           </p>
@@ -247,7 +221,39 @@ const OldPeopleSignupModal: React.FC<OldPeopleSignupModalProps> = ({
 
         <form onSubmit={handleOldPeopleSubmit} className={styles.form}>
           <div className={styles.formColumns}>
-            {/* 1행: 이름 */}
+            {/* 1행: 프로필(왼) - 이름(오) */}
+            <div className={styles.profileSection}>
+              <div 
+                className={styles.profileImageContainer}
+                onClick={() => document.getElementById('profile-upload')?.click()}
+              >
+                {oldPeopleFormData.profileImage ? (
+                  <Image
+                    src={URL.createObjectURL(oldPeopleFormData.profileImage)}
+                    alt="Profile"
+                    width={140}
+                    height={140}
+                    className={styles.profileImage}
+                    style={{ objectFit: 'contain' }}
+                    priority
+                  />
+                ) : (
+                  <div className={styles.profilePlaceholder}>
+                    <UserCircle2 className={styles.profilePlaceholderIcon} />
+                  </div>
+                )}
+              </div>
+              <label className={styles.profileLabel}>
+                프로필 사진 (선택사항)
+              </label>
+              <input
+                id="profile-upload"
+                type="file"
+                accept="image/*"
+                onChange={handleImageUpload}
+                className={styles.profileInput}
+              />
+            </div>
             <div className={styles.inputGroup}>
               <label className={styles.label}>이름 *</label>
               <input
@@ -266,8 +272,8 @@ const OldPeopleSignupModal: React.FC<OldPeopleSignupModalProps> = ({
               <label className={styles.label}>휴대전화 번호 *</label>
               <input
                 type="tel"
-                value={oldPeopleFormData.phone}
-                onChange={(e) => handleInputChange('phone', e.target.value)}
+                value={oldPeopleFormData.phoneNumber}
+                onChange={(e) => handleInputChange('phoneNumber', e.target.value)}
                 placeholder="&apos;-&apos; 없이 입력해주세요"
                 className={styles.input}
                 required
@@ -308,18 +314,30 @@ const OldPeopleSignupModal: React.FC<OldPeopleSignupModalProps> = ({
               </p>
             </div>
             <div className={styles.inputGroup}>
-              <label className={styles.label}>이메일 *</label>
+              <label className={styles.label}>이메일</label>
               <input
                 type="email"
                 value={oldPeopleFormData.email}
                 onChange={(e) => handleInputChange('email', e.target.value)}
                 placeholder="이메일을 입력해주세요"
                 className={styles.input}
-                required
               />
             </div>
 
-            {/* 4행: 비밀번호 확인 */}
+            {/* 4행: 성별(왼) - 비밀번호 확인(오) */}
+            <div className={styles.inputGroup}>
+              <label className={styles.label}>성별 *</label>
+              <select
+                value={oldPeopleFormData.gender}
+                onChange={(e) => handleInputChange('gender', e.target.value)}
+                className={styles.select}
+                required
+              >
+                <option value="">성별을 선택해주세요</option>
+                <option value="male">남성</option>
+                <option value="female">여성</option>
+              </select>
+            </div>
             <div className={styles.inputGroup}>
               <label className={styles.label}>비밀번호 확인 *</label>
               <input

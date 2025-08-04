@@ -8,7 +8,6 @@ import PrivacyPolicyModal from "@/components/common/PrivacyPolicyModal";
 import SensitivePolicyModal from '@/components/common/SensitivePolicyModal';
 import Datepicker from 'react-tailwindcss-datepicker';
 import { VirtualKeyboard } from '@/components/common/VirtualKeyboard';
-import { register } from '@/lib/auth';
 
 
 interface GuardianSignupModalProps {
@@ -40,12 +39,14 @@ const GuardianSignupModal: React.FC<GuardianSignupModalProps> = ({
   // 마우스 다운 시작 위치를 추적하기 위한 ref
   const mouseDownTargetRef = useRef<EventTarget | null>(null);
 
-  // 폼 상태 관리 - 백엔드 API와 호환되는 초기값
+  // 폼 상태 관리 - Figma 디자인에 맞춘 초기값
   const [guardianFormData, setGuardianFormData] = useState({
     name: '',
-    phone: '',
+    phoneNumber: '',
     birthDate: '',
     email: '',
+    gender: '',
+    profileImage: null as File | null,
     password: '',
     confirmPassword: '',
     agreeToPrivacy: false,
@@ -93,7 +94,13 @@ const GuardianSignupModal: React.FC<GuardianSignupModalProps> = ({
     }
   };
 
-
+  // 프로필 이미지 업로드 핸들러
+  const handleGuardianImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      handleGuardianInputChange('profileImage', file);
+    }
+  };
 
   // 가상키보드 토글 핸들러
   const handleVirtualKeyboardToggle = () => {
@@ -161,43 +168,10 @@ const GuardianSignupModal: React.FC<GuardianSignupModalProps> = ({
   };
 
   // 회원가입 제출 핸들러
-  const handleGuardianSubmit = async (event: React.FormEvent) => {
+  const handleGuardianSubmit = (event: React.FormEvent) => {
     event.preventDefault();
-    
-    // 비밀번호 확인
-    if (guardianFormData.password !== guardianFormData.confirmPassword) {
-      alert('비밀번호가 일치하지 않습니다.');
-      return;
-    }
-
-    // 필수 필드 검증
-    if (!guardianFormData.name || !guardianFormData.email || !guardianFormData.password || 
-        !guardianFormData.phone || !guardianFormData.birthDate) {
-      alert('모든 필수 항목을 입력해주세요.');
-      return;
-    }
-
-    // 약관 동의 확인
-    if (!guardianFormData.agreeToPrivacy || !guardianFormData.agreeToSensitive) {
-      alert('모든 약관에 동의해주세요.');
-      return;
-    }
-
-    try {
-      const result = await register({
-        name: guardianFormData.name,
-        email: guardianFormData.email,
-        password: guardianFormData.password,
-        phone: guardianFormData.phone,
-        birthDate: guardianFormData.birthDate,
-        role: 'GUARDIAN'
-      });
-      
-      alert('회원가입이 완료되었습니다.');
-      onClose();
-    } catch (error: any) {
-      alert(error.message || '회원가입에 실패했습니다.');
-    }
+    // TODO: Implement signup logic
+    console.log('Guardian signup data:', guardianFormData);
   };
 
   // 모달이 완전히 숨겨진 상태에서는 렌더링하지 않음
@@ -246,7 +220,39 @@ const GuardianSignupModal: React.FC<GuardianSignupModalProps> = ({
 
         <form onSubmit={handleGuardianSubmit} className={styles.form}>
           <div className={styles.formColumns}>
-            {/* 1행: 이름 */}
+            {/* 1행: 프로필(왼) - 이름(오) */}
+            <div className={styles.profileSection}>
+              <div 
+                className={styles.profileImageContainer}
+                onClick={() => document.getElementById('profile-upload')?.click()}
+              >
+                {guardianFormData.profileImage ? (
+                  <Image
+                    src={URL.createObjectURL(guardianFormData.profileImage)}
+                    alt="Profile"
+                    width={140}
+                    height={140}
+                    className={styles.profileImage}
+                    style={{ objectFit: 'contain' }}
+                    priority
+                  />
+                ) : (
+                  <div className={styles.profilePlaceholder}>
+                    <UserCircle2 className={styles.profilePlaceholderIcon} />
+                  </div>
+                )}
+              </div>
+              <label className={styles.profileLabel}>
+                프로필 사진 (선택사항)
+              </label>
+              <input
+                id="profile-upload"
+                type="file"
+                accept="image/*"
+                onChange={handleGuardianImageUpload}
+                className={styles.profileInput}
+              />
+            </div>
             <div className={styles.inputGroup}>
               <label className={styles.label}>이름 *</label>
               <input
@@ -264,8 +270,8 @@ const GuardianSignupModal: React.FC<GuardianSignupModalProps> = ({
               <label className={styles.label}>휴대전화 번호 *</label>
               <input
                 type="tel"
-                value={guardianFormData.phone}
-                onChange={(e) => handleGuardianInputChange('phone', e.target.value)}
+                value={guardianFormData.phoneNumber}
+                onChange={(e) => handleGuardianInputChange('phoneNumber', e.target.value)}
                 placeholder="&apos;-&apos; 없이 입력해주세요."
                 className={styles.input}
                 required
@@ -302,18 +308,30 @@ const GuardianSignupModal: React.FC<GuardianSignupModalProps> = ({
               />
             </div>
             <div className={styles.inputGroup}>
-              <label className={styles.label}>이메일 *</label>
+              <label className={styles.label}>이메일</label>
               <input
                 type="email"
                 value={guardianFormData.email}
                 onChange={(e) => handleGuardianInputChange('email', e.target.value)}
                 placeholder="이메일을 입력해주세요"
                 className={styles.input}
-                required
               />
             </div>
 
-            {/* 4행: 비밀번호 확인 */}
+            {/* 4행: 성별(왼) - 비밀번호 확인(오) */}
+            <div className={styles.inputGroup}>
+              <label className={styles.label}>성별 *</label>
+              <select
+                value={guardianFormData.gender}
+                onChange={(e) => handleGuardianInputChange('gender', e.target.value)}
+                className={styles.select}
+                required
+              >
+                <option value="">성별을 선택해주세요</option>
+                <option value="male">남성</option>
+                <option value="female">여성</option>
+              </select>
+            </div>
             <div className={styles.inputGroup}>
               <label className={styles.label}>비밀번호 확인 *</label>
               <input
