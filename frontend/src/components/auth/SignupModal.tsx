@@ -102,7 +102,7 @@ const SignupModal: React.FC<SignupModalProps> = ({ isOpen, onClose }) => {
               className={`${styles.signupButton} ${styles.seniorButton}`}
               onClick={handleSeniorSignup}
             >
-              노인으로 가입하기
+              어르신으로 가입하기
             </button>
 
             <button 

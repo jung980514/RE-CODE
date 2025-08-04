@@ -51,7 +51,7 @@ const FlowersAndSaintsUI = () => {
 
   return (
     <motion.div
-      className="flex flex-col items-center justify-center h-217 overflow-hidden bg-gradient-to-br from-violet-100 to-emerald-100 p-8"
+      className="flex flex-col items-center justify-center h-207 overflow-hidden bg-gradient-to-br from-violet-100 to-emerald-100 p-8"
       variants={containerVariants}
       initial="hidden"
       animate="visible"

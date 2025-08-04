@@ -89,10 +89,12 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLoginSuccess
       const user = await login({ email: formData.email, password: formData.password });
       console.log('로그인 성공:', user);
       // userType에 따라 리다이렉트
-      if (user.userType === 0) {
+      const userType = localStorage.getItem('userType')
+      console.log(userType)
+      if (userType === '0') {
         // 노인 계정: main-elder로 이동
         router.push('/main-elder');
-      } else if (user.userType === 1) {
+      } else if (userType === '1') {
         // 보호자 계정: main-guardian으로 이동
         router.push('/main-guardian');
       }

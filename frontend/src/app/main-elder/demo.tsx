@@ -5,6 +5,7 @@ import { ToastContainer } from "./animated-toast"
 import { Carousel } from "./carousel"
 import { NotebookPen, ContactRound, CalendarDays, Moon} from "lucide-react"
 
+const username = localStorage.getItem('name')
 const containerVariants = {
   hidden: { opacity: 0 },
   visible: {
@@ -57,7 +58,7 @@ const FlowersAndSaintsUI = () => {
 
   return (
     <motion.div
-      className="flex flex-col items-center justify-center h-217 overflow-hidden bg-gradient-to-br from-emerald-100 to-violet-100 p-8"
+      className="flex flex-col items-center justify-center h-207 overflow-hidden bg-gradient-to-br from-emerald-100 to-violet-100 p-8"
       variants={containerVariants}
       initial="hidden"
       animate="visible"
@@ -67,7 +68,7 @@ const FlowersAndSaintsUI = () => {
         style={{ fontFamily: "Paperlogy, sans-serif" }}
         variants={itemVariants}
       >
-        안녕하세요! USERNAME님!
+        안녕하세요! {username}님!
       </motion.h1>
       <motion.h1
         className="text-4xl font-bold text-black-800 mb-8"

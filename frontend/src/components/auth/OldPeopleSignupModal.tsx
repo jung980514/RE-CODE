@@ -8,6 +8,8 @@ import { VirtualKeyboard } from '@/components/common/VirtualKeyboard';
 import PrivacyPolicyModal from "@/components/common/PrivacyPolicyModal";
 import SensitivePolicyModal from '@/components/common/SensitivePolicyModal';
 import Datepicker from 'react-tailwindcss-datepicker';
+import { register } from '@/api/register';
+import SignUpSuccessModal from './sign-up-success-modal';
 
 
 interface OldPeopleSignupModalProps {
@@ -24,6 +26,11 @@ const OldPeopleSignupModal: React.FC<OldPeopleSignupModalProps> = ({
   // 모달의 표시 상태와 애니메이션 상태를 분리
   const [isVisible, setIsVisible] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
+
+  // API 요청 상태
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
   
   // 가상키보드 상태
   const [showVirtualKeyboard, setShowVirtualKeyboard] = useState(false);
@@ -169,10 +176,38 @@ const OldPeopleSignupModal: React.FC<OldPeopleSignupModalProps> = ({
   };
 
   // 회원가입 제출 핸들러
-  const handleOldPeopleSubmit = (event: React.FormEvent) => {
+  const handleOldPeopleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
-    // TODO: Implement signup logic
-    console.log('OldPeople signup data:', oldPeopleFormData);
+    if (oldPeopleFormData.password !== oldPeopleFormData.confirmPassword) {
+      setError('비밀번호가 일치하지 않습니다.');
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const apiData = {
+        name: oldPeopleFormData.name,
+        email: oldPeopleFormData.email,
+        password: oldPeopleFormData.password,
+        phone: oldPeopleFormData.phoneNumber,
+        birthDate: oldPeopleFormData.birthDate,
+        role: 'ELDER' as const,
+      };
+      console.log(apiData)
+      const response = await register(apiData);
+      console.log('회원가입 성공:', response);
+      setShowSuccessModal(true);
+    } catch (err) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError('알 수 없는 오류가 발생했습니다.');
+      }
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // 모달이 완전히 숨겨진 상태에서는 렌더링하지 않음
@@ -213,7 +248,7 @@ const OldPeopleSignupModal: React.FC<OldPeopleSignupModalProps> = ({
         </button>
 
         <div className={styles.header}>
-          <h2 className={styles.title}>보호자 회원가입</h2>
+          <h2 className={styles.title}>어르신 회원가입</h2>
           <p className={styles.subtitle}>
             몇가지 정보만 입력하시면 바로 시작하실 수 있어요!
           </p>
@@ -352,6 +387,9 @@ const OldPeopleSignupModal: React.FC<OldPeopleSignupModalProps> = ({
             </div>
           </div>
 
+          {/* 에러 메시지 표시 */}
+          {error && <p className="text-red-500 text-center font-bold text-2xl">{error}</p>}
+
           {/* 약관 동의 */}
           <div className={styles.agreementSection}>
             <div className={styles.agreementItem}>
@@ -391,8 +429,8 @@ const OldPeopleSignupModal: React.FC<OldPeopleSignupModalProps> = ({
 
           {/* 버튼 그룹 */}
           <div className={styles.buttonGroup}>
-            <button type="submit" className={styles.submitButton}>
-              가입하기
+            <button type="submit" className={styles.submitButton} disabled={isLoading}>
+              {isLoading ? '가입 중...' : '가입하기'}
             </button>
             <button 
               type="button" 
@@ -418,6 +456,13 @@ const OldPeopleSignupModal: React.FC<OldPeopleSignupModalProps> = ({
       />
       <PrivacyPolicyModal open={showPrivacyModal} onClose={() => setShowPrivacyModal(false)} />
       <SensitivePolicyModal open={showSensitiveModal} onClose={() => setShowSensitiveModal(false)} />
+      <SignUpSuccessModal
+        isOpen={showSuccessModal}
+        onClose={() => {
+          setShowSuccessModal(false);
+          onClose();
+        }}
+      />
     </div>
   );
 };
