@@ -4,8 +4,8 @@ import static com.ssafy.recode.global.constant.AuthConstant.KAKAO;
 
 import com.ssafy.recode.domain.auth.entity.User;
 import com.ssafy.recode.domain.auth.repository.UserRepository;
-import com.ssafy.recode.global.dto.Provider;
-import com.ssafy.recode.global.dto.Role;
+import com.ssafy.recode.global.enums.Provider;
+import com.ssafy.recode.global.enums.Role;
 import com.ssafy.recode.global.oauth.oauthResponse.KakaoResponse;
 import com.ssafy.recode.global.oauth.oauthResponse.OAuth2Response;
 import java.util.Optional;

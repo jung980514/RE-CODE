@@ -28,9 +28,8 @@ import org.springframework.web.cors.CorsConfigurationSource;
 
 /**
  * SecurityConfig
- *
- * Spring Security 전체 설정 클래스입니다.
- * JWT + OAuth2 기반 로그인 처리와 사용자 인증 필터를 등록합니다.
+ * <p>
+ * Spring Security 전체 설정 클래스입니다. JWT + OAuth2 기반 로그인 처리와 사용자 인증 필터를 등록합니다.
  *
  * @author 김영민
  * @since 2025. 7. 27.
@@ -40,114 +39,116 @@ import org.springframework.web.cors.CorsConfigurationSource;
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-    private final OAuth2UserServiceImpl oAuth2UserService;
+  private final OAuth2UserServiceImpl oAuth2UserService;
 
-    private final OAuth2SuccessHandler oAuth2SuccessHandler;
+  private final OAuth2SuccessHandler oAuth2SuccessHandler;
 
-    private final JWTUtils jwtUtil;
+  private final JWTUtils jwtUtil;
 
-    private final RefreshTokenRepository refreshTokenRepository;
+  private final RefreshTokenRepository refreshTokenRepository;
 
-    private final FilterResponseUtils filterResponseUtils;
+  private final FilterResponseUtils filterResponseUtils;
 
-    /**
-     * 비밀번호 암호화를 위한 BCrypt 빈 등록
-     */
-    @Bean
-    public BCryptPasswordEncoder bCryptPasswordEncoder() {
-        return new BCryptPasswordEncoder();
-    }
+  /**
+   * 비밀번호 암호화를 위한 BCrypt 빈 등록
+   */
+  @Bean
+  public BCryptPasswordEncoder bCryptPasswordEncoder() {
+    return new BCryptPasswordEncoder();
+  }
 
-    /**
-     * AuthenticationManager 빈 등록
-     */
-    @Bean
-    public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
-        return config.getAuthenticationManager();
-    }
+  /**
+   * AuthenticationManager 빈 등록
+   */
+  @Bean
+  public AuthenticationManager authenticationManager(AuthenticationConfiguration config)
+      throws Exception {
+    return config.getAuthenticationManager();
+  }
 
-    /**
-     * Spring Security의 핵심 필터 체인 설정
-     */
-    @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http,
-                                            AuthenticationManager authenticationManager,
-                                            JWTUtils jwtUtil,
-                                            CorsConfigurationSource corsConfigurationSource,
-                                            RefreshTokenService refreshTokenService) throws Exception {
+  /**
+   * Spring Security의 핵심 필터 체인 설정
+   */
+  @Bean
+  public SecurityFilterChain filterChain(HttpSecurity http,
+      AuthenticationManager authenticationManager,
+      JWTUtils jwtUtil,
+      CorsConfigurationSource corsConfigurationSource,
+      RefreshTokenService refreshTokenService) throws Exception {
 
-        JWTLoginFilter jwtLoginFilter = new JWTLoginFilter(authenticationManager, jwtUtil, refreshTokenService);
+    JWTLoginFilter jwtLoginFilter = new JWTLoginFilter(authenticationManager, jwtUtil,
+        refreshTokenService);
 
-        // 기본 보안 기능 비활성화 (JWT 기반이므로 세션 사용 X)
-        http.cors(cors -> cors.configurationSource(corsConfigurationSource));
-        http.csrf(csrf -> csrf.disable());
-        http.formLogin(form -> form.disable());
-        http.httpBasic(basic -> basic.disable());
+    // 기본 보안 기능 비활성화 (JWT 기반이므로 세션 사용 X)
+    http.cors(cors -> cors.configurationSource(corsConfigurationSource));
+    http.csrf(csrf -> csrf.disable());
+    http.formLogin(form -> form.disable());
+    http.httpBasic(basic -> basic.disable());
 
-        // JWT 커스텀 필터 등록
-        http
-                .addFilterBefore(jwtLoginFilter, UsernamePasswordAuthenticationFilter.class)
-                .addFilterAfter(new JWTAccessFilter(jwtUtil, filterResponseUtils),
-                        OAuth2LoginAuthenticationFilter.class)
-                .addFilterAfter(new JWTRefreshFilter(refreshTokenRepository, filterResponseUtils),
-                        OAuth2LoginAuthenticationFilter.class)
-                .addFilterBefore(new JWTLogoutFilter(refreshTokenRepository, filterResponseUtils),
-                        LogoutFilter.class);
+    // JWT 커스텀 필터 등록
+    http
+        .addFilterBefore(jwtLoginFilter, UsernamePasswordAuthenticationFilter.class)
+        .addFilterAfter(new JWTAccessFilter(jwtUtil, filterResponseUtils),
+            OAuth2LoginAuthenticationFilter.class)
+        .addFilterAfter(new JWTRefreshFilter(refreshTokenRepository, filterResponseUtils),
+            OAuth2LoginAuthenticationFilter.class)
+        .addFilterBefore(new JWTLogoutFilter(refreshTokenRepository, filterResponseUtils),
+            LogoutFilter.class);
 
-        // OAuth2 로그인 설정
-        http
-                .oauth2Login(oauth2 -> oauth2
-                        .loginPage("/api/user/login/page") // 커스텀 로그인 페이지 URL
-                        .userInfoEndpoint(endpoint -> endpoint.userService(oAuth2UserService)) // 사용자 정보 조회 서비스
-                        .successHandler(oAuth2SuccessHandler) // 로그인 성공 시 핸들러
-                );
+    // OAuth2 로그인 설정
+    http
+        .oauth2Login(oauth2 -> oauth2
+            .loginPage("/api/user/login/page") // 커스텀 로그인 페이지 URL
+            .userInfoEndpoint(endpoint -> endpoint.userService(oAuth2UserService)) // 사용자 정보 조회 서비스
+            .successHandler(oAuth2SuccessHandler) // 로그인 성공 시 핸들러
+        );
 
+    // 인가 정책 설정
+    http
+        .authorizeHttpRequests(auth -> auth
+            .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html", "/webjars/**")
+            .permitAll()
+            .requestMatchers("/**", "/api/user/login/page", "api/user/login", "/api/user/register",
+                "/api/reissue", "/login/oauth2/code/**", "/index.html").permitAll() // 공개 URL
+            .anyRequest().authenticated() // 나머지는 인증 필요
+        );
 
-        // 인가 정책 설정
-        http
-                .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/v3/api-docs/**","/swagger-ui/**","/swagger-ui.html","/webjars/**").permitAll()
-                        .requestMatchers("/**","/api/user/login/page", "api/user/login", "/api/user/register", "/api/reissue", "/login/oauth2/code/**", "/index.html").permitAll() // 공개 URL
-                        .anyRequest().authenticated() // 나머지는 인증 필요
-                );
+    // 세션 사용 안 함 - JWT 기반
+    http
+        .sessionManagement(session -> session
+            .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+        );
 
-        // 세션 사용 안 함 - JWT 기반
-        http
-                .sessionManagement(session -> session
-                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-                );
+    return http.build();
+  }
 
-        return http.build();
-    }
+  /**
+   * WebSecurityCustomizer
+   * <p>
+   * Spring Security의 보안 필터 체인을 아예 타지 않도록 요청 경로를 지정하는 설정 클래스입니다. 해당 경로는 인증/인가 검사 자체를 하지 않으며, 필터를 완전히
+   * 무시합니다.
+   * <p>
+   * - /favicon.ico : 브라우저가 자동으로 요청하는 파비콘 - /error : Spring Boot에서 기본 제공하는 에러 처리 경로 - /h2-console/**
+   * : H2 데이터베이스 웹 콘솔 (개발용으로만 허용)
+   *
+   * @return WebSecurityCustomizer 빈
+   */
+  @Bean
+  public WebSecurityCustomizer webSecurityCustomizer() {
+    return web -> web.ignoring()
+        // 브라우저가 자동 요청하는 파비콘: 보안 필터에서 제외
+        .requestMatchers("/favicon.ico")
 
-    /**
-     * WebSecurityCustomizer
-     *
-     * Spring Security의 보안 필터 체인을 아예 타지 않도록 요청 경로를 지정하는 설정 클래스입니다.
-     * 해당 경로는 인증/인가 검사 자체를 하지 않으며, 필터를 완전히 무시합니다.
-     *
-     * - /favicon.ico : 브라우저가 자동으로 요청하는 파비콘
-     * - /error : Spring Boot에서 기본 제공하는 에러 처리 경로
-     * - /h2-console/** : H2 데이터베이스 웹 콘솔 (개발용으로만 허용)
-     *
-     * @return WebSecurityCustomizer 빈
-     */
-    @Bean
-    public WebSecurityCustomizer webSecurityCustomizer() {
-        return web -> web.ignoring()
-                // 브라우저가 자동 요청하는 파비콘: 보안 필터에서 제외
-                .requestMatchers("/favicon.ico")
+        // Spring Boot 기본 에러 페이지 요청: 인증처리 방지
+        .requestMatchers("/error")
+        .requestMatchers(
+            "/v3/api-docs/**",
+            "/swagger-ui/**",
+            "/swagger-ui.html",
+            "/webjars/**");
 
-                // Spring Boot 기본 에러 페이지 요청: 인증처리 방지
-                .requestMatchers("/error")
-                .requestMatchers(
-                            "/v3/api-docs/**",
-                            "/swagger-ui/**",
-                            "/swagger-ui.html",
-                            "/webjars/**");
-
-                // H2 웹 콘솔은 개발 편의용으로 보안 필터에서 제외
+    // H2 웹 콘솔은 개발 편의용으로 보안 필터에서 제외
 //                .requestMatchers(toH2Console());
-    }
+  }
 
 }
