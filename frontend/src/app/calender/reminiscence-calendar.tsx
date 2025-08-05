@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Progress } from "@/components/ui/progress"
-import type { TrainingRecord } from "@/app/page"
+import type { TrainingRecord } from "@/app/calender/page"
 
 interface ReminiscenceCalendarProps {
   trainingRecords: TrainingRecord[]
@@ -213,7 +213,7 @@ export function ReminiscenceCalendar({ trainingRecords, onDateClick }: Reminisce
           <Progress
             value={Number.parseFloat(positiveEmotionRatio)}
             className="w-full h-2 bg-gray-200"
-            indicatorClassName="bg-pink-600"
+            // indicatorClassName="bg-pink-600"
           />
         </Card>
       </div>

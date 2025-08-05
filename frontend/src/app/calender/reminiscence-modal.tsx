@@ -4,7 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Card } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
-import type { TrainingRecord, Question, KeyMoment, Video } from "@/app/page"
+import type { TrainingRecord, Question, KeyMoment, Video } from "@/app/calender/page"
 import { Clock, PlayCircle } from "lucide-react"
 
 interface ReminiscenceModalProps {
@@ -46,7 +46,7 @@ export function ReminiscenceModal({ isOpen, onClose, record }: ReminiscenceModal
                   <Progress
                     value={record.overallIntensity * 10}
                     className="w-24 h-2 bg-purple-200"
-                    indicatorClassName="bg-purple-600"
+                    // indicatorClassName="bg-purple-600"
                   />
                 </div>
               </div>
