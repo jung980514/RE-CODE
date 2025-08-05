@@ -18,8 +18,7 @@ const Navbar = () => {
   useEffect(() => {
     // 컴포넌트가 마운트될 때 로그인 상태를 확인합니다.
     const checkLoginStatus = () => {
-      const loggedIn = isLoggedIn;
-      setIsLoggedIn(loggedIn);
+      setIsLoggedIn(isLoggedIn());
     };
     
     checkLoginStatus();
@@ -31,7 +30,7 @@ const Navbar = () => {
     
     window.addEventListener('storage', handleStorageChange);
     return () => window.removeEventListener('storage', handleStorageChange);
-  }, []);
+  }, [isLoggedIn]);
 
   const handleLogout = async () => {
     try {
