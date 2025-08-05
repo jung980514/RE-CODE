@@ -45,7 +45,7 @@ public class BasicAnswerController {
       @Valid @ModelAttribute BasicAnswerRequestDto reqDto
   ) {
     // 1) MP4 파일을 WAV로 변환한 뒤 S3에 업로드하고, 업로드된 WAV 파일의 키를 반환합니다.
-    String wavKey = basicAnswerService.uploadVideoAsWav(reqDto.getVideoFile());
+    String wavKey = basicAnswerService.uploadMedia(reqDto.getVideoFile());
 
     // 2) 변환된 WAV 키와 함께 비동기 파이프라인(STT → 요약 → 유사도 계산 → DB 저장)을 실행합니다.
     basicAnswerService.processAnswerAsync(

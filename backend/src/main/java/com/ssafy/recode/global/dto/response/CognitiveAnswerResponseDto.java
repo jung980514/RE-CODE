@@ -8,9 +8,9 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@Schema(description = "개인화 질문 답변 제출 응답 DTO")
-public class PersonalAnswerResponseDto {
+@Schema(description = "인지 회상 훈련 답변 제출 응답 DTO")
+public class CognitiveAnswerResponseDto {
 
-    @Schema(description = "처리 결과 메시지", example = "개인화 질문 답변 업로드 완료, 평가를 진행 중입니다.")
+    @Schema(description = "처리 결과 메시지", example = "인지 회상 훈련 답변 업로드 완료, 평가가 진행 중입니다.")
     private String message;
 }
