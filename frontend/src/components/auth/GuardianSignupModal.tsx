@@ -195,8 +195,12 @@ const GuardianSignupModal: React.FC<GuardianSignupModalProps> = ({
       
       alert('회원가입이 완료되었습니다.');
       onClose();
-    } catch (error: any) {
-      alert(error.message || '회원가입에 실패했습니다.');
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        alert(error.message || '회원가입에 실패했습니다.');
+      } else {
+        alert('알 수 없는 오류가 발생했습니다.');
+      }
     }
   };
 

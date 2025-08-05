@@ -90,9 +90,13 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLoginSuccess
         router.push('/main-guardian');
       }
       onLoginSuccess();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('로그인 실패:', err);
-      setError(err.message || '로그인에 실패했습니다. 이메일과 비밀번호를 확인해주세요.');
+      if (err instanceof Error) {
+        setError(err.message || '로그인에 실패했습니다. 이메일과 비밀번호를 확인해주세요.');
+      } else {
+        setError('알 수 없는 오류가 발생했습니다.');
+      }
     } finally {
       setIsLoading(false);
     }
