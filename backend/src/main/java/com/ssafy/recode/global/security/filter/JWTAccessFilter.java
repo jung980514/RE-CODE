@@ -3,7 +3,7 @@ package com.ssafy.recode.global.security.filter;
 import com.ssafy.recode.domain.auth.entity.User;
 import com.ssafy.recode.global.constant.AuthConstant;
 import com.ssafy.recode.global.dto.CustomUserDetails;
-import com.ssafy.recode.global.dto.Role;
+import com.ssafy.recode.global.enums.Role;
 import com.ssafy.recode.global.error.ErrorCode;
 import com.ssafy.recode.global.security.util.CookieUtils;
 import com.ssafy.recode.global.security.util.FilterResponseUtils;
@@ -51,11 +51,6 @@ public class JWTAccessFilter extends OncePerRequestFilter {
                                     FilterChain filterChain) throws ServletException, IOException {
 
         String uri = request.getRequestURI();
-
-        if(uri.matches("/index.html" )) {
-            filterChain.doFilter(request, response);
-            return;
-        }
 
         // 인증 제외 대상 경로
         if (isUrlLogin(uri) || isUrlOAuth2(uri) || isReissue(uri) || isAnswers(uri) || isQuestions(uri)) {
@@ -138,7 +133,7 @@ public class JWTAccessFilter extends OncePerRequestFilter {
      * 로그인 관련 경로는 필터 적용 제외
      */
     private boolean isUrlLogin(String requestUri) {
-        return requestUri.matches("^\\/api/user\\/(login|register|logout)$") || requestUri.matches("/api/user/login/page");
+        return requestUri.matches("^\\/api/user\\/(login|register|logout)$");
     }
 
     /**

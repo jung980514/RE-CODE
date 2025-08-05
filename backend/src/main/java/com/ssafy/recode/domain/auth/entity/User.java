@@ -1,7 +1,7 @@
 package com.ssafy.recode.domain.auth.entity;
 
-import com.ssafy.recode.global.dto.Provider;
-import com.ssafy.recode.global.dto.Role;
+import com.ssafy.recode.global.enums.Provider;
+import com.ssafy.recode.global.enums.Role;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
