@@ -88,11 +88,9 @@ export const login = async (email: string, password: string): Promise<User> => {
     } else {
       throw new Error(response.message || '로그인에 실패했습니다.');
     }
-  } catch (error: any) {
-    if (error.response?.data?.message) {
-      throw new Error(error.response.data.message);
-    } else if (error.message) {
-      throw new Error(error.message);
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+        throw new Error(error.message);
     } else {
       throw new Error('로그인에 실패했습니다.');
     }
@@ -116,11 +114,9 @@ export const register = async (userData: {
     } else {
       throw new Error(response.message || '회원가입에 실패했습니다.');
     }
-  } catch (error: any) {
-    if (error.response?.data?.message) {
-      throw new Error(error.response.data.message);
-    } else if (error.message) {
-      throw new Error(error.message);
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+        throw new Error(error.message);
     } else {
       throw new Error('회원가입에 실패했습니다.');
     }
