@@ -1,0 +1,466 @@
+/* 모달 오버레이 */
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  opacity: 0;
+  transition: opacity 0.3s ease-in-out;
+}
+
+.overlayOpen {
+  opacity: 1;
+}
+
+.overlayClose {
+  opacity: 0;
+}
+
+.modal {
+  background: #FFFFFD;
+  border-radius: 40px;
+  border: 1px solid #000000;
+  width: 1125px;
+  height: 949px;
+  position: relative;
+  transform: scale(0.8);
+  transition: transform 0.3s ease-in-out;
+  padding: 40px;
+  box-sizing: border-box;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+}
+
+/* 스크롤바 스타일링 */
+.modal::-webkit-scrollbar {
+  width: 8px;
+  margin-right: 2px;
+}
+
+.modal::-webkit-scrollbar-track {
+  background: transparent;
+  margin: 40px 0;
+}
+
+.modal::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.2);
+  border-radius: 20px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+.modal::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(0, 0, 0, 0.3);
+}
+
+/* 내부 컨테이너 추가 */
+.modalContent {
+  overflow-y: auto;
+  padding-right: 10px; /* 스크롤바 공간 확보 */
+  margin-right: -10px; /* 패딩 상쇄 */
+  flex: 1;
+}
+
+.modalOpen {
+  transform: scale(1);
+}
+
+.modalClose {
+  transform: scale(0.8);
+}
+
+/* 뒤로가기 화살표 */
+.backArrow {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: #3d3d3d;
+  padding: 8px;
+  border-radius: 50%;
+  transition: background-color 0.2s;
+}
+
+.backArrow:hover {
+  background-color: #f5f5f5;
+}
+
+/* 가상키보드 버튼 */
+.virtualKeyboardButton {
+  position: absolute;
+  top: 30px;
+  right: 70px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 50%;
+  transition: background-color 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 헤더 */
+.header {
+  text-align: center;
+  margin-bottom: 40px;
+  margin-top: 60px;
+}
+
+.title {
+  font-family: 'Paperlogy', sans-serif;
+  font-weight: 700;
+  font-size: 40px;
+  color: #3d3d3d;
+  margin: 0 0 10px 0;
+  letter-spacing: 0.8px;
+}
+
+.subtitle {
+  font-family: 'Pretendard', sans-serif;
+  font-weight: 500;
+  font-size: 25px;
+  color: #595959;
+  margin: 0;
+  letter-spacing: 0.5px;
+}
+
+/* 폼 */
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* 2열 레이아웃 */
+.formColumns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 32px 120px; /* 행간격 32px, 열 간격 120px로 증가 */
+  margin-bottom: 30px;
+  padding: 0 40px; /* 좌우 여백 추가 */
+}
+
+.leftColumn,
+.rightColumn {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* 입력 그룹 */
+.inputGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.label {
+  font-family: 'Pretendard', sans-serif;
+  font-weight: 500;
+  font-size: 23px;
+  color: #595959;
+  letter-spacing: 0.46px;
+}
+
+.input, .select, .dateInput {
+  width: 100%;
+  height: 64px;
+  border: 1px solid #000000;
+  border-radius: 8px;
+  padding: 0 20px;
+  font-family: 'Poppins', sans-serif;
+  font-size: 21px;
+  color: #3d3d3d;
+  background-color: #ffffff;
+  box-sizing: border-box;
+}
+
+.input::placeholder, .dateInput::placeholder {
+  color: #3d3d3d;
+  font-weight: 400;
+  letter-spacing: 0.42px;
+}
+
+/* 셀렉트 박스 */
+.select {
+  width: 100%;
+  height: 64px;
+  border: 1px solid #000000;
+  border-radius: 8px;
+  padding: 0 20px;
+  font-family: 'Poppins', sans-serif;
+  font-size: 21px;
+  color:  #3d3d3d;
+  background-color: #ffffff;
+  box-sizing: border-box;
+  cursor: pointer;
+}
+
+/* 날짜 입력 컨테이너 */
+.dateInputContainer {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.dateInput {
+  width: 100%;
+  height: 64px;
+  border: 1px solid #000000;
+  border-radius: 8px;
+  padding: 0 20px;
+  font-family: 'Poppins', sans-serif;
+  font-size: 21px;
+  color: #3d3d3d;
+  background-color: #ffffff;
+  box-sizing: border-box;
+}
+
+.calendarIcon {
+  position: absolute;
+  right: 20px;
+  font-size: 20px;
+  color: #3d3d3d;
+  pointer-events: none;
+}
+
+/* 비밀번호 힌트 */
+.passwordHint {
+  font-family: 'Paperlogy', sans-serif;
+  font-weight: 700;
+  font-size: 12px;
+  color: #3d3d3d;
+  margin: 0;
+  letter-spacing: 0.24px;
+}
+
+/* 프로필 섹션 */
+.profileSection {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.profileImageContainer {
+  position: relative;
+  width: 140px;
+  height: 140px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #f8f9fa;
+  border: 2px dashed #dee2e6;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  overflow: hidden;
+}
+
+.profileImageContainer:hover {
+  opacity: 0.9;
+  border-color: #0a7aff;
+  background-color: #e9f2ff;
+}
+
+.profileImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+}
+
+.profilePlaceholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+
+.profilePlaceholderIcon {
+  width: 80px;
+  height: 80px;
+  color: #adb5bd;
+}
+
+.uploadButton:hover {
+  background-color: #0056cc;
+}
+
+.profileLabel {
+  font-family: 'Paperlogy', sans-serif;
+  font-weight: 500;
+  font-size: 23px;
+  color: #3d3d3d;
+  letter-spacing: 0.46px;
+}
+
+.profileInput {
+  display: none;
+}
+
+/* 약관 동의 섹션 */
+.agreementSection {
+  margin-top: 24px;
+  margin-bottom: 8px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px 120px;
+  padding: 0 40px 0 40px;  /* 좌우 패딩 증가 */
+  max-width: 1100px;  /* 최대 너비 설정 */
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.agreementItem {
+  display: flex;
+  align-items: center;
+  justify-content: center;  /* 중앙 정렬 추가 */
+  gap: 10px;
+  margin-bottom: 8px;
+  position: relative;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.checkbox {
+  width: 28px;
+  height: 28px;
+  accent-color: #0a7aff;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.agreementLabel {
+  font-family: 'Paperlogy', sans-serif;
+  font-weight: 700;
+  font-size: 21px;
+  color: #3d3d3d;
+  letter-spacing: 0.42px;
+  cursor: pointer;
+  margin-right: 8px;
+  text-align: center;  /* 텍스트 중앙 정렬 */
+}
+
+.viewTermsButton {
+  background: none;
+  border: none;
+  font-family: 'Paperlogy', sans-serif;
+  font-weight: 700;
+  font-size: 15px;
+  color: #3d3d3d;
+  cursor: pointer;
+  letter-spacing: 0.3px;
+  text-decoration: underline;
+  white-space: nowrap;
+  margin-left: auto;
+  padding-left: 8px;
+}
+
+.viewTermsButton:hover {
+  color: #0a7aff;
+}
+
+/* 버튼 그룹 */
+.buttonGroup {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px 120px; /* formColumns와 동일한 간격 유지 */
+  margin-top: 60px;
+  margin-bottom: 40px;
+  padding: 0 40px; /* formColumns와 동일한 패딩 */
+}
+
+.submitButton {
+  background: #22C55E;
+  color: #fff;
+  font-size: 28px;
+  font-weight: 700;
+  border: none;
+  border-radius: 8px;
+  padding: 16px 0;
+  width: 100%;
+  max-width: 320px; /* 버튼 최대 너비 증가 */
+  cursor: pointer;
+  transition: background 0.2s;
+  justify-self: end; /* 오른쪽 정렬 */
+}
+.submitButton:hover {
+  background: #16A34A;
+}
+
+.cancelButton {
+  background: #ff8345;
+  color: #fff;
+  font-size: 28px;
+  font-weight: 700;
+  border: none;
+  border-radius: 8px;
+  padding: 16px 0;
+  width: 100%;
+  max-width: 320px; /* 버튼 최대 너비 증가 */
+  cursor: pointer;
+  transition: background 0.2s;
+  justify-self: start; /* 왼쪽 정렬 */
+}
+.cancelButton:hover {
+  background: #e66e2f;
+}
+
+/* 반응형 디자인 */
+@media (max-width: 1200px) {
+  .modal {
+    width: 90vw;
+    height: 90vh;
+    max-width: 1125px;
+    max-height: 903px;
+  }
+  
+  .formColumns {
+    gap: 20px;
+  }
+}
+
+@media (max-width: 768px) {
+  .modal {
+    width: 95vw;
+    height: 95vh;
+    padding: 20px;
+  }
+  
+  .formColumns {
+    grid-template-columns: 1fr;
+    gap: 15px;
+  }
+  
+  .title {
+    font-size: 32px;
+  }
+  
+  .subtitle {
+    font-size: 20px;
+  }
+  
+  .buttonGroup {
+    flex-direction: column;
+  }
+  
+  .submitButton,
+  .cancelButton {
+    width: 100%;
+  }
+} 

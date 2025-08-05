@@ -1,0 +1,648 @@
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  opacity: 0;
+}
+
+.overlayOpen {
+  animation: fadeIn 0.3s ease forwards;
+}
+
+.overlayClose {
+  animation: fadeOut 0.3s ease forwards;
+}
+
+.modal {
+  background: white;
+  border-radius: 20px;
+  padding: 2rem;
+  width: 100%;
+  max-width: 762px;
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+.modalOpen {
+  animation: slideUp 0.3s ease forwards;
+}
+
+.modalClose {
+  animation: slideDown 0.3s ease forwards;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideDown {
+  from {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+}
+
+.header {
+  text-align: center;
+  margin-bottom: 1.5rem;
+  position: relative;
+}
+
+.title {
+  font-family: 'Paperlogy';
+  font-weight: 700;
+  font-size: 40px;
+  color: #111827;
+  margin-bottom: 0.5rem;
+}
+
+.subtitle {
+  font-family: 'Pretendard';
+  font-weight: 300;
+  font-size: 24px;
+  color: #000000;
+  margin-bottom: 0.5rem;
+}
+
+.description {
+  font-family: 'Pretendard';
+  font-weight: 300;
+  font-size: 20px;
+  color: #000000;
+}
+
+.tabContainer {
+  background-color: #f3f4f6;
+  border-radius: 9999px;
+  padding: 4px;
+  margin-bottom: 2rem;
+}
+
+.tabList {
+  display: flex;
+  width: 100%;
+}
+
+.tab {
+  flex: 1;
+  padding: 0.75rem;
+  text-align: center;
+  font-family: 'Pretendard';
+  font-weight: 500;
+  font-size: 18px;
+  color: #4b5563;
+  border-radius: 9999px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.tabActive {
+  background-color: white;
+  color: #111827;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.inputGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.label {
+  font-family: 'Pretendard';
+  font-weight: 500;
+  font-size: 20px;
+  color: #111827;
+}
+
+.input {
+  padding: 1rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  font-family: 'Pretendard';
+  font-weight: 300;
+  font-size: 21px;
+  color: #111827;
+  font-weight: 400;
+}
+
+.input::placeholder {
+  color: #71717a;
+}
+
+.confirmButton {
+  background-color: #22c55e;
+  color: white;
+  padding: 1rem;
+  border-radius: 8px;
+  font-family: 'Pretendard';
+  font-weight: 500;
+  font-size: 20px;
+  margin-top: 1rem;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.confirmButton:hover {
+  background-color: #16a34a;
+  transition: transform 0.2s ease;
+}
+
+.buttonIcon {
+  transition: transform 0.2s ease;
+} 
+
+.confirmButton:hover .buttonIcon{
+  transform: translateX(4px);
+}
+
+
+.divider {
+  display: flex;
+  align-items: center;
+  margin: 1rem 0;
+}
+
+.divider::before,
+.divider::after {
+  content: '';
+  flex: 1;
+  border-top: 1px solid #e5e7eb;
+}
+
+.dividerText {
+  padding: 0 1rem;
+  font-family: 'Pretendard';
+  font-weight: 300;
+  font-size: 20px;
+  color: #6b7280;
+}
+
+.cancelButton {
+  background-color: #f97316;
+  color: white;
+  padding: 1rem;
+  border-radius: 8px;
+  font-family: 'Pretendard';
+  font-weight: 500;
+  font-size: 20px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.cancelButton:hover {
+  background-color: #ea580c;
+} 
+
+.keyboardButton {
+  position: absolute;
+  top: 0;
+  right: 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  transition: transform 0.2s ease;
+}
+
+.keyboardButton:hover {
+  transform: scale(1.1);
+}
+/* 기존 스타일에 추가 */
+
+/* 에러 메시지 스타일 */
+.errorMessage {
+  text-align: center;
+  color: #EF4444;
+  font-size: 16px;
+  margin-bottom: 20px;
+  font-weight: 500;
+  padding: 12px;
+  background-color: #FEF2F2;
+  border: 1px solid #FECACA;
+  border-radius: 8px;
+  font-family: 'Pretendard';
+}
+
+/* 에러 상태의 input 스타일 */
+.inputError {
+  border-color: #EF4444 !important;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+}
+
+.inputError:focus {
+  border-color: #DC2626 !important;
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.2);
+}
+
+/* 로딩 상태의 버튼 스타일 */
+.confirmButton:disabled {
+  background-color: #9CA3AF;
+  cursor: not-allowed;
+}
+
+.confirmButton:disabled:hover {
+  background-color: #9CA3AF;
+}
+
+/* 기존 스타일에 추가 */
+
+/* 로딩 스피너 스타일 */
+/* 로딩 스피너 스타일 - 개선된 원형 */
+.spinner {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  margin-right: 10px;
+}
+
+.spinnerCircle {
+  width: 18px;
+  height: 18px;
+  border: 3px solid rgba(255, 255, 255, 0.2);
+  border-top: 3px solid #ffffff;
+  border-right: 3px solid #ffffff;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  box-shadow: 0 0 4px rgba(255, 255, 255, 0.3);
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* 더 부드러운 원형 스피너 대안 (선택사항) */
+.spinnerCircleAlt {
+  width: 18px;
+  height: 18px;
+  border: 2.5px solid transparent;
+  border-top: 2.5px solid #ffffff;
+  border-right: 2.5px solid #ffffff;
+  border-bottom: 2.5px solid rgba(255, 255, 255, 0.4);
+  border-left: 2.5px solid rgba(255, 255, 255, 0.4);
+  border-radius: 50%;
+  animation: smoothSpin 1s ease-in-out infinite;
+}
+
+@keyframes smoothSpin {
+  0% {
+    transform: rotate(0deg);
+    border-top-color: #ffffff;
+    border-right-color: rgba(255, 255, 255, 0.4);
+    border-bottom-color: rgba(255, 255, 255, 0.2);
+    border-left-color: rgba(255, 255, 255, 0.8);
+  }
+  25% {
+    border-top-color: rgba(255, 255, 255, 0.8);
+    border-right-color: #ffffff;
+    border-bottom-color: rgba(255, 255, 255, 0.4);
+    border-left-color: rgba(255, 255, 255, 0.2);
+  }
+  50% {
+    border-top-color: rgba(255, 255, 255, 0.2);
+    border-right-color: rgba(255, 255, 255, 0.8);
+    border-bottom-color: #ffffff;
+    border-left-color: rgba(255, 255, 255, 0.4);
+  }
+  75% {
+    border-top-color: rgba(255, 255, 255, 0.4);
+    border-right-color: rgba(255, 255, 255, 0.2);
+    border-bottom-color: rgba(255, 255, 255, 0.8);
+    border-left-color: #ffffff;
+  }
+  100% {
+    transform: rotate(360deg);
+    border-top-color: #ffffff;
+    border-right-color: rgba(255, 255, 255, 0.4);
+    border-bottom-color: rgba(255, 255, 255, 0.2);
+    border-left-color: rgba(255, 255, 255, 0.8);
+  }
+}
+
+/* 에러 메시지 스타일 */
+.errorMessage {
+  text-align: center;
+  color: #EF4444;
+  font-size: 16px;
+  margin-bottom: 20px;
+  font-weight: 500;
+  padding: 12px;
+  background-color: #FEF2F2;
+  border: 1px solid #FECACA;
+  border-radius: 8px;
+  font-family: 'Pretendard';
+}
+
+/* 에러 상태의 input 스타일 */
+.inputError {
+  border-color: #EF4444 !important;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+}
+
+.inputError:focus {
+  border-color: #DC2626 !important;
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.2);
+}
+
+/* 로딩 상태의 버튼 스타일 */
+.confirmButton:disabled {
+  background-color: #9CA3AF;
+  cursor: not-allowed;
+  opacity: 0.8;
+}
+
+.confirmButton:disabled:hover {
+  background-color: #9CA3AF;
+}
+
+/* 확인 버튼이 로딩 상태일 때 내용 정렬 */
+.confirmButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+/* 성공 컨테이너 스타일 */
+.successContainer {
+  text-align: center;
+  padding: 40px 20px;
+}
+
+.successMessage {
+  margin-bottom: 40px;
+}
+
+.successIcon {
+  width: 80px;
+  height: 80px;
+  background: #22C55E;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 30px;
+  font-size: 40px;
+  color: white;
+  font-weight: bold;
+}
+
+.successTitle {
+  font-family: 'Pretendard';
+  font-size: 24px;
+  font-weight: 600;
+  color: #3D3D3D;
+  margin: 0 0 15px 0;
+}
+
+.foundEmail {
+  font-family: 'Pretendard';
+  font-size: 28px;
+  font-weight: 700;
+  color: #22C55E;
+  background: #F0FDF4;
+  border: 2px solid #22C55E;
+  border-radius: 12px;
+  padding: 15px 25px;
+  margin: 20px 0;
+  display: inline-block;
+  min-width: 250px;
+}
+
+.successSubtitle {
+  font-family: 'Pretendard';
+  font-size: 24px;
+  font-weight: 600;
+  color: #3D3D3D;
+  margin: 15px 0 0 0;
+}
+
+.successButtons {
+  display: flex;
+  gap: 15px;
+  justify-content: center;
+}
+
+.successLoginButton {
+  background: #22C55E;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 15px 30px;
+  font-family: 'Pretendard';
+  font-size: 18px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  min-width: 120px;
+}
+
+.successLoginButton:hover {
+  background: #16A34A;
+}
+
+.successCancelButton {
+  background: transparent;
+  color: #6B7280;
+  border: 1px solid #D1D5DB;
+  border-radius: 8px;
+  padding: 15px 30px;
+  font-family: 'Pretendard';
+  font-size: 18px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 120px;
+}
+
+.successCancelButton:hover {
+  background: #F9FAFB;
+  border-color: #9CA3AF;
+  color: #374151;
+}
+
+/* 비밀번호 재설정 컨테이너 스타일 */
+.passwordResetContainer {
+  text-align: center;
+  padding: 20px;
+}
+
+.passwordResetMessage {
+  margin-bottom: 30px;
+}
+
+/* 비밀번호 입력 래퍼 */
+.passwordInputWrapper {
+  position: relative;
+  width: 100%;
+}
+
+.passwordInputWrapper input {
+  padding-right: 50px;
+}
+
+.passwordToggle {
+  position: absolute;
+  right: 15px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 18px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+}
+
+/* 비밀번호 버튼들 */
+.passwordButtons {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+/* 비밀번호 재설정 실패 시 강조 스타일 */
+.passwordResetError {
+  text-align: center;
+  color: #DC2626;
+  font-size: 18px;
+  margin-bottom: 25px;
+  font-weight: 600;
+  padding: 16px 20px;
+  background: linear-gradient(135deg, #FEF2F2 0%, #FEE2E2 100%);
+  border: 2px solid #FECACA;
+  border-radius: 12px;
+  font-family: 'Pretendard';
+  box-shadow: 0 4px 6px rgba(239, 68, 68, 0.1);
+  position: relative;
+  overflow: hidden;
+}
+
+.passwordResetError::before {
+  content: '⚠️';
+  display: block;
+  font-size: 24px;
+  margin-bottom: 8px;
+}
+
+.passwordResetError::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #EF4444, transparent);
+  animation: errorSlide 2s ease-in-out infinite;
+}
+
+@keyframes errorSlide {
+  0% {
+    left: -100%;
+  }
+  50% {
+    left: 100%;
+  }
+  100% {
+    left: 100%;
+  }
+}
+
+/* 비밀번호 재설정 전용 에러 입력 필드 */
+.passwordResetInputError {
+  border-color: #DC2626 !important;
+  box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.15);
+  background-color: #FFFBFB;
+}
+
+.passwordResetInputError:focus {
+  border-color: #B91C1C !important;
+  box-shadow: 0 0 0 4px rgba(185, 28, 28, 0.25);
+}
+
+/* 에러 상태에서 라벨 스타일 */
+.errorLabel {
+  color: #DC2626 !important;
+  font-weight: 600;
+}
+
+/* 에러 상태 애니메이션 */
+.inputShake {
+  animation: shake 0.5s ease-in-out;
+}
+
+@keyframes shake {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  10%, 30%, 50%, 70%, 90% {
+    transform: translateX(-2px);
+  }
+  20%, 40%, 60%, 80% {
+    transform: translateX(2px);
+  }
+}
+
+/* 실패 상태 확인 버튼 */
+.confirmButtonError {
+  background-color: #DC2626;
+  transform: scale(0.98);
+  transition: all 0.3s ease;
+}
+
+.confirmButtonError:hover {
+  background-color: #B91C1C;
+  transform: scale(1);
+}
