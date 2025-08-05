@@ -123,8 +123,12 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLoginSuccess
     // 가상 키보드 버튼 클릭으로 인해 입력 필드가 포커스를 잃는 것을 방지하고,
     // 커서를 항상 텍스트 맨 뒤로 이동시킵니다.
     setTimeout(() => {
-      const inputRef =
-        activeInput === 'email' ? emailInputRef : passwordInputRef;
+      let inputRef: React.RefObject<HTMLInputElement | null>;
+      if (activeInput === 'email') {
+        inputRef = emailInputRef;
+      } else {
+        inputRef = passwordInputRef;
+      }
 
       if (inputRef.current) {
         const inputElement = inputRef.current;

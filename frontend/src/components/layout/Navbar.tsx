@@ -12,13 +12,13 @@ import { isLoggedIn, isElderUser, isGuardianUser, logout } from '@/lib/auth';
 const Navbar = () => {
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [isSignupModalOpen, setIsSignupModalOpen] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [loggedInStatus, setLoggedInStatus] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
     // 컴포넌트가 마운트될 때 로그인 상태를 확인합니다.
     const checkLoginStatus = () => {
-      setIsLoggedIn(isLoggedIn());
+      setLoggedInStatus(isLoggedIn());
     };
     
     checkLoginStatus();
@@ -30,29 +30,29 @@ const Navbar = () => {
     
     window.addEventListener('storage', handleStorageChange);
     return () => window.removeEventListener('storage', handleStorageChange);
-  }, [isLoggedIn]);
+  }, []);
 
   const handleLogout = async () => {
     try {
       await logout();
-      setIsLoggedIn(false);
+      setLoggedInStatus(false);
       router.replace('/'); // 로그아웃 후 메인으로 이동
     } catch (error) {
       console.error('로그아웃 실패:', error);
       // 로그아웃 요청이 실패해도 로컬 상태는 정리
-      setIsLoggedIn(false);
+      setLoggedInStatus(false);
       router.replace('/');
     }
   };
 
   const handleLoginSuccess = () => {
-    setIsLoggedIn(true);
+    setLoggedInStatus(true);
     setIsLoginModalOpen(false);
   };
 
   // 로고 링크 동적 처리
   let logoHref = "/";
-  if (isLoggedIn) {
+  if (loggedInStatus) {
     if (isElderUser()) logoHref = "/main-elder";
     else if (isGuardianUser()) logoHref = "/main-guardian";
   }
@@ -74,7 +74,7 @@ const Navbar = () => {
             </Link>
           </div>
           <div className={styles.authLinks}>
-            {isLoggedIn ? (
+            {loggedInStatus ? (
               <>
                 <Link href="/record" className={styles.authLink}>기록하기</Link>
                 <Link href="/mypage" className={styles.authLink}>회원정보</Link>

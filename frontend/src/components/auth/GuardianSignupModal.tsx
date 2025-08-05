@@ -6,7 +6,7 @@ import { UserCircle2, Calendar as CalendarIcon } from 'lucide-react';
 import styles from './GuardianSignupModal.module.css';
 import PrivacyPolicyModal from "@/components/common/PrivacyPolicyModal";
 import SensitivePolicyModal from '@/components/common/SensitivePolicyModal';
-import Datepicker from 'react-tailwindcss-datepicker';
+import Datepicker, { DateValueType } from 'react-tailwindcss-datepicker';
 import { VirtualKeyboard } from '@/components/common/VirtualKeyboard';
 import { register } from '@/lib/auth';
 
@@ -52,7 +52,7 @@ const GuardianSignupModal: React.FC<GuardianSignupModalProps> = ({
     agreeToSensitive: false
   });
 
-  const [birthDateValue, setBirthDateValue] = useState<{ startDate: string | null; endDate: string | null }>({
+  const [birthDateValue, setBirthDateValue] = useState<DateValueType>({
     startDate: null,
     endDate: null,
   });
@@ -86,10 +86,18 @@ const GuardianSignupModal: React.FC<GuardianSignupModalProps> = ({
     }));
   };
 
-  const handleBirthDateChange = (newValue: { startDate: string | null; endDate: string | null } | null) => {
+  const handleBirthDateChange = (newValue: DateValueType) => {
     setBirthDateValue(newValue);
-    if (newValue) {
-      handleGuardianInputChange('birthDate', newValue.startDate || '');
+    if (newValue && newValue.startDate) {
+      // Date 객체를 YYYY-MM-DD 형식의 문자열로 변환
+      const date = new Date(newValue.startDate);
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0'); // 월은 0부터 시작하므로 +1
+      const day = String(date.getDate()).padStart(2, '0');
+      const formattedDate = `${year}-${month}-${day}`;
+      handleGuardianInputChange('birthDate', formattedDate);
+    } else {
+      handleGuardianInputChange('birthDate', '');
     }
   };
 
