@@ -186,12 +186,12 @@ public class LinkController {
 
   /**
    * [노인] 연동된 보호자 목록을 조회하는 API
-   * [GET] /api/link/guardian/list
+   * [GET] /api/link/elder/list
    *
    * @param elderUser
    * @return List<GuardianSummaryResponse>
    */
-  @GetMapping("/guardian/list")
+  @GetMapping("/elder/list")
   public ResponseEntity<?> getLinkedGuardians(@LoginUser User elderUser) {
 
     // ✅ 1. 로그인된 사용자의 역할이 노인인지 확인
