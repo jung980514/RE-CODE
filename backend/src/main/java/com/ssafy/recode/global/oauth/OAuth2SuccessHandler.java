@@ -6,7 +6,7 @@ import static com.ssafy.recode.global.constant.AuthConstant.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ssafy.recode.domain.auth.entity.RefreshToken;
 import com.ssafy.recode.domain.auth.service.RefreshTokenService;
-import com.ssafy.recode.global.dto.Role;
+import com.ssafy.recode.global.enums.Role;
 import com.ssafy.recode.global.dto.response.ApiResponse;
 import com.ssafy.recode.global.security.util.CookieUtils;
 import com.ssafy.recode.global.security.util.JWTUtils;

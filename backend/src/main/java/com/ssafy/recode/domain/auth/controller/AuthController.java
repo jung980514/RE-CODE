@@ -6,7 +6,6 @@ import com.ssafy.recode.domain.auth.service.RefreshTokenService;
 import com.ssafy.recode.global.constant.AuthConstant;
 import com.ssafy.recode.global.dto.request.RegisterRequest;
 import com.ssafy.recode.global.dto.response.ApiResponse;
-import com.ssafy.recode.global.dto.response.auth.TokenResponse;
 import com.ssafy.recode.global.security.annotation.LoginUser;
 import com.ssafy.recode.global.security.util.CookieUtils;
 import com.ssafy.recode.global.security.util.JWTUtils;
@@ -76,8 +75,7 @@ public class AuthController {
 
         return ResponseEntity.status(HttpStatus.OK)
             .contentType(MediaType.APPLICATION_JSON)
-            .body(ApiResponse.successResponseWithMessage("토큰이 정상적으로 재발급 되었습니다.", new TokenResponse(newAccess, newRefresh)
-            ));
+            .body(ApiResponse.successResponse("토큰이 정상적으로 재발급 되었습니다."));
     }
 
     @PostMapping("/logout")

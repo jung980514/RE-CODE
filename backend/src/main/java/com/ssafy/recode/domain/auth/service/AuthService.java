@@ -3,7 +3,7 @@ package com.ssafy.recode.domain.auth.service;
 import com.ssafy.recode.domain.auth.entity.User;
 import com.ssafy.recode.domain.auth.repository.UserRepository;
 import com.ssafy.recode.global.constant.AuthConstant;
-import com.ssafy.recode.global.dto.Provider;
+import com.ssafy.recode.global.enums.Provider;
 import com.ssafy.recode.global.dto.request.RegisterRequest;
 import com.ssafy.recode.global.error.CustomException;
 import com.ssafy.recode.global.error.ErrorCode;

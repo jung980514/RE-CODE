@@ -35,3 +35,7 @@ out/
 
 ### VS Code ###
 .vscode/
+
+# Querydsl Q classes
+build/generated/querydsl/**
+src/main/generated/**

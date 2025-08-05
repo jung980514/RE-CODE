@@ -1,6 +1,6 @@
 package com.ssafy.recode.global.dto.request;
 
-import com.ssafy.recode.global.dto.Role;
+import com.ssafy.recode.global.enums.Role;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
