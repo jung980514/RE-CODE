@@ -16,7 +16,13 @@
 .overlayClose {
   animation: fadeOut 0.3s ease forwards;
 }
-
+.errorMessage {
+  text-align: center;
+  color: red;
+  font-size: 20px;
+  margin-bottom: 20px;
+  font-weight: 700;
+}
 .modal {
   background: #FFFFFD;
   border-radius: 20px;
@@ -377,4 +383,28 @@
   font-family: 'Pretendard';
   font-weight: 350;
   font-size: 14px;
+}
+
+/* LoginModal.module.css 파일에 추가 */
+
+.loadingSpinner {
+  width: 20px;
+  height: 20px;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: #fff;
+  animation: spin 1s ease-in-out infinite;
+  -webkit-animation: spin 1s ease-in-out infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@-webkit-keyframes spin {
+  to {
+    -webkit-transform: rotate(360deg);
+  }
 }

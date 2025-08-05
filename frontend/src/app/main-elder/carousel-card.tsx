@@ -2,10 +2,9 @@
 
 import type React from "react"
 import { motion } from "framer-motion"
-import type { LucideIcon } from "lucide-react"
 
 interface AppCardProps {
-  Icon: LucideIcon
+  Icon: React.ElementType
   title: string
   description: string
   onClick: () => void

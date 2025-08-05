@@ -46,7 +46,6 @@ export function ReminiscenceModal({ isOpen, onClose, record }: ReminiscenceModal
                   <Progress
                     value={record.overallIntensity * 10}
                     className="w-24 h-2 bg-purple-200"
-                    // indicatorClassName="bg-purple-600"
                   />
                 </div>
               </div>

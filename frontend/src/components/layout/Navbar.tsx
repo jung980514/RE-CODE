@@ -7,113 +7,143 @@ import Link from 'next/link';
 import styles from './Navbar.module.css';
 import LoginModal from '../auth/LoginModal';
 import SignupModal from '../auth/SignupModal';
-import { isLoggedIn, isElderUser, isGuardianUser, logout } from '@/lib/auth';
+import { Divide } from 'lucide-react';
 
 const Navbar = () => {
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [isSignupModalOpen, setIsSignupModalOpen] = useState(false);
-  const [loggedInStatus, setLoggedInStatus] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [userName, setUserName] = useState('');
+  const [userType, setUserType] = useState<string | null>(null);
   const router = useRouter();
 
   useEffect(() => {
-    // 컴포넌트가 마운트될 때 로그인 상태를 확인합니다.
-    const checkLoginStatus = () => {
-      setLoggedInStatus(isLoggedIn());
-    };
-    
-    checkLoginStatus();
-    
-    // 로그인 상태 변경을 감지하기 위한 이벤트 리스너
-    const handleStorageChange = () => {
-      checkLoginStatus();
-    };
-    
-    window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
+    // 컴포넌트가 마운트될 때 localStorage를 확인하여 로그인 상태와 사용자 이름을 설정합니다.
+    const type = localStorage.getItem('userType');
+    const name = localStorage.getItem('name');
+    if (type && name) {
+      setIsLoggedIn(true);
+      setUserName(name);
+      setUserType(type);
+    }
   }, []);
 
   const handleLogout = async () => {
     try {
-      await logout();
-      setLoggedInStatus(false);
-      router.replace('/'); // 로그아웃 후 메인으로 이동
+      await fetch('http://localhost:8088/api/user/logout', {
+        method: 'POST',
+        credentials: 'include', // 세션 쿠키를 포함하여 요청
+      });
     } catch (error) {
-      console.error('로그아웃 실패:', error);
-      // 로그아웃 요청이 실패해도 로컬 상태는 정리
-      setLoggedInStatus(false);
-      router.replace('/');
+      // 서버 로그아웃 요청에 실패하더라도 클라이언트에서는 로그아웃 처리를 계속 진행합니다.
+      console.error('Logout API call failed:', error);
+    } finally {
+      // API 요청 성공 여부와 관계없이 클라이언트 측 상태를 업데이트합니다.
+      localStorage.removeItem('userType');
+      localStorage.removeItem('name');
+      // 필요하다면 다른 사용자 정보도 함께 삭제합니다.
+      setIsLoggedIn(false);
+      setUserType(null);
+      setUserName('');
+      router.replace('/'); // 로그아웃 후 메인으로 이동
     }
   };
 
   const handleLoginSuccess = () => {
-    setLoggedInStatus(true);
+    setIsLoggedIn(true);
     setIsLoginModalOpen(false);
+    const name = localStorage.getItem('name');
+    const type = localStorage.getItem('userType');
+    if (name) {
+      setUserName(name);
+    }
+    if (type) {
+      setUserType(type);
+    }
   };
 
   // 로고 링크 동적 처리
   let logoHref = "/";
-  if (loggedInStatus) {
-    if (isElderUser()) logoHref = "/main-elder";
-    else if (isGuardianUser()) logoHref = "/main-guardian";
+  if (isLoggedIn) {
+    if (userType === "0") logoHref = "/main-elder";
+    else if (userType === "1") logoHref = "/main-guardian";
   }
-  return (
-    <>
-      <nav className={styles.navbar}>
-        <div className={styles.container}>
-          <div className={styles.logoContainer}>
-            <Link href={logoHref} className={styles.logoLink}>
-              <Image
-                src="/icons/logo.png"
-                alt="RE:CORD Logo"
-                width={410}
-                height={78}
-                priority
-                className={styles.logo}
-              />
-              <span className={styles.logoText}>RE:CORD</span>
+return (
+  <>
+    <nav className={styles.navbar}>
+      <div className={styles.container}>
+        <div className={styles.logoContainer}>
+          <Link href={logoHref} className={styles.logoLink}>
+            <Image
+              src="/icons/logo.png"
+              alt="RE:CORD Logo"
+              width={410}
+              height={78}
+              priority
+              className={styles.logo}
+            />
+            <span className={styles.logoText}>RE:CORD</span>
+          </Link>
+        </div>
+        
+        <div className={styles.authLinks}>
+          {isLoggedIn ? (
+            <>
+              {userType !== '0' && <div></div>}
+              {userType !== '0' && <div></div>}
+              {userType !== '1' && <Link href="/record" className={styles.authLink}>기록하기</Link>}
+              <Link href="/userinfo" className={styles.authLink}>회원정보</Link>
+              <Link href="/calender" className={styles.authLink}>회상캘린더</Link>
+              <button onClick={handleLogout} className={styles.authLink}>
+                로그아웃
+              </button>
+            </>
+          ) : (
+            <>
+              <div></div>
+              <div></div>
+              <div></div>
+              <div></div>
+              <button 
+                className={styles.authLink} 
+                onClick={() => setIsLoginModalOpen(true)}
+              >
+                로그인
+              </button>
+              <button
+                className={styles.authLink}
+                onClick={() => setIsSignupModalOpen(true)}
+              >
+                회원가입
+              </button>
+            </>
+          )}
+        </div>
+        
+        {/* 사용자명을 별도로 분리하여 오른쪽 끝에 배치 */}
+        {isLoggedIn && (
+          <div className={styles.userNameContainer}>
+            <Link href="/userinfo" className={styles.userNameLink}>
+              {userName}님
             </Link>
           </div>
-          <div className={styles.authLinks}>
-            {loggedInStatus ? (
-              <>
-                <Link href="/record" className={styles.authLink}>기록하기</Link>
-                <Link href="/mypage" className={styles.authLink}>회원정보</Link>
-                <Link href="/calender" className={styles.authLink}>회상캘린더</Link>
-                <button onClick={handleLogout} className={styles.authLink}>
-                  로그아웃
-                </button>
-              </>
-            ) : (
-              <>
-                <button 
-                  className={styles.authLink} 
-                  onClick={() => setIsLoginModalOpen(true)}
-                >
-                  로그인
-                </button>
-                <button
-                  className={styles.authLink}
-                  onClick={() => setIsSignupModalOpen(true)}
-                >
-                  회원가입
-                </button>
-              </>
-            )}
-          </div>
-        </div>
-        <div className={styles.bottomBar} />
-      </nav>
-      <LoginModal 
-        isOpen={isLoginModalOpen} 
-        onClose={() => setIsLoginModalOpen(false)}
-        onLoginSuccess={handleLoginSuccess}
-      />
-      <SignupModal
-        isOpen={isSignupModalOpen}
-        onClose={() => setIsSignupModalOpen(false)}
-      />
-    </>
-  );
+        )}
+      </div>
+      <div className={styles.bottomBar} />
+    </nav>
+    
+    <LoginModal 
+      isOpen={isLoginModalOpen} 
+      onClose={() => setIsLoginModalOpen(false)}
+      onLoginSuccess={handleLoginSuccess}
+    />
+    <SignupModal
+      isOpen={isSignupModalOpen}
+      onClose={() => setIsSignupModalOpen(false)}
+    />
+  </>
+);
+
 };
 
 export default Navbar;
