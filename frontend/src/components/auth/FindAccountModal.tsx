@@ -67,10 +67,8 @@ const FindAccountModal: React.FC<FindAccountModalProps> = ({ isOpen, onClose }) 
 
   const focusActiveInput = () => {
     setTimeout(() => {
-      let inputRef: React.RefObject<HTMLInputElement> | null = null;
-      if (activeInput === 'name') {
-        inputRef = nameInputRef;
-      } else if (activeInput === 'phone') {
+      let inputRef: React.RefObject<HTMLInputElement | null> = nameInputRef;
+      if (activeInput === 'phone') {
         inputRef = phoneInputRef;
       } else if (activeInput === 'id') {
         inputRef = idInputRef;

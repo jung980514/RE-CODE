@@ -3,7 +3,7 @@
 import type React from "react"
 import { useRef, useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { ChevronLeft, ChevronRight } from "lucide-react"
+import { ChevronLeft, ChevronRight, LucideIcon } from "lucide-react"
 import { AppCard } from "./carousel-card"
 
 const noScrollbarCSS = `
@@ -18,7 +18,7 @@ const noScrollbarCSS = `
 
 interface CarouselProps {
   items: Array<{
-    Icon: React.ElementType
+    Icon: LucideIcon
     title: string
     description: string
     action: () => void

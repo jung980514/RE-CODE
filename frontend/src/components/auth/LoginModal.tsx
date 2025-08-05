@@ -90,9 +90,13 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLoginSuccess
         router.push('/main-guardian');
       }
       onLoginSuccess();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('로그인 실패:', err);
-      setError(err.message || '로그인에 실패했습니다. 이메일과 비밀번호를 확인해주세요.');
+      if (err instanceof Error) {
+        setError(err.message || '로그인에 실패했습니다. 이메일과 비밀번호를 확인해주세요.');
+      } else {
+        setError('알 수 없는 오류가 발생했습니다.');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -119,8 +123,12 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLoginSuccess
     // 가상 키보드 버튼 클릭으로 인해 입력 필드가 포커스를 잃는 것을 방지하고,
     // 커서를 항상 텍스트 맨 뒤로 이동시킵니다.
     setTimeout(() => {
-      const inputRef =
-        activeInput === 'email' ? emailInputRef : passwordInputRef;
+      let inputRef: React.RefObject<HTMLInputElement | null>;
+      if (activeInput === 'email') {
+        inputRef = emailInputRef;
+      } else {
+        inputRef = passwordInputRef;
+      }
 
       if (inputRef.current) {
         const inputElement = inputRef.current;

@@ -1,7 +1,7 @@
 import axios, { AxiosInstance, AxiosResponse } from 'axios';
 
 // API 응답 타입 정의
-export interface ApiResponse<T = any> {
+export interface ApiResponse<T = unknown> {
   status: 'success' | 'fail' | 'error';
   code: number;
   message: string | null;
@@ -98,7 +98,7 @@ const createApiClient = (): AxiosInstance => {
             originalRequest.headers.Authorization = `Bearer ${accessToken}`;
             return client(originalRequest);
           }
-        } catch (refreshError) {
+        } catch {
           // 토큰 갱신 실패 시 로그아웃 처리
           if (typeof window !== 'undefined') {
             localStorage.removeItem('accessToken');

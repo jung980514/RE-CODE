@@ -1,8 +1,23 @@
 version: '3.8'
 
 services:
+  redis:
+    build: ./redis
+    container_name: redis
+    ports:
+      - "6379:6379"
+    restart: always
+    networks:
+      - app-network
+
   backend:
     build: ./backend
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+    depends_on:
+      - redis
     expose:
       - "8088"
     networks:
