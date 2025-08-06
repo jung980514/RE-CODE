@@ -30,14 +30,18 @@ export const logout = (): void => {
 
 // 일일 설문조사 완료 상태 관리
 export const setDailySurveyCompleted = (userId: string) => {
-  if (typeof window !== 'undefined') {
-    const today = new Date().toDateString();
-    const surveyData = JSON.parse(localStorage.getItem('dailySurveyData') || '{}');
-    surveyData[userId] = {
-      completed: true,
-      completedAt: today
-    };
-    localStorage.setItem('dailySurveyData', JSON.stringify(surveyData));
+  try {
+    if (typeof window !== 'undefined') {
+      const today = new Date().toDateString();
+      const surveyData = JSON.parse(localStorage.getItem('dailySurveyData') || '{}');
+      surveyData[userId] = {
+        completed: true,
+        completedAt: today
+      };
+      localStorage.setItem('dailySurveyData', JSON.stringify(surveyData));
+    }
+  } catch (error) {
+    console.error('Failed to set daily survey completion status:', error);
   }
 };
 
@@ -52,8 +56,12 @@ export const isDailySurveyCompleted = (userId: string): boolean => {
 };
 
 export const getCurrentUserId = (): string | null => {
-  if (typeof window === 'undefined') return null;
-  return localStorage.getItem('userId');
+  try {
+    if (typeof window === 'undefined') return null;
+    return localStorage.getItem('userId');
+  } catch {
+    return null;
+  }
 }; 
 
 // Recall Training 세션 완료 상태 관리
