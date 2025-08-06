@@ -4,7 +4,7 @@ export interface RegisterData {
   password: string;
   phone: string;
   birthDate: string; // YYYY-MM-DD
-  role: 'GUARDIAN' | 'SENIOR'; 
+  role: 'GUARDIAN' | 'ELDER'; 
 }
 
 interface RegisterResponse {
