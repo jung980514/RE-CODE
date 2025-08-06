@@ -1,3 +1,5 @@
+"use client"
+
 import DailySurvey from "./index"
 
 export default function DailySurveyPage() {

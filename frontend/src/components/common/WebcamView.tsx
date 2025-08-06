@@ -8,7 +8,7 @@ interface WebcamViewProps {
   onStreamReady?: (stream: MediaStream) => void
   videoRef?: React.RefObject<HTMLVideoElement | null>
 }
-const username2 = localStorage.getItem('name')
+const username2 = typeof window !== 'undefined' ? localStorage.getItem('name') : null
 export function WebcamView({ 
   userName = username2 || "김싸피", 
   isRecording = false, 
