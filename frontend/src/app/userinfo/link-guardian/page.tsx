@@ -5,15 +5,6 @@ import { dummyLinkedOldPeople } from '../../../../dummy-data/DummyElderLinks';
 import { useRouter } from "next/navigation";
 import { Link, Users, Send, Eye, X } from "lucide-react";
 
-interface Elder {
-  id: number;
-  name: string;
-  birthDate: string;
-  phone: string;
-  linkDate: string;
-  isLinked: boolean;
-}
-
 export default function GuardianLinkPage() {
   const router = useRouter();
   const [token, setToken] = useState("");
@@ -36,7 +27,7 @@ export default function GuardianLinkPage() {
     }
   };
 
-  const handleViewDetails = (elder: Elder) => {
+  const handleViewDetails = (elder: any) => {
     alert(`${elder.name}의 상세 정보를 확인합니다.`);
     // 여기에 상세보기 모달이나 페이지 이동 로직 추가
   };

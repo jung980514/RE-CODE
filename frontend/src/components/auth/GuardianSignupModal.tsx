@@ -6,9 +6,10 @@ import { UserCircle2, Calendar as CalendarIcon } from 'lucide-react';
 import styles from './GuardianSignupModal.module.css';
 import PrivacyPolicyModal from "@/components/common/PrivacyPolicyModal";
 import SensitivePolicyModal from '@/components/common/SensitivePolicyModal';
-import Datepicker, { DateValueType } from 'react-tailwindcss-datepicker';
+import Datepicker from 'react-tailwindcss-datepicker';
+import { register } from '@/api/register';
+import SignUpSuccessModal from './sign-up-success-modal';
 import { VirtualKeyboard } from '@/components/common/VirtualKeyboard';
-import { register } from '@/lib/auth';
 
 
 interface GuardianSignupModalProps {
@@ -27,6 +28,11 @@ const GuardianSignupModal: React.FC<GuardianSignupModalProps> = ({
   const [isVisible, setIsVisible] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
 
+  // API 요청 상태
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+
   // 가상키보드 상태
   const [showVirtualKeyboard, setShowVirtualKeyboard] = useState(false);
   const [activeInput, setActiveInput] = useState<string | null>(null);
@@ -40,19 +46,21 @@ const GuardianSignupModal: React.FC<GuardianSignupModalProps> = ({
   // 마우스 다운 시작 위치를 추적하기 위한 ref
   const mouseDownTargetRef = useRef<EventTarget | null>(null);
 
-  // 폼 상태 관리 - 백엔드 API와 호환되는 초기값
+  // 폼 상태 관리 - Figma 디자인에 맞춘 초기값
   const [guardianFormData, setGuardianFormData] = useState({
     name: '',
-    phone: '',
+    phoneNumber: '',
     birthDate: '',
     email: '',
+    gender: '',
+    profileImage: null as File | null,
     password: '',
     confirmPassword: '',
     agreeToPrivacy: false,
     agreeToSensitive: false
   });
 
-  const [birthDateValue, setBirthDateValue] = useState<DateValueType>({
+  const [birthDateValue, setBirthDateValue] = useState<{ startDate: string | null; endDate: string | null } | null>({
     startDate: null,
     endDate: null,
   });
@@ -71,8 +79,8 @@ const GuardianSignupModal: React.FC<GuardianSignupModalProps> = ({
       setIsAnimating(false);
       const timer = setTimeout(() => {
         setIsVisible(false);
-      }, 300);
-      setShowVirtualKeyboard(false); 
+        setShowVirtualKeyboard(false); // 모달이 닫힐 때 키보드도 닫기
+      }, 300); 
 
       return () => clearTimeout(timer);
     }
@@ -86,22 +94,20 @@ const GuardianSignupModal: React.FC<GuardianSignupModalProps> = ({
     }));
   };
 
-  const handleBirthDateChange = (newValue: DateValueType) => {
-    setBirthDateValue(newValue);
-    if (newValue && newValue.startDate) {
-      // Date 객체를 YYYY-MM-DD 형식의 문자열로 변환
-      const date = new Date(newValue.startDate);
-      const year = date.getFullYear();
-      const month = String(date.getMonth() + 1).padStart(2, '0'); // 월은 0부터 시작하므로 +1
-      const day = String(date.getDate()).padStart(2, '0');
-      const formattedDate = `${year}-${month}-${day}`;
-      handleGuardianInputChange('birthDate', formattedDate);
-    } else {
-      handleGuardianInputChange('birthDate', '');
+  const handleBirthDateChange = (newValue: { startDate: string | null; endDate: string | null } | null) => {
+    setBirthDateValue(newValue); // 이제 null 값을 할당해도 타입 오류가 발생하지 않습니다.
+    if (newValue) {
+      handleGuardianInputChange('birthDate', newValue.startDate || '');
     }
   };
 
-
+  // 프로필 이미지 업로드 핸들러
+  const handleGuardianImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      handleGuardianInputChange('profileImage', file);
+    }
+  };
 
   // 가상키보드 토글 핸들러
   const handleVirtualKeyboardToggle = () => {
@@ -171,44 +177,37 @@ const GuardianSignupModal: React.FC<GuardianSignupModalProps> = ({
   // 회원가입 제출 핸들러
   const handleGuardianSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
-    
-    // 비밀번호 확인
+
     if (guardianFormData.password !== guardianFormData.confirmPassword) {
-      alert('비밀번호가 일치하지 않습니다.');
+      setError('비밀번호가 일치하지 않습니다.');
       return;
     }
 
-    // 필수 필드 검증
-    if (!guardianFormData.name || !guardianFormData.email || !guardianFormData.password || 
-        !guardianFormData.phone || !guardianFormData.birthDate) {
-      alert('모든 필수 항목을 입력해주세요.');
-      return;
-    }
-
-    // 약관 동의 확인
-    if (!guardianFormData.agreeToPrivacy || !guardianFormData.agreeToSensitive) {
-      alert('모든 약관에 동의해주세요.');
-      return;
-    }
+    setIsLoading(true);
+    setError(null);
 
     try {
-      const result = await register({
+      const apiData = {
         name: guardianFormData.name,
         email: guardianFormData.email,
         password: guardianFormData.password,
-        phone: guardianFormData.phone,
-        birthDate: guardianFormData.birthDate,
-        role: 'GUARDIAN'
-      });
-      
-      alert('회원가입이 완료되었습니다.');
-      onClose();
-    } catch (error: unknown) {
-      if (error instanceof Error) {
-        alert(error.message || '회원가입에 실패했습니다.');
+        phone: guardianFormData.phoneNumber,
+        birthDate: guardianFormData.birthDate, // Datepicker는 YYYY-MM-DD 형식으로 값을 제공합니다.
+        role: 'GUARDIAN' as const,
+      };
+
+      const response = await register(apiData);
+      console.log('회원가입 성공:', response);
+      setShowSuccessModal(true);
+    } catch (err) {
+      // err이 Error 인스턴스인지 확인하여 타입 안전성 확보
+      if (err instanceof Error) {
+        setError(err.message);
       } else {
-        alert('알 수 없는 오류가 발생했습니다.');
+        setError('알 수 없는 오류가 발생했습니다.');
       }
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -258,7 +257,38 @@ const GuardianSignupModal: React.FC<GuardianSignupModalProps> = ({
 
         <form onSubmit={handleGuardianSubmit} className={styles.form}>
           <div className={styles.formColumns}>
-            {/* 1행: 이름 */}
+            <div className={styles.profileSection}>
+              <div 
+                className={styles.profileImageContainer}
+                onClick={() => document.getElementById('profile-upload')?.click()}
+              >
+                {guardianFormData.profileImage ? (
+                  <Image
+                    src={URL.createObjectURL(guardianFormData.profileImage)}
+                    alt="Profile"
+                    width={140}
+                    height={140}
+                    className={styles.profileImage}
+                    style={{ objectFit: 'contain' }}
+                    priority
+                  />
+                ) : (
+                  <div className={styles.profilePlaceholder}>
+                    <UserCircle2 className={styles.profilePlaceholderIcon} />
+                  </div>
+                )}
+              </div>
+              <label className={styles.profileLabel}>
+                프로필 사진 (선택사항)
+              </label>
+              <input
+                id="profile-upload"
+                type="file"
+                accept="image/*"
+                onChange={handleGuardianImageUpload}
+                className={styles.profileInput}
+              />
+            </div>
             <div className={styles.inputGroup}>
               <label className={styles.label}>이름 *</label>
               <input
@@ -276,8 +306,8 @@ const GuardianSignupModal: React.FC<GuardianSignupModalProps> = ({
               <label className={styles.label}>휴대전화 번호 *</label>
               <input
                 type="tel"
-                value={guardianFormData.phone}
-                onChange={(e) => handleGuardianInputChange('phone', e.target.value)}
+                value={guardianFormData.phoneNumber}
+                onChange={(e) => handleGuardianInputChange('phoneNumber', e.target.value)}
                 placeholder="&apos;-&apos; 없이 입력해주세요."
                 className={styles.input}
                 required
@@ -289,8 +319,8 @@ const GuardianSignupModal: React.FC<GuardianSignupModalProps> = ({
                 i18n="ko"
                 asSingle={true}
                 useRange={false}
-                value={birthDateValue}
-                onChange={handleBirthDateChange}
+                value={birthDateValue as any}
+                onChange={handleBirthDateChange as any}
                 placeholder="생년월일을 선택해주세요."
                 inputClassName={styles.input}
                 toggleClassName="absolute right-3 top-1/2 -translate-y-1/2"
@@ -314,18 +344,30 @@ const GuardianSignupModal: React.FC<GuardianSignupModalProps> = ({
               />
             </div>
             <div className={styles.inputGroup}>
-              <label className={styles.label}>이메일 *</label>
+              <label className={styles.label}>이메일</label>
               <input
                 type="email"
                 value={guardianFormData.email}
                 onChange={(e) => handleGuardianInputChange('email', e.target.value)}
                 placeholder="이메일을 입력해주세요"
                 className={styles.input}
-                required
               />
             </div>
 
-            {/* 4행: 비밀번호 확인 */}
+            {/* 4행: 성별(왼) - 비밀번호 확인(오) */}
+            <div className={styles.inputGroup}>
+              <label className={styles.label}>성별 *</label>
+              <select
+                value={guardianFormData.gender}
+                onChange={(e) => handleGuardianInputChange('gender', e.target.value)}
+                className={styles.select}
+                required
+              >
+                <option value="">성별을 선택해주세요</option>
+                <option value="male">남성</option>
+                <option value="female">여성</option>
+              </select>
+            </div>
             <div className={styles.inputGroup}>
               <label className={styles.label}>비밀번호 확인 *</label>
               <input
@@ -383,10 +425,13 @@ const GuardianSignupModal: React.FC<GuardianSignupModalProps> = ({
 </div>
           </div>
 
+          {/* 에러 메시지 표시 */}
+          {error && <p className="text-red-500 text-center font-bold text-2xl">{error}</p>}
+
           {/* 버튼 그룹 */}
           <div className={styles.buttonGroup}>
-            <button type="submit" className={styles.submitButton}>
-              가입하기
+            <button type="submit" className={styles.submitButton} disabled={isLoading}>
+              {isLoading ? '가입 중...' : '가입하기'}
             </button>
             <button 
               type="button" 
@@ -411,6 +456,13 @@ const GuardianSignupModal: React.FC<GuardianSignupModalProps> = ({
       />
       <PrivacyPolicyModal open={showPrivacyModal} onClose={() => setShowPrivacyModal(false)} />
       <SensitivePolicyModal open={showSensitiveModal} onClose={() => setShowSensitiveModal(false)} />
+      <SignUpSuccessModal
+        isOpen={showSuccessModal}
+        onClose={() => {
+          setShowSuccessModal(false);
+          onClose();
+        }}
+      />
     </div>
   );
 };

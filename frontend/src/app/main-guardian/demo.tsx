@@ -1,11 +1,11 @@
 "use client"
-import { motion, Variants } from "framer-motion"
+import { motion } from "framer-motion"
 import { ToastProvider, useToast } from "@/app/main-elder/toast-context"
 import { ToastContainer } from "@/app/main-elder/animated-toast"
 import { Carousel } from "@/app/main-guardian/carousel"
 import { HelpCircle, ContactRound, CalendarDays,} from "lucide-react"
 
-const containerVariants: Variants = {
+const containerVariants = {
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
@@ -16,7 +16,7 @@ const containerVariants: Variants = {
   },
 }
 
-const itemVariants: Variants = {
+const itemVariants = {
   hidden: { y: 20, opacity: 0 },
   visible: {
     y: 0,
@@ -51,7 +51,7 @@ const FlowersAndSaintsUI = () => {
 
   return (
     <motion.div
-      className="flex flex-col items-center justify-center h-217 overflow-hidden bg-gradient-to-br from-violet-100 to-emerald-100 p-8"
+      className="flex flex-col items-center justify-center h-207 overflow-hidden bg-gradient-to-br from-violet-100 to-emerald-100 p-8"
       variants={containerVariants}
       initial="hidden"
       animate="visible"
@@ -59,18 +59,17 @@ const FlowersAndSaintsUI = () => {
       <motion.h1
         className="text-4xl font-bold text-black-800 mb-8"
         style={{ fontFamily: "Paperlogy, sans-serif" }}
-        variants={itemVariants}
+
       >
         열람하지 않은 회상기록이 있습니다!
       </motion.h1>
       <motion.h1
         className="text-4xl font-bold text-black-800 mb-8"
         style={{ fontFamily: "Paperlogy, sans-serif" }}
-        variants={itemVariants}
       >
         회상캘린더에서 확인하세요!
       </motion.h1>
-      <motion.div variants={itemVariants} className="flex justify-center">
+      <motion.div className="flex justify-center">
         <Carousel items={items} />
       </motion.div>
       <ToastContainer />

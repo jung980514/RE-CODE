@@ -1,20 +1,56 @@
 "use client"
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Camera, Users, ChevronLeft } from 'lucide-react';
+import { Camera, Users } from 'lucide-react';
 import Image from 'next/image';
+import { AccountDeletionModal } from './account-deletion-modal';
 
 export default function UserInfoPage() {
   const router = useRouter();
   const [formData, setFormData] = useState({
-    name: '김세미',
-    phoneNumber: '010-1234-5678',
-    birthDate: '1950/03/15',
+    name: '',
+    phoneNumber: '',
+    birthDate: '',
     currentPassword: '',
     newPassword: '',
-    confirmPassword: ''
+    confirmPassword: '',
+    email: '',
   });
+
+  useEffect(() => {
+    const fetchUserInfo = async () => {
+      try {
+        const response = await fetch('http://localhost:8088/api/user/', {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include', // 세션 쿠키를 포함하여 요청
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          if (result.status === 'success' && result.data) {
+            setFormData(prev => ({
+              ...prev,
+              name: result.data.name || '',
+              phoneNumber: result.data.phone || '',
+              birthDate: result.data.birthDate || '',
+              email:result.data.email || '',
+            }));
+          }
+        } else {
+          console.error('Failed to fetch user info');
+          alert('사용자 정보를 불러오는데 실패했습니다. 다시 로그인해주세요.');
+          router.push('/');
+        }
+      } catch (error) {
+        console.error('Error fetching user info:', error);
+      }
+    };
+    fetchUserInfo();
+  }, [router]);
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({
@@ -35,12 +71,27 @@ export default function UserInfoPage() {
     alert('보호자 연동 관리 기능입니다.');
   };
 
-  const handleWithdrawal = () => {
-    // 회원탈퇴 로직
-    if (confirm('정말로 회원탈퇴를 하시겠습니까?')) {
-      console.log('회원탈퇴');
-      alert('회원탈퇴가 완료되었습니다.');
-      router.push('/');
+  const handleConfirmWithdrawal = async () => {
+    try {
+      const response = await fetch('http://localhost:8088/api/user/', {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+
+      if (response.ok) {
+        alert('회원 탈퇴가 완료되었습니다. 이용해주셔서 감사합니다.');
+        // 로컬 스토리지 정리
+        localStorage.removeItem('userType');
+        localStorage.removeItem('name');
+        // 다른 정보도 필요 시 삭제
+        router.replace('/'); // 메인 페이지로 리디렉션
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        alert(`회원 탈퇴에 실패했습니다: ${errorData.message || '서버 오류가 발생했습니다.'}`);
+      }
+    } catch (error) {
+      console.error('Error during account withdrawal:', error);
+      alert('회원 탈퇴 중 오류가 발생했습니다.');
     }
   };
 
@@ -49,12 +100,8 @@ export default function UserInfoPage() {
     alert('휴대전화 번호 변경 기능입니다.');
   };
 
-  const handleBack = () => {
-    router.back();
-  };
-
   return (
-    <div className="min-h-screen bg-white">
+    <div className="bg-white">
       {/* Main Content only, header/navbar 제거됨 */}
       <main className="max-w-6xl mx-auto p-8">
         {/* Profile Information Section */}
@@ -119,7 +166,7 @@ export default function UserInfoPage() {
                     </button>
                   </div>
                 </div>
-
+                
                 {/* Confirm Password */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -137,6 +184,19 @@ export default function UserInfoPage() {
 
               {/* Right Column */}
               <div className="space-y-6">
+                {/* Name */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    이메일 *
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.email}
+                    disabled
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50"
+                  />
+                  <p className="text-sm text-gray-500 mt-1">이메일은 수정할 수 없습니다</p>
+                </div>
                 {/* Birth Date */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -148,9 +208,7 @@ export default function UserInfoPage() {
                     disabled
                     className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50"
                   />
-                  <p className="text-sm text-gray-500 mt-1">생년월일은 수정할 수 없습니다</p>
                 </div>
-
                 {/* New Password */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -171,12 +229,11 @@ export default function UserInfoPage() {
 
         {/* Action Buttons */}
         <div className="flex flex-col sm:flex-row justify-between items-center space-y-4 sm:space-y-0 sm:space-x-4 mt-12">
-          <button
-            onClick={handleWithdrawal}
-            className="w-full sm:w-auto px-6 py-3 bg-orange-500 text-white rounded-md hover:bg-orange-600"
-          >
-            회원탈퇴
-          </button>
+          <AccountDeletionModal onConfirm={handleConfirmWithdrawal}>
+            <button className="w-full sm:w-auto px-6 py-3 bg-orange-500 text-white rounded-md hover:bg-orange-600">
+              회원탈퇴
+            </button>
+          </AccountDeletionModal>
           
           <div className="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4 w-full sm:w-auto">
             <button
@@ -184,7 +241,7 @@ export default function UserInfoPage() {
                 // 계정 타입: 0=노인, 1=보호자
                 const userType = localStorage.getItem('userType');
                 if (userType === '0') {
-                  window.location.href = "/userinfo/link-oldpeople";
+                  window.location.href = "/userinfo/link-elder";
                 } else if (userType === '1') {
                   window.location.href = "/userinfo/link-guardian";
                 } else {
