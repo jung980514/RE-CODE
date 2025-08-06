@@ -1,7 +1,9 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, MutableRefObject } from "react"
+import * as faceapi from '@vladmandic/face-api'
 import { Button } from "@/components/ui/button"
+import { synthesizeSpeech, playAudio, stopCurrentAudio } from "@/api/googleTTS/googleTTSService"
 import { Card, CardContent } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
 import { WebcamView } from "@/components/common/WebcamView"
@@ -21,24 +23,234 @@ interface VoiceSessionProps {
   onBack: () => void
 }
 
-// 음성 녹음 훅 (기존과 동일)
-function useVoiceRecording() {
+// 감정 분석 훅
+interface EmotionRecord {
+  timestamp: number;
+  emotion: string;
+  confidence: number;
+}
+
+function useEmotionDetection(videoRef: React.RefObject<HTMLVideoElement | null>, isRecording: boolean) {
+  const [emotion, setEmotion] = useState<string>('중립')
+  const [confidence, setConfidence] = useState<number>(0)
+  const requestRef = useRef<number | undefined>(undefined)
+  const modelsLoaded = useRef<boolean>(false)
+  const prevExpressions = useRef<faceapi.FaceExpressions | null>(null)
+  const emotionHistory = useRef<EmotionRecord[]>([])
+  const lastRecordTime = useRef<number>(0)
+
+  useEffect(() => {
+    const loadModels = async () => {
+      try {
+        await Promise.all([
+          faceapi.nets.tinyFaceDetector.loadFromUri('https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model'),
+          faceapi.nets.faceExpressionNet.loadFromUri('https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model')
+        ])
+        modelsLoaded.current = true
+      } catch (error) {
+        console.error('모델 로드 오류:', error)
+      }
+    }
+    loadModels()
+
+    return () => {
+      if (requestRef.current) {
+        cancelAnimationFrame(requestRef.current)
+      }
+    }
+  }, [])
+
+  const detectEmotion = async () => {
+    if (!modelsLoaded.current || !videoRef.current) return
+
+    try {
+      const detections = await faceapi
+        .detectSingleFace(videoRef.current, new faceapi.TinyFaceDetectorOptions())
+        .withFaceExpressions()
+
+      if (detections) {
+        const expressions = detections.expressions
+        
+        // 감정 점수 조정
+        const emotionChange = prevExpressions.current ? 
+          Math.abs(expressions.neutral - prevExpressions.current.neutral) : 0
+
+        // 말하기/표정 변화 감지 로직
+        const isSpeaking = emotionChange > 0.15
+        const isSmiling = expressions.happy > 0.3
+        const isNeutralDominant = expressions.neutral > 0.5
+        
+        // 슬픔 감정 보정
+        const sadScore = expressions.sad
+        const mouthOpenScore = Math.max(expressions.surprised, expressions.sad)
+        const isMouthOpen = mouthOpenScore > 0.3
+        
+        // 실제 슬픔 표정 판단
+        const isActuallySad = sadScore > 0.4 && !isSpeaking && !isSmiling && !isMouthOpen
+        
+        const adjustedExpressions = {
+          ...expressions,
+          surprised: expressions.surprised * (isSpeaking ? 0.3 : 0.7),
+          sad: expressions.sad * (isActuallySad ? 1.0 : 0.1),
+          neutral: expressions.neutral * (isNeutralDominant ? 1.4 : 1.2),
+          happy: expressions.happy * (isSmiling ? 1.5 : 1.2),
+          angry: expressions.angry * (isSpeaking ? 0.7 : 0.9),
+          fearful: expressions.fearful * (isSpeaking ? 0.7 : 0.9),
+          disgusted: expressions.disgusted * 0.8
+        }
+
+        prevExpressions.current = expressions
+
+        let maxExpression = 'neutral'
+        let maxConfidence = adjustedExpressions.neutral
+        const threshold = 0.3
+
+        Object.entries(adjustedExpressions).forEach(([expression, value]) => {
+          let currentThreshold = threshold
+          if (expression === 'surprised') currentThreshold = threshold * 1.5
+          if (expression === 'sad') currentThreshold = threshold * 1.4
+          
+          if (value > maxConfidence && value > currentThreshold) {
+            if (isSpeaking && (expression === 'neutral' || expression === 'happy')) {
+              maxConfidence = value * 1.2
+            } else {
+              maxConfidence = value
+            }
+            maxExpression = expression
+          }
+        })
+
+        const emotionMap: { [key: string]: string } = {
+          neutral: '중립',
+          happy: '행복',
+          sad: '슬픔',
+          angry: '화남',
+          fearful: '두려움',
+          disgusted: '혐오',
+          surprised: '놀람'
+        }
+
+        const newEmotion = emotionMap[maxExpression] || '중립'
+        if (maxConfidence > threshold) {
+          setEmotion(newEmotion)
+          setConfidence(maxConfidence)
+
+          const now = Date.now()
+          if (now - lastRecordTime.current >= 1000) {
+            emotionHistory.current.push({
+              timestamp: now,
+              emotion: newEmotion,
+              confidence: maxConfidence
+            })
+            lastRecordTime.current = now
+          }
+        }
+      }
+    } catch (error) {
+      console.error('감정 분석 오류:', error)
+    }
+
+    requestRef.current = requestAnimationFrame(detectEmotion)
+  }
+
+  const analyzeEmotionHistory = () => {
+    if (emotionHistory.current.length === 0) return;
+
+    const emotions = emotionHistory.current;
+    const totalDuration = (emotions[emotions.length - 1].timestamp - emotions[0].timestamp) / 1000;
+
+    const emotionDurations: { [key: string]: number } = {};
+    const emotionConfidences: { [key: string]: number[] } = {};
+
+    emotions.forEach((record, index) => {
+      const duration = index === emotions.length - 1
+        ? 1
+        : (emotions[index + 1].timestamp - record.timestamp) / 1000;
+
+      emotionDurations[record.emotion] = (emotionDurations[record.emotion] || 0) + duration;
+      emotionConfidences[record.emotion] = emotionConfidences[record.emotion] || [];
+      emotionConfidences[record.emotion].push(record.confidence);
+    });
+
+    console.log('=== 감정 분석 결과 ===');
+    console.log(`총 녹화 시간: ${totalDuration.toFixed(1)}초`);
+    Object.entries(emotionDurations).forEach(([emotion, duration]) => {
+      const percentage = (duration / totalDuration * 100).toFixed(1);
+      const avgConfidence = (emotionConfidences[emotion].reduce((a, b) => a + b, 0) / emotionConfidences[emotion].length * 100).toFixed(1);
+      console.log(`${emotion}: ${percentage}% (${duration.toFixed(1)}초, 평균 신뢰도: ${avgConfidence}%)`);
+    });
+    console.log('==================');
+
+    emotionHistory.current = [];
+    lastRecordTime.current = 0;
+  };
+
+  useEffect(() => {
+    if (videoRef.current && isRecording && modelsLoaded.current) {
+      detectEmotion()
+      
+      if (emotionHistory.current.length === 0) {
+        emotionHistory.current = [];
+        lastRecordTime.current = Date.now();
+      }
+    } else {
+      if (!isRecording && emotionHistory.current.length > 0) {
+        analyzeEmotionHistory();
+      }
+
+      setEmotion('중립')
+      setConfidence(0)
+      if (requestRef.current) {
+        cancelAnimationFrame(requestRef.current)
+      }
+    }
+    return () => {
+      if (requestRef.current) {
+        cancelAnimationFrame(requestRef.current)
+      }
+    }
+  }, [videoRef.current, isRecording, modelsLoaded.current])
+
+  return { emotion, confidence }
+}
+
+// 비디오 녹화 훅
+function useVideoRecording(videoStream: MediaStream | null) {
   const [isRecording, setIsRecording] = useState(false)
   const [audioLevel, setAudioLevel] = useState(0)
-  const [recordedAudio, setRecordedAudio] = useState<string | null>(null)
+  const [recordedMedia, setRecordedMedia] = useState<string | null>(null)
   const [isAutoRecording, setIsAutoRecording] = useState(false)
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const audioContextRef = useRef<AudioContext | null>(null)
+  const combinedStreamRef = useRef<MediaStream | null>(null)
 
   const startRecording = async (isAuto = false) => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-      const mediaRecorder = new MediaRecorder(stream)
+      // 기존 TTS 정지
+      stopCurrentAudio()
+      
+      // 기존 스트림 정리
+      if (combinedStreamRef.current) {
+        combinedStreamRef.current.getTracks().forEach((track) => track.stop())
+      }
+      
+      const audioStream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      const newVideoStream = await navigator.mediaDevices.getUserMedia({ video: true })
+      
+      const tracks = [...audioStream.getAudioTracks(), ...newVideoStream.getVideoTracks()]
+      
+      const combinedStream = new MediaStream(tracks)
+      combinedStreamRef.current = combinedStream
+
+      const mediaRecorder = new MediaRecorder(combinedStream, {
+        mimeType: "video/mp4",
+      })
       mediaRecorderRef.current = mediaRecorder
 
+      // 오디오 레벨 감지
       const audioContext = new AudioContext()
       const analyser = audioContext.createAnalyser()
-      const microphone = audioContext.createMediaStreamSource(stream)
+      const microphone = audioContext.createMediaStreamSource(audioStream)
       microphone.connect(analyser)
       audioContextRef.current = audioContext
 
@@ -58,12 +270,12 @@ function useVoiceRecording() {
       updateAudioLevel()
 
       mediaRecorder.ondataavailable = (event) => {
-        const audioBlob = new Blob([event.data], { type: "audio/wav" })
-        const audioUrl = URL.createObjectURL(audioBlob)
-        setRecordedAudio(audioUrl)
+        const mediaBlob = new Blob([event.data], { type: "video/mp4" })
+        const mediaUrl = URL.createObjectURL(mediaBlob)
+        setRecordedMedia(mediaUrl)
       }
     } catch (error) {
-      console.error("음성 녹음 오류:", error)
+      console.error("녹화 오류:", error)
     }
   }
 
@@ -74,7 +286,10 @@ function useVoiceRecording() {
       setIsAutoRecording(false)
       setAudioLevel(0)
 
-      mediaRecorderRef.current.stream.getTracks().forEach((track) => track.stop())
+      // 스트림 정리
+      if (combinedStreamRef.current) {
+        combinedStreamRef.current.getTracks().forEach((track) => track.stop())
+      }
 
       if (audioContextRef.current) {
         audioContextRef.current.close()
@@ -85,72 +300,38 @@ function useVoiceRecording() {
   return {
     isRecording,
     audioLevel,
-    recordedAudio,
+    recordedMedia,
     isAutoRecording,
     startRecording,
     stopRecording,
   }
 }
 
-// 자동 녹음 시작 함수
-function useAutoRecording(startRecording: (isAuto: boolean) => void) {
-  const [showCountdown, setShowCountdown] = useState(false)
-  const [countdown, setCountdown] = useState(3)
-
-  const startAutoRecording = () => {
-    setShowCountdown(true)
-    setCountdown(3)
-
-    const countdownInterval = setInterval(() => {
-      setCountdown((prev) => {
-        if (prev <= 1) {
-          clearInterval(countdownInterval)
-          setShowCountdown(false)
-          startRecording(true)
-          return 3
-        }
-        return prev - 1
-      })
-    }, 1000)
-  }
-
-  return { showCountdown, countdown, startAutoRecording }
-}
-
 export function VoiceStoryTellingSession({ onBack }: VoiceSessionProps) {
   const [currentTopic, setCurrentTopic] = useState(0)
   const [isAITalking, setIsAITalking] = useState(true)
-  const [volume, setVolume] = useState(80)
   const [showCompletionModal, setShowCompletionModal] = useState(false)
-  const { isRecording, audioLevel, recordedAudio, isAutoRecording, startRecording, stopRecording } = useVoiceRecording()
-  const { showCountdown, countdown, startAutoRecording } = useAutoRecording(startRecording)
+  const [webcamStream, setWebcamStream] = useState<MediaStream | null>(null)
+  const videoRef = useRef<HTMLVideoElement>(null)
+  const { isRecording, audioLevel, recordedMedia, isAutoRecording, startRecording, stopRecording } = useVideoRecording(webcamStream)
+  const { emotion, confidence } = useEmotionDetection(videoRef, isRecording)
 
   const topics = [
     {
-      title: "가장 행복했던 순간",
-      question: "인생에서 가장 행복했던 순간은 언제였나요?\n그때의 기분과 주변 사람들에 대해 말씀해 주세요.",
+      title: "개인화 질문",
+      question: "인생에서 가장 행복했던 순간은 언제였나요?\n그때의 기분과 주변 사람들에 대해 말씀해 주세요. 준비가 완료되면 답변하기를 눌러 시작해주세요",
       icon: "🌟",
-    },
-    {
-      title: "어려움을 극복한 순간",
-      question: "인생에서 가장 어려웠지만 극복한 순간이 있으신가요?\n어떻게 극복하셨는지 말씀해 주세요.",
-      icon: "💪",
     },
   ]
 
-  const progress = ((currentTopic + 1) / topics.length) * 100
-
   useEffect(() => {
-    if (isAITalking) {
-      const timer = setTimeout(() => {
-        setIsAITalking(false)
-        setTimeout(() => {
-          startAutoRecording()
-        }, 500)
-      }, 4000)
-      return () => clearTimeout(timer)
+    replayQuestion()
+
+    // 컴포넌트가 언마운트될 때 TTS 정지
+    return () => {
+      stopCurrentAudio()
     }
-  }, [currentTopic, isAITalking])
+  }, [currentTopic])
 
   const handleNext = () => {
     if (currentTopic < topics.length - 1) {
@@ -170,10 +351,20 @@ export function VoiceStoryTellingSession({ onBack }: VoiceSessionProps) {
     onBack()
   }
 
-  const replayQuestion = () => {
-    setIsAITalking(true)
-    if (isRecording) {
-      stopRecording()
+  const replayQuestion = async () => {
+    try {
+      // 기존 TTS 정지
+      stopCurrentAudio()
+      setIsAITalking(true)
+      if (isRecording) {
+        stopRecording()
+      }
+      const audioContent = await synthesizeSpeech(topics[currentTopic].question)
+      await playAudio(audioContent)
+    } catch (error) {
+      console.error('TTS 에러:', error)
+    } finally {
+      setIsAITalking(false)
     }
   }
 
@@ -216,19 +407,11 @@ export function VoiceStoryTellingSession({ onBack }: VoiceSessionProps) {
             돌아가기
           </Button>
           <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2 bg-red-100 text-red-700 px-3 py-1 rounded-full">
-              <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
-              <span className="text-sm font-medium">LIVE</span>
-            </div>
-            <h1 className="text-2xl font-bold text-gray-800">이야기 나누기 훈련</h1>
+            <h1 className="text-2xl font-bold text-gray-800">개인화 훈련</h1>
           </div>
           <div className="text-right">
-            <p className="text-sm text-gray-500">진행률</p>
-            <p className="text-lg font-semibold text-orange-600">{Math.round(progress)}%</p>
           </div>
         </div>
-
-        <Progress value={progress} className="mb-6 h-2" />
 
         {/* 메인 콘텐츠 */}
         <div className="grid lg:grid-cols-3 gap-6">
@@ -262,15 +445,6 @@ export function VoiceStoryTellingSession({ onBack }: VoiceSessionProps) {
                     </div>
                   </div>
                 </div>
-
-                {/* 카운트다운 */}
-                {showCountdown && (
-                  <div className="text-center mb-8">
-                    <div className="text-6xl font-bold text-orange-500 mb-4">{countdown}</div>
-                    <p className="text-gray-600">곧 녹음이 시작됩니다...</p>
-                  </div>
-                )}
-
                 {/* 녹음 상태 */}
                 {isRecording && (
                   <div className="mb-8">
@@ -309,19 +483,19 @@ export function VoiceStoryTellingSession({ onBack }: VoiceSessionProps) {
                   </div>
                 )}
 
-                {/* 녹음된 오디오 재생 */}
-                {recordedAudio && !isRecording && (
+                {/* 녹화된 미디어 재생 */}
+                {recordedMedia && !isRecording && (
                   <div className="mb-8">
                     <div className="bg-green-50 border border-green-200 rounded-lg p-6">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
                           <CheckCircle className="w-6 h-6 text-green-600" />
                           <div>
-                            <p className="font-medium text-green-800">답변이 녹음되었습니다</p>
-                            <p className="text-sm text-green-600">아래에서 다시 들어보실 수 있습니다</p>
+                            <p className="font-medium text-green-800">답변이 녹화되었습니다</p>
+                            <p className="text-sm text-green-600">아래에서 다시 확인하실 수 있습니다</p>
                           </div>
                         </div>
-                        <audio controls src={recordedAudio} className="h-10" />
+                        <video controls src={recordedMedia} className="w-100 h-31 rounded-lg" />
                       </div>
                     </div>
                   </div>
@@ -361,7 +535,7 @@ export function VoiceStoryTellingSession({ onBack }: VoiceSessionProps) {
 
                   <Button
                     onClick={handleNext}
-                    disabled={!recordedAudio && !isRecording}
+                    disabled={!recordedMedia && !isRecording}
                     className="h-12 px-6 bg-orange-500 hover:bg-orange-600 text-white"
                   >
                     {currentTopic === topics.length - 1 ? '완료하기' : '다음 주제'}
@@ -376,39 +550,37 @@ export function VoiceStoryTellingSession({ onBack }: VoiceSessionProps) {
           <div className="lg:col-span-1">
             <Card className="shadow-2xl border-0 bg-white/95 backdrop-blur overflow-hidden h-full">
               <CardContent className="p-6">
-                <WebcamView 
-                  userName="김싸피"
-                  volume={volume}
-                  onVolumeChange={setVolume}
-                  isRecording={isRecording}
-                />
-
-                {/* 전체화면 버튼 */}
-                <Button variant="outline" className="w-full mt-4 bg-transparent">
-                  <Maximize className="w-4 h-4 mr-2" />
-                  전체화면
-                </Button>
+                <div className="space-y-4">
+                  <WebcamView 
+                    isRecording={isRecording}
+                    onStreamReady={setWebcamStream}
+                    videoRef={videoRef}
+                  />
+                  
+                  {/* 감정 분석 결과 */}
+                  <div className="bg-white/80 backdrop-blur rounded-lg p-4">
+                    <h3 className="text-lg font-semibold mb-2">감정 분석</h3>
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-center">
+                        <span>현재 감정:</span>
+                        <span className="font-medium text-orange-600">{emotion}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span>신뢰도:</span>
+                        <span className="font-medium text-orange-600">{Math.round(confidence * 100)}%</span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div
+                          className="bg-orange-600 h-2 rounded-full transition-all duration-300"
+                          style={{ width: `${confidence * 100}%` }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           </div>
-        </div>
-
-        {/* 진행 단계 표시 */}
-        <div className="mt-8 flex justify-center gap-4">
-          {topics.map((_, index) => (
-            <div
-              key={index}
-              className={`w-12 h-12 rounded-full flex items-center justify-center font-bold transition-all ${
-                index === currentTopic
-                  ? "bg-orange-500 text-white shadow-lg scale-110"
-                  : index < currentTopic
-                    ? "bg-green-500 text-white"
-                    : "bg-gray-200 text-gray-500"
-              }`}
-            >
-              {index < currentTopic ? <CheckCircle className="w-6 h-6" /> : index + 1}
-            </div>
-          ))}
         </div>
       </div>
     </div>

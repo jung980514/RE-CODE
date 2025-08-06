@@ -5,9 +5,15 @@ import { SurveyFormProps } from "./types"
 import { surveyQuestions } from "./surveyData"
 import { ArrowLeft, Play, Check, Volume2, Clock, User, Brain, Heart, Mic, MicOff } from "lucide-react"
 
+interface Recording {
+  audioUrl: string;
+  duration: number;
+  blob: Blob;
+}
+
 export default function SurveyForm({ onComplete, onBack }: SurveyFormProps) {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0)
-  const [recordings, setRecordings] = useState<Record<number, any>>({})
+  const [recordings, setRecordings] = useState<Record<number, Recording>>({})
   const [isRecording, setIsRecording] = useState(false)
   const [isRecorded, setIsRecorded] = useState(false)
   const [recordingTime, setRecordingTime] = useState(0)

@@ -1,13 +1,20 @@
 "use client"
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Camera, Users } from 'lucide-react';
 import Image from 'next/image';
 import { AccountDeletionModal } from './account-deletion-modal';
+import { VirtualKeyboard } from '@/components/common/VirtualKeyboard';
 
 export default function UserInfoPage() {
   const router = useRouter();
+  const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
+  const [activeInput, setActiveInput] = useState<'currentPassword' | 'newPassword' | 'confirmPassword' | null>(null);
+  const currentPasswordRef = useRef<HTMLInputElement>(null);
+  const newPasswordRef = useRef<HTMLInputElement>(null);
+  const confirmPasswordRef = useRef<HTMLInputElement>(null);
+  
   const [formData, setFormData] = useState({
     name: '',
     phoneNumber: '',
@@ -100,6 +107,63 @@ export default function UserInfoPage() {
     alert('휴대전화 번호 변경 기능입니다.');
   };
 
+  const handleToggleKeyboard = () => {
+    setIsKeyboardVisible((prev) => !prev);
+  };
+
+  const focusActiveInput = () => {
+    setTimeout(() => {
+      const inputRef =
+        activeInput === 'currentPassword'
+          ? currentPasswordRef
+          : activeInput === 'newPassword'
+          ? newPasswordRef
+          : confirmPasswordRef;
+
+      if (inputRef.current) {
+        const inputElement = inputRef.current;
+        inputElement.focus();
+        const valueLength = inputElement.value.length;
+        inputElement.setSelectionRange(valueLength, valueLength);
+      }
+    }, 0);
+  };
+
+  const handleVirtualKeyPress = (key: string, replaceLast = false) => {
+    if (!activeInput) return;
+
+    setFormData((prev) => {
+      const currentVal = prev[activeInput];
+      const newVal = replaceLast
+        ? currentVal.slice(0, -1) + key
+        : currentVal + key;
+      return { ...prev, [activeInput]: newVal };
+    });
+    focusActiveInput();
+  };
+
+  const handleVirtualBackspace = () => {
+    if (!activeInput) return;
+    setFormData((prev) => ({
+      ...prev,
+      [activeInput]: prev[activeInput].slice(0, -1),
+    }));
+    focusActiveInput();
+  };
+
+  const handleVirtualSpace = () => {
+    if (!activeInput) return;
+    setFormData((prev) => ({
+      ...prev,
+      [activeInput]: `${prev[activeInput]} `,
+    }));
+    focusActiveInput();
+  };
+
+  const handleVirtualEnter = () => {
+    setIsKeyboardVisible(false);
+  };
+
   return (
     <div className="bg-white">
       {/* Main Content only, header/navbar 제거됨 */}
@@ -172,13 +236,17 @@ export default function UserInfoPage() {
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     비밀번호 확인
                   </label>
-                  <input
-                    type="password"
-                    placeholder="비밀번호를 다시 입력하세요"
-                    value={formData.confirmPassword}
-                    onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-                  />
+                  <div className="relative">
+                    <input
+                      ref={confirmPasswordRef}
+                      type="password"
+                      placeholder="비밀번호를 다시 입력하세요"
+                      value={formData.confirmPassword}
+                      onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
+                      onFocus={() => setActiveInput('confirmPassword')}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                    />  
+                  </div>
                 </div>
               </div>
 
@@ -214,13 +282,17 @@ export default function UserInfoPage() {
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     새 비밀번호
                   </label>
-                  <input
-                    type="password"
-                    placeholder="새 비밀번호를 입력하세요"
-                    value={formData.newPassword}
-                    onChange={(e) => handleInputChange('newPassword', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-                  />
+                  <div className="relative">
+                    <input
+                      ref={newPasswordRef}
+                      type="password"
+                      placeholder="새 비밀번호를 입력하세요"
+                      value={formData.newPassword}
+                      onChange={(e) => handleInputChange('newPassword', e.target.value)}
+                      onFocus={() => setActiveInput('newPassword')}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                    />
+                  </div>
                 </div>
               </div>
             </div>
@@ -236,6 +308,17 @@ export default function UserInfoPage() {
           </AccountDeletionModal>
           
           <div className="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4 w-full sm:w-auto">
+          <button
+                      type="button"
+                      onClick={handleToggleKeyboard}
+                    >
+                      <Image
+                        src="/icons/keyboard_icon.png"
+                        alt="가상 키보드 열기/닫기"
+                        width={24}
+                        height={24}
+                      />
+                    </button>
             <button
               onClick={() => {
                 // 계정 타입: 0=노인, 1=보호자
@@ -259,11 +342,21 @@ export default function UserInfoPage() {
             >
               프로필 저장
             </button>
+            
           </div>
         </div>
       </main>
 
       {/* floating bar 제거됨 */}
+      <VirtualKeyboard
+        isVisible={isKeyboardVisible}
+        onToggle={handleToggleKeyboard}
+        onKeyPress={handleVirtualKeyPress}
+        onBackspace={handleVirtualBackspace}
+        onSpace={handleVirtualSpace}
+        onEnter={handleVirtualEnter}
+        currentInputValue={activeInput ? formData[activeInput] : ''}
+      />
     </div>
   );
 }

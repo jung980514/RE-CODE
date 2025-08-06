@@ -159,7 +159,7 @@ export default function RecallTrainingMain() {
           <div className="flex items-center gap-6 mb-6">
             <div className="flex items-center gap-2 text-gray-500">
               <Clock className="w-4 h-4" />
-              <span className="text-sm">10분</span>
+              <span className="text-sm">5분</span>
             </div>
             <div className="flex items-center gap-2 text-gray-500">
               <MessageCircle className="w-4 h-4" />
@@ -211,7 +211,7 @@ export default function RecallTrainingMain() {
             <div className="flex items-center gap-4 text-sm text-gray-600">
               <div className="flex items-center gap-1">
                 <Clock className="w-3 h-3" />
-                <span>10분</span>
+                <span>5분</span>
               </div>
               <div className="flex items-center gap-1">
                 <MessageCircle className="w-3 h-3" />
