@@ -1,12 +1,12 @@
 // src/main/java/com/ssafy/recode/domain/personal/service/PersonalAnswerService.java
 package com.ssafy.recode.domain.personal.service;
 
+import com.ssafy.recode.domain.common.service.AiPromptService;
+import com.ssafy.recode.domain.common.service.S3UploaderService;
+import com.ssafy.recode.domain.common.service.VideoTranscriptionService;
 import com.ssafy.recode.domain.personal.entity.PersonalAnswer;
 import com.ssafy.recode.domain.personal.entity.PersonalQuestion;
 import com.ssafy.recode.domain.personal.repository.PersonalQuestionRepository;
-import com.ssafy.recode.domain.common.service.PromptEvaluationService;
-import com.ssafy.recode.domain.common.service.S3UploaderService;
-import com.ssafy.recode.domain.common.service.VideoTranscriptionService;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
@@ -31,7 +31,7 @@ public class PersonalAnswerService {
 
   private final VideoTranscriptionService transcriptionService;
   private final S3UploaderService           s3UploaderService;
-  private final PromptEvaluationService     promptEvaluationService;
+  private final AiPromptService             aiPromptService;
   private final PersonalQuestionRepository  questionRepository;
 
   @PersistenceContext
@@ -73,7 +73,7 @@ public class PersonalAnswerService {
               "유효하지 않은 questionId=" + questionId));
 
       // 3) LLM 평가
-      double score = promptEvaluationService
+      double score = aiPromptService
           .evaluateAnswer(question.getContent(), answerText);
 
       // 4) match 여부

@@ -3,7 +3,7 @@ package com.ssafy.recode.domain.basic.service;
 import com.ssafy.recode.domain.basic.entity.BasicAnswer;
 import com.ssafy.recode.domain.basic.entity.BasicQuestion;
 import com.ssafy.recode.domain.basic.repository.BasicQuestionRepository;
-import com.ssafy.recode.domain.common.service.PromptEvaluationService;
+import com.ssafy.recode.domain.common.service.AiPromptService;
 import com.ssafy.recode.domain.common.service.S3UploaderService;
 import com.ssafy.recode.domain.common.service.VideoTranscriptionService;
 import jakarta.persistence.EntityManager;
@@ -30,7 +30,7 @@ public class BasicAnswerService {
 
   private final VideoTranscriptionService transcriptionService;
   private final S3UploaderService           s3UploaderService;
-  private final PromptEvaluationService     promptEvaluationService;
+  private final AiPromptService             aiPromptService;
   private final BasicQuestionRepository     questionRepository;
 
   @PersistenceContext
@@ -72,7 +72,7 @@ public class BasicAnswerService {
               "유효하지 않은 questionId=" + questionId));
 
       // 3) LLM 평가
-      double score = promptEvaluationService
+      double score = aiPromptService
           .evaluateAnswer(question.getContent(), answerText);
 
       // 4) match 여부
