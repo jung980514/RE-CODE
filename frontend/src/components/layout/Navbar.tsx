@@ -91,7 +91,7 @@ return (
             <>
               {userType !== '0' && <div></div>}
               {userType !== '0' && <div></div>}
-              {userType !== '1' && <Link href="/record" className={styles.authLink}>기록하기</Link>}
+              {userType !== '1' && <Link href="/main-elder/daily-survey" className={styles.authLink}>기록하기</Link>}
               <Link href="/userinfo" className={styles.authLink}>회원정보</Link>
               <Link href="/calender" className={styles.authLink}>회상캘린더</Link>
               <button onClick={handleLogout} className={styles.authLink}>

@@ -4,6 +4,7 @@ import { ToastProvider, useToast } from "./toast-context"
 import { ToastContainer } from "./animated-toast"
 import { Carousel } from "./carousel"
 import { NotebookPen, ContactRound, CalendarDays, Moon} from "lucide-react"
+import { useEffect } from 'react'
 
 const containerVariants = {
   hidden: { opacity: 0 },
