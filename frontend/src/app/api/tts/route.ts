@@ -1,9 +1,16 @@
 import { NextResponse } from 'next/server'
-import textToSpeech from '@google-cloud/text-to-speech'
+import textToSpeech, { protos } from '@google-cloud/text-to-speech'
 
-export async function POST(request: Request) {
+interface TTSRequest {
+  text: string;
+}
+
+type AudioEncoding = protos.google.cloud.texttospeech.v1.AudioEncoding;
+type SynthesizeSpeechRequest = protos.google.cloud.texttospeech.v1.ISynthesizeSpeechRequest;
+
+export async function POST(req: Request) {
   try {
-    const { text } = await request.json()
+    const { text } = await req.json() as TTSRequest;
 
     // Google Cloud 클라이언트 초기화
     const client = new textToSpeech.TextToSpeechClient({
@@ -14,17 +21,17 @@ export async function POST(request: Request) {
     })
 
     // TTS 요청 설정
-    const request = {
+    const ttsRequest: SynthesizeSpeechRequest = {
       input: { text },
       voice: {
         languageCode: 'ko-KR',
         name: 'ko-KR-Neural2-A',
       },
-      audioConfig: { audioEncoding: 'MP3' },
+      audioConfig: { audioEncoding: protos.google.cloud.texttospeech.v1.AudioEncoding.MP3 },
     }
 
     // TTS 변환 실행
-    const [response] = await client.synthesizeSpeech(request)
+    const [response] = await client.synthesizeSpeech(ttsRequest)
     const audioContent = response.audioContent
 
     // 오디오 응답 반환
