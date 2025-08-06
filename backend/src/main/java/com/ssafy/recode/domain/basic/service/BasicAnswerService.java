@@ -4,10 +4,7 @@ import com.ssafy.recode.domain.basic.entity.BasicAnswer;
 import com.ssafy.recode.domain.basic.entity.BasicQuestion;
 import com.ssafy.recode.domain.basic.repository.BasicAnswerRepository;
 import com.ssafy.recode.domain.basic.repository.BasicQuestionRepository;
-<<<<<<< backend/src/main/java/com/ssafy/recode/domain/basic/service/BasicAnswerService.java
 import com.ssafy.recode.domain.common.service.AiPromptService;
-=======
->>>>>>> backend/src/main/java/com/ssafy/recode/domain/basic/service/BasicAnswerService.java
 import com.ssafy.recode.domain.common.service.S3UploaderService;
 import com.ssafy.recode.domain.common.service.VideoTranscriptionService;
 import com.ssafy.recode.domain.common.service.PromptEvaluationService;
