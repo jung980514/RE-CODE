@@ -7,7 +7,6 @@ import com.ssafy.recode.domain.basic.repository.BasicQuestionRepository;
 import com.ssafy.recode.domain.common.service.AiPromptService;
 import com.ssafy.recode.domain.common.service.S3UploaderService;
 import com.ssafy.recode.domain.common.service.VideoTranscriptionService;
-import com.ssafy.recode.domain.common.service.PromptEvaluationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
