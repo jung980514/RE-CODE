@@ -1,4 +1,3 @@
-// src/main/java/com/ssafy/recode/domain/common/service/CommonS3UploaderService.java
 package com.ssafy.recode.domain.common.service;
 
 import java.nio.file.Files;
@@ -13,65 +12,50 @@ import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 @Service
 public class CommonS3UploaderService implements S3UploaderService {
 
-    private final S3Client s3Client;
+  private final S3Client s3Client;
 
-    @Value("${cloud.aws.s3.bucket}")
-    private String bucket;
-    @Value("${aws.s3.prefix}")
-    private String prefix;
-    @Value("${ffmpeg.path}")
-    private String ffmpegPath;
+  @Value("${cloud.aws.s3.bucket}")
+  private String bucket;
 
-    public CommonS3UploaderService(S3Client s3Client) {
-        this.s3Client = s3Client;
+  @Value("${aws.s3.prefix}")
+  private String prefix;
+
+  public CommonS3UploaderService(S3Client s3Client) {
+    this.s3Client = s3Client;
+  }
+
+  /**
+   * MP4 등 원본 미디어를 변환 없이 업로드
+   */
+  @Override
+  public String uploadRawMedia(MultipartFile file, String folder) {
+    try {
+      String orig = file.getOriginalFilename();
+      String base = (orig != null)
+          ? orig.replaceFirst("\\.[^.]+$", "")
+          : UUID.randomUUID().toString();
+      String extension = (orig != null && orig.contains("."))
+          ? orig.substring(orig.lastIndexOf('.'))
+          : ".mp4";
+      String uuid = UUID.randomUUID().toString();
+
+      // 임시 파일 생성 (같은 확장자로)
+      Path tmp = Files.createTempFile("media-", "-" + uuid + "-" + base + extension);
+      file.transferTo(tmp.toFile());
+
+      // S3에 업로드할 key: prefix/folder/UUID_base.extension
+      String key = String.format("%s%s/%s_%s%s", prefix, folder, uuid, base, extension);
+      s3Client.putObject(
+          PutObjectRequest.builder()
+              .bucket(bucket)
+              .key(key)
+              .build(),
+          tmp
+      );
+      Files.deleteIfExists(tmp);
+      return key;
+    } catch (Exception e) {
+      throw new RuntimeException("미디어 업로드 실패", e);
     }
-
-    @Override
-    public String uploadAsWav(MultipartFile multipartFile, String folder) {
-        try {
-            String orig = multipartFile.getOriginalFilename();
-            String base = (orig != null)
-                ? orig.replaceFirst("\\.[^.]+$", "")
-                : UUID.randomUUID().toString();
-            String uuid = UUID.randomUUID().toString();
-            Path tmpMp4 = Files.createTempFile("mp4-", "-" + uuid + ".mp4");
-            multipartFile.transferTo(tmpMp4);
-
-            // 1) MP4 업로드
-            String mp4Key = prefix + folder + "/" + uuid + "_" + base + ".mp4";
-            s3Client.putObject(
-                PutObjectRequest.builder().bucket(bucket).key(mp4Key).build(),
-                tmpMp4
-            );
-
-            // 2) WAV 변환
-            Path tmpWav = tmpMp4.resolveSibling(uuid + "_" + base + ".wav");
-            new ProcessBuilder(
-                ffmpegPath,
-                "-i", tmpMp4.toString(),
-                "-ar", "16000",
-                "-ac", "1",
-                "-f", "wav",
-                tmpWav.toString()
-            )
-            .inheritIO()
-            .start()
-            .waitFor();
-
-            // 3) WAV 업로드
-            String wavKey = prefix + folder + "/" + tmpWav.getFileName();
-            s3Client.putObject(
-                PutObjectRequest.builder().bucket(bucket).key(wavKey).build(),
-                tmpWav
-            );
-
-            // 4) 임시 파일 삭제
-            Files.deleteIfExists(tmpMp4);
-            Files.deleteIfExists(tmpWav);
-
-            return wavKey;
-        } catch (Exception e) {
-            throw new RuntimeException("S3 업로드 실패", e);
-        }
-    }
+  }
 }
