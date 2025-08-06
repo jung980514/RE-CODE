@@ -213,7 +213,6 @@ export function ReminiscenceCalendar({ trainingRecords, onDateClick }: Reminisce
           <Progress
             value={Number.parseFloat(positiveEmotionRatio)}
             className="w-full h-2 bg-gray-200"
-            // indicatorClassName="bg-pink-600"
           />
         </Card>
       </div>
