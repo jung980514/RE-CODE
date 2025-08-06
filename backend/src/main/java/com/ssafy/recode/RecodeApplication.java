@@ -7,6 +7,8 @@ import io.swagger.v3.oas.annotations.servers.Server;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.scheduling.annotation.EnableAsync;
+import org.springframework.scheduling.annotation.EnableScheduling;
+import io.github.cdimascio.dotenv.Dotenv;
 
 @SpringBootApplication
 @OpenAPIDefinition(
@@ -20,8 +22,15 @@ import org.springframework.scheduling.annotation.EnableAsync;
               @Server(url="https://recode-my-life.site")}
 )
 @EnableAsync
+@EnableScheduling
 public class RecodeApplication {
   public static void main(String[] args) {
-    SpringApplication.run(RecodeApplication.class, args);
+      // .env 자동 로드
+      Dotenv dotenv = Dotenv.configure().ignoreIfMissing().load();
+
+      // 환경 변수로 등록 (application.properties에서 인식되도록)
+      System.setProperty("AWS_ACCESS_KEY", dotenv.get("AWS_ACCESS_KEY"));
+      System.setProperty("AWS_SECRET_KEY", dotenv.get("AWS_SECRET_KEY"));
+      SpringApplication.run(RecodeApplication.class, args);
   }
 }

@@ -1,27 +1,18 @@
-// src/main/java/com/ssafy/recode/domain/personal/service/PersonalAnswerService.java
 package com.ssafy.recode.domain.personal.service;
 
-import com.ssafy.recode.domain.personal.entity.PersonalAnswer;
-import com.ssafy.recode.domain.personal.entity.PersonalQuestion;
-import com.ssafy.recode.domain.personal.repository.PersonalQuestionRepository;
-import com.ssafy.recode.domain.common.service.PromptEvaluationService;
+import com.ssafy.recode.domain.common.service.AiPromptService;
 import com.ssafy.recode.domain.common.service.S3UploaderService;
 import com.ssafy.recode.domain.common.service.VideoTranscriptionService;
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.PersistenceContext;
+import com.ssafy.recode.domain.personal.entity.PersonalAnswer;
+import com.ssafy.recode.domain.personal.entity.PersonalQuestion;
+import com.ssafy.recode.domain.personal.repository.PersonalAnswerRepository;
+import com.ssafy.recode.domain.personal.repository.PersonalQuestionRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-/**
- * “personal” 질문에 대한 답변 파이프라인
- * 1) MP4→WAV 변환·업로드
- * 2) WAV→STT 전사
- * 3) 전사 텍스트→LLM 평가
- * 4) 결과 엔티티 저장
- */
 @Service
 @RequiredArgsConstructor
 public class PersonalAnswerService {
@@ -29,73 +20,51 @@ public class PersonalAnswerService {
   private static final String FOLDER = "personal";
   private static final double MATCH_THRESHOLD = 70.0;
 
-  private final VideoTranscriptionService transcriptionService;
-  private final S3UploaderService           s3UploaderService;
-  private final PromptEvaluationService     promptEvaluationService;
-  private final PersonalQuestionRepository  questionRepository;
-
-  @PersistenceContext
-  private final EntityManager               entityManager;
+  private final VideoTranscriptionService    transcriptionService;
+  private final S3UploaderService            uploader;
+  private final AiPromptService      evaluator;
+  private final PersonalQuestionRepository   questionRepo;
+  private final PersonalAnswerRepository     answerRepo;
 
   /**
-   * MP4 → WAV 변환 후 S3에 업로드
-   *
-   * @param file 클라이언트가 전송한 MP4 파일
-   * @return 업로드된 WAV 파일의 S3 키
+   * MP4 파일을 S3에 올리고 key 반환
    */
   public String uploadMedia(MultipartFile file) {
-    return s3UploaderService.uploadAsWav(file, FOLDER);
+    return uploader.uploadRawMedia(file, FOLDER);
   }
 
   /**
-   * 답변 처리 전체 흐름을 비동기로 실행합니다.
-   * 1) STT 전사
-   * 2) 질문 조회
-   * 3) LLM 평가→score
-   * 4) match 여부 판단
-   * 5) mediaKey→videoPath 변환
-   * 6) PersonalAnswer 엔티티 생성·저장
-   *
-   * @param questionId 질문 ID
-   * @param userId     사용자 ID
-   * @param mediaKey   업로드된 WAV 파일의 S3 키
+   * 비동기로 영상 STT 처리 → 평가 → 저장
    */
   @Async
   @Transactional
   public void processAnswerAsync(Long questionId, Long userId, String mediaKey) {
     try {
-      // 1) STT 전사
-      String answerText = transcriptionService.transcribeFromS3(mediaKey);
+      // 1) 영상 → 텍스트 변환
+      String answerText = transcriptionService.transcribeVideo(mediaKey);
 
       // 2) 질문 조회
-      PersonalQuestion question = questionRepository.findById(questionId)
-          .orElseThrow(() -> new IllegalArgumentException(
-              "유효하지 않은 questionId=" + questionId));
+      PersonalQuestion question = questionRepo.findById(questionId)
+          .orElseThrow(() -> new IllegalArgumentException("Invalid questionId=" + questionId));
 
-      // 3) LLM 평가
-      double score = promptEvaluationService
-          .evaluateAnswer(question.getContent(), answerText);
-
-      // 4) match 여부
+      // 3) LLM 평가 → 점수, 매칭 여부
+      double score = evaluator.evaluateAnswer(question.getContent(), answerText);
       boolean isMatch = score >= MATCH_THRESHOLD;
 
-      // 5) mediaKey → videoPath 변환
-      String mediaPath = mediaKey.replaceFirst("\\.wav$", ".mp4");
-
-      // 6) 엔티티 생성·저장
+      // 4) 결과 엔티티 생성 및 저장
       PersonalAnswer answer = PersonalAnswer.builder()
           .questionId(questionId)
           .userId(userId)
           .answer(answerText)
           .score(score)
           .isMatch(isMatch)
-          .videoPath(mediaPath)
+          .videoPath(mediaKey)
           .build();
-      entityManager.persist(answer);
+      answerRepo.save(answer);
 
     } catch (Exception e) {
       throw new RuntimeException(
-          "PersonalAnswer 처리 중 오류 발생 (questionId=" + questionId + ")", e);
+          "PersonalAnswer 처리 중 오류 (questionId=" + questionId + ")", e);
     }
   }
 }

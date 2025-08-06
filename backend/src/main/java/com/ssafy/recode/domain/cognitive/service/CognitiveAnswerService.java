@@ -1,24 +1,18 @@
-// src/main/java/com/ssafy/recode/domain/cognitive/service/CognitiveAnswerService.java
 package com.ssafy.recode.domain.cognitive.service;
 
 import com.ssafy.recode.domain.cognitive.entity.CognitiveAnswer;
 import com.ssafy.recode.domain.cognitive.entity.CognitiveQuestion;
+import com.ssafy.recode.domain.cognitive.repository.CognitiveAnswerRepository;
 import com.ssafy.recode.domain.cognitive.repository.CognitiveQuestionRepository;
-import com.ssafy.recode.domain.common.service.PromptEvaluationService;
+import com.ssafy.recode.domain.common.service.AiPromptService;
 import com.ssafy.recode.domain.common.service.S3UploaderService;
 import com.ssafy.recode.domain.common.service.VideoTranscriptionService;
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-/**
- * “cognitive” 도메인 답변 파이프라인
- *  - audio/image mediaType별 통합 처리
- */
 @Service
 @RequiredArgsConstructor
 public class CognitiveAnswerService {
@@ -27,41 +21,22 @@ public class CognitiveAnswerService {
   private static final String IMAGE_FOLDER    = "cognitive-image";
   private static final double MATCH_THRESHOLD = 70.0;
 
-  private final VideoTranscriptionService    transcriptionService;
-  private final S3UploaderService            s3UploaderService;
-  private final PromptEvaluationService      promptEvaluationService;
-  private final CognitiveQuestionRepository  questionRepository;
-
-  @PersistenceContext
-  private final EntityManager                entityManager;
+  private final VideoTranscriptionService   transcriptionService;
+  private final S3UploaderService           uploader;
+  private final AiPromptService             evaluator;
+  private final CognitiveQuestionRepository questionRepo;
+  private final CognitiveAnswerRepository   answerRepo;
 
   /**
-   * mediaType에 따라
-   *  - "audio": MP4→WAV 변환 후 업로드
-   *  - "image": 파일 그대로 업로드
-   *
-   * @param file      업로드할 파일
-   * @param mediaType "audio" 또는 "image"
-   * @return S3에 저장된 미디어 키
+   * mediaType에 따라 audio/mp4 또는 이미지 파일을 S3에 업로드
    */
   public String uploadMedia(MultipartFile file, String mediaType) {
     String folder = "audio".equals(mediaType) ? AUDIO_FOLDER : IMAGE_FOLDER;
-    return s3UploaderService.uploadAsWav(file, folder);
+    return uploader.uploadRawMedia(file, folder);
   }
 
   /**
-   * 답변 처리 파이프라인을 비동기로 실행합니다.
-   * 1) audio→STT, image→mediaKey
-   * 2) 질문 조회
-   * 3) LLM 평가→score
-   * 4) match 여부 판단
-   * 5) mediaKey→mediaPath(mp4 or URL)
-   * 6) CognitiveAnswer 엔티티 저장
-   *
-   * @param questionId 질문 ID
-   * @param userId     사용자 ID
-   * @param mediaKey   S3에 저장된 미디어 키
-   * @param mediaType  "audio" 또는 "image"
+   * 비동기로 응답 처리: audio이면 STT, image면 URL 그대로 → 평가 → 저장
    */
   @Async
   @Transactional
@@ -72,43 +47,39 @@ public class CognitiveAnswerService {
       String mediaType
   ) {
     try {
-      // 1) answerText 결정
-      String answerText = "audio".equals(mediaType)
-          ? transcriptionService.transcribeFromS3(mediaKey)
-          : mediaKey;
+      // 1) 답변 텍스트 결정
+      String answerText;
+      if ("audio".equals(mediaType)) {
+        // 동영상/mp4 → 텍스트 변환
+        answerText = transcriptionService.transcribeVideo(mediaKey);
+      } else {
+        // 이미지인 경우 URL 또는 key 그대로 사용
+        answerText = mediaKey;
+      }
 
       // 2) 질문 조회
-      CognitiveQuestion question = questionRepository.findById(questionId)
-          .orElseThrow(() -> new IllegalArgumentException(
-              "유효하지 않은 questionId=" + questionId));
+      CognitiveQuestion question = questionRepo.findById(questionId)
+          .orElseThrow(() -> new IllegalArgumentException("Invalid questionId=" + questionId));
 
-      // 3) LLM 평가
-      double score = promptEvaluationService
-          .evaluateAnswer(question.getContent(), answerText);
-
-      // 4) match 여부
+      // 3) LLM 평가 → 점수, 매칭 여부
+      double score = evaluator.evaluateAnswer(question.getContent(), answerText);
       boolean isMatch = score >= MATCH_THRESHOLD;
 
-      // 5) mediaPath 결정
-      String mediaPath = "audio".equals(mediaType)
-          ? mediaKey.replaceFirst("\\.wav$", ".mp4")
-          : mediaKey;
-
-      // 6) 엔티티 생성·저장
+      // 4) 결과 엔티티 생성 및 저장
       CognitiveAnswer answer = CognitiveAnswer.builder()
           .question(question)
           .userId(userId)
           .answer(answerText)
           .score(score)
           .isMatch(isMatch)
-          .videoPath(mediaPath)
+          .videoPath(mediaKey)
           .mediaType(mediaType)
           .build();
-      entityManager.persist(answer);
+      answerRepo.save(answer);
 
     } catch (Exception e) {
       throw new RuntimeException(
-          "CognitiveAnswer 처리 중 오류 발생 (questionId=" + questionId + ")", e);
+          "CognitiveAnswer 처리 중 오류 (questionId=" + questionId + ")", e);
     }
   }
 }
