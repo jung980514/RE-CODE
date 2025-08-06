@@ -2,15 +2,14 @@ package com.ssafy.recode.domain.basic.service;
 
 import com.ssafy.recode.domain.basic.entity.BasicAnswer;
 import com.ssafy.recode.domain.basic.entity.BasicQuestion;
-import com.ssafy.recode.domain.basic.repository.BasicAnswerRepository;
 import com.ssafy.recode.domain.basic.repository.BasicQuestionRepository;
 import com.ssafy.recode.domain.common.service.AiPromptService;
+import com.ssafy.recode.domain.common.service.GenericPersistenceService;
 import com.ssafy.recode.domain.common.service.S3UploaderService;
 import com.ssafy.recode.domain.common.service.VideoTranscriptionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 @Service
@@ -22,10 +21,9 @@ public class BasicAnswerService {
 
   private final S3UploaderService         uploader;
   private final VideoTranscriptionService transcriptionService;
-
-  private final AiPromptService   evaluator;
+  private final AiPromptService           aiPromptService;
   private final BasicQuestionRepository   questionRepo;
-  private final BasicAnswerRepository     answerRepo;
+  private final GenericPersistenceService genericPersistenceService;
 
 
   /**
@@ -39,7 +37,6 @@ public class BasicAnswerService {
    * 비동기로 영상 STT 처리 후 결과 저장
    */
   @Async
-  @Transactional
   public void processAnswerAsync(Long questionId, Long userId, String mediaKey) {
     try {
       // 1) S3에 올라간 영상 → 텍스트 반환
@@ -50,7 +47,7 @@ public class BasicAnswerService {
           .orElseThrow(() -> new IllegalArgumentException("Invalid questionId=" + questionId));
 
       // 3) LLM 평가 → 점수 계산 및 매칭 여부 판단
-      double score = evaluator.evaluateAnswer(question.getContent(), answerText);
+      double score = aiPromptService.evaluateAnswer(question.getContent(), answerText);
       boolean isMatch = score >= MATCH_THRESHOLD;
 
       // 4) 결과 엔티티 생성 및 저장
@@ -63,7 +60,7 @@ public class BasicAnswerService {
           .videoPath(mediaKey)
           .build();
 
-      answerRepo.save(answer);
+      genericPersistenceService.save(answer);
     } catch (Exception e) {
       throw new RuntimeException("BasicAnswer 처리 중 오류 (questionId=" + questionId + ")", e);
     }
