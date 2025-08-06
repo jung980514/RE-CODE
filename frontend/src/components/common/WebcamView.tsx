@@ -1,25 +1,23 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
-import { Volume1, VolumeX, Volume2 } from "lucide-react"
 import { Camera } from 'lucide-react';
 interface WebcamViewProps {
   userName?: string
-  volume?: number
-  onVolumeChange?: (volume: number) => void
   isRecording?: boolean
   onStreamReady?: (stream: MediaStream) => void
+  videoRef?: React.RefObject<HTMLVideoElement | null>
 }
-
+const username2 = localStorage.getItem('name')
 export function WebcamView({ 
-  userName = "김싸피", 
-  volume = 80, 
-  onVolumeChange,
+  userName = username2 || "김싸피", 
   isRecording = false, 
-  onStreamReady
+  onStreamReady,
+  videoRef: externalVideoRef
 }: WebcamViewProps) {
   const [isWebcamActive, setIsWebcamActive] = useState(false)
-  const videoRef = useRef<HTMLVideoElement>(null)
+  const internalVideoRef = useRef<HTMLVideoElement>(null)
+  const finalVideoRef = externalVideoRef || internalVideoRef
 
   const startWebcam = async () => {
     try {
@@ -36,8 +34,8 @@ export function WebcamView({
       }
       setIsWebcamActive(true)
       
-      if (videoRef.current) {
-        videoRef.current.srcObject = mediaStream
+      if (finalVideoRef.current) {
+        finalVideoRef.current.srcObject = mediaStream
       }
     } catch (error) {
       console.error("웹캠 접근 오류:", error)
@@ -68,8 +66,8 @@ export function WebcamView({
         }
         setIsWebcamActive(true)
         
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream
+        if (finalVideoRef.current) {
+          finalVideoRef.current.srcObject = stream
         }
       } catch (error) {
         console.error("웹캠 접근 오류:", error)
@@ -81,11 +79,6 @@ export function WebcamView({
     }
   }, [onStreamReady])
 
-  const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newVolume = parseInt(e.target.value)
-    onVolumeChange?.(newVolume)
-  }
-
   return (
     <div className="text-center">
       <h3 className="text-lg font-semibold text-gray-800 mb-4">내 화면({userName})</h3>
@@ -94,7 +87,7 @@ export function WebcamView({
       <div className="relative bg-gray-900 aspect-square rounded-xl overflow-hidden mb-6">
         {isWebcamActive ? (
           <video
-            ref={videoRef}
+            ref={finalVideoRef}
             autoPlay
             playsInline
             muted
@@ -120,30 +113,7 @@ export function WebcamView({
         )}
       </div>
 
-      {/* 음량 조절 */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="text-lg font-medium text-gray-700">음량</span>
-          </div>
-          <span className="text-sm text-gray-500">{volume}%</span>
-        </div>
-        <div className="flex items-center gap-3">
-          <VolumeX className="w-4 h-4 text-gray-400" />
-          <input
-            type="range"
-            min="0"
-            max="100"
-            value={volume}
-            onChange={handleVolumeChange}
-            className="flex-1 h-2 bg-gray-200 rounded-full appearance-none cursor-pointer slider"
-            style={{
-              background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${volume}%, #e5e7eb ${volume}%, #e5e7eb 100%)`
-            }}
-          />
-          <Volume2 className="w-4 h-4 text-gray-600" />
-        </div>
-      </div>
+
     </div>
   )
 } 

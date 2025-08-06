@@ -6,7 +6,7 @@ import { UserCircle2, Calendar as CalendarIcon } from 'lucide-react';
 import styles from './GuardianSignupModal.module.css';
 import PrivacyPolicyModal from "@/components/common/PrivacyPolicyModal";
 import SensitivePolicyModal from '@/components/common/SensitivePolicyModal';
-import Datepicker from 'react-tailwindcss-datepicker';
+import Datepicker, { DateValueType } from 'react-tailwindcss-datepicker';
 import { register } from '@/api/register';
 import SignUpSuccessModal from './sign-up-success-modal';
 import { VirtualKeyboard } from '@/components/common/VirtualKeyboard';
@@ -60,7 +60,7 @@ const GuardianSignupModal: React.FC<GuardianSignupModalProps> = ({
     agreeToSensitive: false
   });
 
-  const [birthDateValue, setBirthDateValue] = useState<{ startDate: string | null; endDate: string | null } | null>({
+  const [birthDateValue, setBirthDateValue] = useState<DateValueType>({
     startDate: null,
     endDate: null,
   });
@@ -94,10 +94,10 @@ const GuardianSignupModal: React.FC<GuardianSignupModalProps> = ({
     }));
   };
 
-  const handleBirthDateChange = (newValue: { startDate: string | null; endDate: string | null } | null) => {
-    setBirthDateValue(newValue); // 이제 null 값을 할당해도 타입 오류가 발생하지 않습니다.
-    if (newValue) {
-      handleGuardianInputChange('birthDate', newValue.startDate || '');
+  const handleBirthDateChange = (newValue: DateValueType) => {
+    setBirthDateValue(newValue);
+    if (newValue?.startDate) {
+      handleGuardianInputChange('birthDate', newValue.startDate.toString());
     }
   };
 
@@ -112,12 +112,6 @@ const GuardianSignupModal: React.FC<GuardianSignupModalProps> = ({
   // 가상키보드 토글 핸들러
   const handleVirtualKeyboardToggle = () => {
     setShowVirtualKeyboard(!showVirtualKeyboard);
-  };
-
-  // 입력 필드 포커스 핸들러
-  const handleInputFocus = (fieldName: string) => {
-    setActiveInput(fieldName);
-    setShowVirtualKeyboard(true);
   };
 
   // 가상키보드에서 입력 처리
@@ -319,8 +313,8 @@ const GuardianSignupModal: React.FC<GuardianSignupModalProps> = ({
                 i18n="ko"
                 asSingle={true}
                 useRange={false}
-                value={birthDateValue as any}
-                onChange={handleBirthDateChange as any}
+                value={birthDateValue}
+                onChange={(value) => handleBirthDateChange(value)}
                 placeholder="생년월일을 선택해주세요."
                 inputClassName={styles.input}
                 toggleClassName="absolute right-3 top-1/2 -translate-y-1/2"

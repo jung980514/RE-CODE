@@ -7,7 +7,17 @@ export interface RegisterData {
   role: 'GUARDIAN' | 'SENIOR'; 
 }
 
-export const register = async (data: RegisterData): Promise<any> => {
+interface RegisterResponse {
+  success: boolean;
+  message: string;
+  user?: {
+    id: string;
+    username: string;
+    email: string;
+  };
+}
+
+export const register = async (data: RegisterData): Promise<RegisterResponse> => {
   try {
     const response = await fetch('http://localhost:8088/api/user/register', {
       method: 'POST',

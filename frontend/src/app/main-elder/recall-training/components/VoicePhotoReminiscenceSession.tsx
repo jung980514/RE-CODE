@@ -403,8 +403,6 @@ export function VoicePhotoReminiscenceSession({ onBack }: VoiceSessionProps) {
               <CardContent className="p-6">
                 <WebcamView 
                   userName="김싸피"
-                  volume={volume}
-                  onVolumeChange={setVolume}
                   isRecording={isRecording}
                 />
 
