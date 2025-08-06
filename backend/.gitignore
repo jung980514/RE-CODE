@@ -39,3 +39,7 @@ out/
 # Querydsl Q classes
 build/generated/querydsl/**
 src/main/generated/**
+
+# 환경 변수 파일
+
+*.env
