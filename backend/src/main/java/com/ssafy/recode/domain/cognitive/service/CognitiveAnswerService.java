@@ -2,15 +2,14 @@ package com.ssafy.recode.domain.cognitive.service;
 
 import com.ssafy.recode.domain.cognitive.entity.CognitiveAnswer;
 import com.ssafy.recode.domain.cognitive.entity.CognitiveQuestion;
-import com.ssafy.recode.domain.cognitive.repository.CognitiveAnswerRepository;
 import com.ssafy.recode.domain.cognitive.repository.CognitiveQuestionRepository;
 import com.ssafy.recode.domain.common.service.AiPromptService;
+import com.ssafy.recode.domain.common.service.GenericPersistenceService;
 import com.ssafy.recode.domain.common.service.S3UploaderService;
 import com.ssafy.recode.domain.common.service.VideoTranscriptionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 @Service
@@ -23,9 +22,9 @@ public class CognitiveAnswerService {
 
   private final VideoTranscriptionService   transcriptionService;
   private final S3UploaderService           uploader;
-  private final AiPromptService             evaluator;
+  private final AiPromptService             aiPromptService;
   private final CognitiveQuestionRepository questionRepo;
-  private final CognitiveAnswerRepository   answerRepo;
+  private final GenericPersistenceService   genericPersistenceService;
 
   /**
    * mediaType에 따라 audio/mp4 또는 이미지 파일을 S3에 업로드
@@ -39,7 +38,6 @@ public class CognitiveAnswerService {
    * 비동기로 응답 처리: audio이면 STT, image면 URL 그대로 → 평가 → 저장
    */
   @Async
-  @Transactional
   public void processAnswerAsync(
       Long questionId,
       Long userId,
@@ -62,7 +60,7 @@ public class CognitiveAnswerService {
           .orElseThrow(() -> new IllegalArgumentException("Invalid questionId=" + questionId));
 
       // 3) LLM 평가 → 점수, 매칭 여부
-      double score = evaluator.evaluateAnswer(question.getContent(), answerText);
+      double score = aiPromptService.evaluateAnswer(question.getContent(), answerText);
       boolean isMatch = score >= MATCH_THRESHOLD;
 
       // 4) 결과 엔티티 생성 및 저장
@@ -75,7 +73,7 @@ public class CognitiveAnswerService {
           .videoPath(mediaKey)
           .mediaType(mediaType)
           .build();
-      answerRepo.save(answer);
+      genericPersistenceService.save(answer);
 
     } catch (Exception e) {
       throw new RuntimeException(
