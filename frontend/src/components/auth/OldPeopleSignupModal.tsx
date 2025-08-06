@@ -7,7 +7,7 @@ import styles from './OldPeopleSignupModal.module.css';
 import { VirtualKeyboard } from '@/components/common/VirtualKeyboard';
 import PrivacyPolicyModal from "@/components/common/PrivacyPolicyModal";
 import SensitivePolicyModal from '@/components/common/SensitivePolicyModal';
-import Datepicker from 'react-tailwindcss-datepicker';
+import Datepicker, { DateValueType } from 'react-tailwindcss-datepicker';
 import { register } from '@/api/register';
 import SignUpSuccessModal from './sign-up-success-modal';
 
@@ -59,7 +59,7 @@ const OldPeopleSignupModal: React.FC<OldPeopleSignupModalProps> = ({
     agreeToSensitive: false
   });
 
-  const [birthDateValue, setBirthDateValue] = useState<{ startDate: string | null; endDate: string | null } | null>({
+const [birthDateValue, setBirthDateValue] = useState<DateValueType>({
     startDate: null,
     endDate: null,
   });
@@ -92,10 +92,13 @@ const OldPeopleSignupModal: React.FC<OldPeopleSignupModalProps> = ({
     }));
   };
 
-  const handleBirthDateChange = (newValue: { startDate: string | null; endDate: string | null } | null) => {
-    setBirthDateValue(newValue); // 이제 null 값을 할당해도 타입 오류가 발생하지 않습니다.
-    if (newValue) {
-      handleInputChange('birthDate', newValue.startDate || '');
+  const handleBirthDateChange = (newValue: DateValueType | null) => {
+    if (newValue && newValue.startDate) {
+      setBirthDateValue(newValue);
+      // Date 객체를 YYYY-MM-DD 형식으로 변환
+      const date = new Date(newValue.startDate);
+      const formattedDate = date.toISOString().split('T')[0];
+      handleInputChange('birthDate', formattedDate);
     }
   };
 
