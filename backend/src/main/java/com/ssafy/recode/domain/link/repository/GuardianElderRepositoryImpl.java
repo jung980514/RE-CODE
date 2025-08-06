@@ -59,8 +59,8 @@ public class GuardianElderRepositoryImpl implements GuardianElderCustomRepositor
             guardianElder.createdAt        // 연동된 시점 (guardian_elder 테이블의 createdAt 컬럼)
         ))
         .from(guardianElder)                     // ✅ 연동 테이블 기준으로 시작
-        .join(user).on(guardianElder.elderId.eq(user.id)) // 노인 ID로 user 테이블 조인
-        .where(guardianElder.guardianId.eq(elderId))   // 해당 보호자 ID 조건 필터
+        .join(user).on(guardianElder.guardianId.eq(user.id)) // 노인 ID로 user 테이블 조인
+        .where(guardianElder.elderId.eq(elderId))   // 해당 보호자 ID 조건 필터
         .fetch(); // 결과 리스트 반환
   }
 }
