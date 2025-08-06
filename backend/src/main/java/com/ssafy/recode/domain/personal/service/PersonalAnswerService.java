@@ -1,12 +1,20 @@
 package com.ssafy.recode.domain.personal.service;
 
+import com.ssafy.recode.domain.common.service.AiPromptService;
+import com.ssafy.recode.domain.common.service.S3UploaderService;
+import com.ssafy.recode.domain.common.service.VideoTranscriptionService;
 import com.ssafy.recode.domain.personal.entity.PersonalAnswer;
 import com.ssafy.recode.domain.personal.entity.PersonalQuestion;
 import com.ssafy.recode.domain.personal.repository.PersonalAnswerRepository;
 import com.ssafy.recode.domain.personal.repository.PersonalQuestionRepository;
+<<<<<<< backend/src/main/java/com/ssafy/recode/domain/personal/service/PersonalAnswerService.java
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
+=======
 import com.ssafy.recode.domain.common.service.PromptEvaluationService;
 import com.ssafy.recode.domain.common.service.S3UploaderService;
 import com.ssafy.recode.domain.common.service.VideoTranscriptionService;
+>>>>>>> backend/src/main/java/com/ssafy/recode/domain/personal/service/PersonalAnswerService.java
 import lombok.RequiredArgsConstructor;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
@@ -22,7 +30,7 @@ public class PersonalAnswerService {
 
   private final VideoTranscriptionService    transcriptionService;
   private final S3UploaderService            uploader;
-  private final PromptEvaluationService      evaluator;
+  private final AiPromptService      evaluator;
   private final PersonalQuestionRepository   questionRepo;
   private final PersonalAnswerRepository     answerRepo;
 

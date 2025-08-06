@@ -4,6 +4,10 @@ import com.ssafy.recode.domain.basic.entity.BasicAnswer;
 import com.ssafy.recode.domain.basic.entity.BasicQuestion;
 import com.ssafy.recode.domain.basic.repository.BasicAnswerRepository;
 import com.ssafy.recode.domain.basic.repository.BasicQuestionRepository;
+<<<<<<< backend/src/main/java/com/ssafy/recode/domain/basic/service/BasicAnswerService.java
+import com.ssafy.recode.domain.common.service.AiPromptService;
+=======
+>>>>>>> backend/src/main/java/com/ssafy/recode/domain/basic/service/BasicAnswerService.java
 import com.ssafy.recode.domain.common.service.S3UploaderService;
 import com.ssafy.recode.domain.common.service.VideoTranscriptionService;
 import com.ssafy.recode.domain.common.service.PromptEvaluationService;
@@ -22,9 +26,11 @@ public class BasicAnswerService {
 
   private final S3UploaderService         uploader;
   private final VideoTranscriptionService transcriptionService;
-  private final PromptEvaluationService   evaluator;
+
+  private final AiPromptService   evaluator;
   private final BasicQuestionRepository   questionRepo;
   private final BasicAnswerRepository     answerRepo;
+
 
   /**
    * MP4 파일을 S3에 올리고 key 반환
