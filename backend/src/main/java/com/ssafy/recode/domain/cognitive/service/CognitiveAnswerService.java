@@ -4,7 +4,7 @@ import com.ssafy.recode.domain.cognitive.entity.CognitiveAnswer;
 import com.ssafy.recode.domain.cognitive.entity.CognitiveQuestion;
 import com.ssafy.recode.domain.cognitive.repository.CognitiveAnswerRepository;
 import com.ssafy.recode.domain.cognitive.repository.CognitiveQuestionRepository;
-import com.ssafy.recode.domain.common.service.PromptEvaluationService;
+import com.ssafy.recode.domain.common.service.AiPromptService;
 import com.ssafy.recode.domain.common.service.S3UploaderService;
 import com.ssafy.recode.domain.common.service.VideoTranscriptionService;
 import lombok.RequiredArgsConstructor;
@@ -23,7 +23,7 @@ public class CognitiveAnswerService {
 
   private final VideoTranscriptionService   transcriptionService;
   private final S3UploaderService           uploader;
-  private final PromptEvaluationService     evaluator;
+  private final AiPromptService             evaluator;
   private final CognitiveQuestionRepository questionRepo;
   private final CognitiveAnswerRepository   answerRepo;
 

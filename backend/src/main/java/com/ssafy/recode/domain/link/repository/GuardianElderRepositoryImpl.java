@@ -1,9 +1,10 @@
 package com.ssafy.recode.domain.link.repository;
 
+import static com.ssafy.recode.domain.auth.entity.QUser.user;
+import static com.ssafy.recode.domain.link.entity.QGuardianElder.guardianElder;
+
 import com.querydsl.core.types.Projections;
 import com.querydsl.jpa.impl.JPAQueryFactory;
-import com.ssafy.recode.domain.auth.entity.QUser;
-import com.ssafy.recode.domain.link.entity.QGuardianElder;
 import com.ssafy.recode.global.dto.response.link.ElderSummaryResponse;
 import com.ssafy.recode.global.dto.response.link.GuardianSummaryResponse;
 import java.util.List;
@@ -19,11 +20,6 @@ public class GuardianElderRepositoryImpl implements GuardianElderCustomRepositor
   // ✅ QueryDSL 쿼리 생성을 위한 팩토리
   private final JPAQueryFactory queryFactory;
 
-  // ✅ Q타입 객체: guardian_elder 테이블 매핑
-  QGuardianElder guardianElder = QGuardianElder.guardianElder;
-
-  // ✅ Q타입 객체: user 테이블 매핑
-  QUser user = QUser.user;
 
   /**
    * 보호자 ID를 기준으로 연동된 노인 목록을 조회하는 메서드
