@@ -6,6 +6,9 @@ import com.ssafy.recode.domain.common.service.S3UploaderService;
 import com.ssafy.recode.domain.common.service.VideoTranscriptionService;
 import com.ssafy.recode.domain.survey.entity.SurveyAnswer;
 import com.ssafy.recode.domain.survey.repository.SurveyRepository;
+import com.ssafy.recode.global.dto.response.survey.SurveyQAResponse;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -64,6 +67,18 @@ public class SurveyService {
       throw new RuntimeException(
           "SurveyAnswer 처리 중 오류 (questionId=" + questionId + ")", e);
     }
+  }
+
+  /**
+   * 일일 설문 답변 조회(당일)
+   * @param userId
+   * @return
+   */
+  public List<SurveyQAResponse> getTodayPersonalQA(Long userId) {
+    LocalDateTime start = LocalDate.now().atStartOfDay();         // 오늘 00:00
+    LocalDateTime end = start.plusDays(1);                        // 내일 00:00
+
+    return surveyRepository.findTodayQAByUserId(userId, start, end);
   }
 
 }
