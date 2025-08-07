@@ -127,7 +127,7 @@ export default function RecallTrainingMain() {
         <div className={`bg-gradient-to-r ${config.gradient} p-6 text-white relative`}>
           {isCompleted && (
             <div className="absolute top-4 right-4 bg-white/20 rounded-full p-2">
-              <CheckCircle className="w-5 h-5 text-white" />
+              <CheckCircle className="w-5 h-5 text-white" aria-hidden="true" />
             </div>
           )}
           <div className="flex items-center justify-between mb-4">
@@ -173,7 +173,7 @@ export default function RecallTrainingMain() {
           >
             {isCompleted ? (
               <>
-                <CheckCircle className="w-4 h-4 mr-2" />
+                <CheckCircle className="w-4 h-4 mr-2" aria-hidden="true" />
                 완료됨
               </>
             ) : (
@@ -257,7 +257,7 @@ export default function RecallTrainingMain() {
             <div className="mb-6">
               <div className="flex items-center justify-between bg-white/80 backdrop-blur rounded-lg p-4 border border-green-200">
                 <div className="flex items-center gap-3">
-                  <CheckCircle className="w-6 h-6 text-green-600" />
+                  <CheckCircle className="w-6 h-6 text-green-600" aria-hidden="true" />
                   <div>
                     <p className="font-medium text-green-800">진행 상황</p>
                     <p className="text-sm text-green-600">

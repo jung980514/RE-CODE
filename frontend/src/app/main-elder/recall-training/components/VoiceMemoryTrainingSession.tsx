@@ -357,6 +357,7 @@ export function VoiceMemoryTrainingSession({ onBack }: VoiceSessionProps) {
   const [isAITalking, setIsAITalking] = useState(false)
   const [showCompletionModal, setShowCompletionModal] = useState(false)
   const [webcamStream, setWebcamStream] = useState<MediaStream | null>(null)
+  const [isFirstLoad, setIsFirstLoad] = useState(true)
   const videoRef = useRef<HTMLVideoElement>(null)
   const { isRecording, audioLevel, recordedMedia, isAutoRecording, startRecording, stopRecording } = useVoiceRecording(webcamStream)
   const { emotion, confidence } = useEmotionDetection(videoRef, isRecording)
@@ -371,18 +372,34 @@ export function VoiceMemoryTrainingSession({ onBack }: VoiceSessionProps) {
 
   useEffect(() => {
     setProgress(((currentStep + 1) / questions.length) * 100)
-    // 새로운 질문이 표시될 때마다 자동으로 읽어주기
-    replayQuestion()
+    
+    // 첫 로딩 시에만 자동 재생
+    if (isFirstLoad) {
+      const playInitial = async () => {
+        try {
+          setIsAITalking(true)
+          const audioContent = await synthesizeSpeech(questions[currentStep].question)
+          await playAudio(audioContent)
+        } catch (error) {
+          console.error('TTS 에러:', error)
+        } finally {
+          setIsAITalking(false)
+          setIsFirstLoad(false)
+        }
+      }
+      playInitial()
+    }
 
     // 컴포넌트가 언마운트될 때 TTS 정지
     return () => {
       stopCurrentAudio()
     }
-  }, [currentStep, questions.length])
+  }, [currentStep, questions.length, isFirstLoad])
 
   const handleNext = () => {
     if (currentStep < questions.length - 1) {
       setCurrentStep(currentStep + 1)
+      setIsFirstLoad(true)  // 다음 질문으로 넘어갈 때 첫 로딩 상태로 설정
       startAutoRecording()
     } else {
       // 마지막 질문 완료 시

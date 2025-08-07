@@ -312,6 +312,7 @@ export function VoiceStoryTellingSession({ onBack }: VoiceSessionProps) {
   const [isAITalking, setIsAITalking] = useState(true)
   const [showCompletionModal, setShowCompletionModal] = useState(false)
   const [webcamStream, setWebcamStream] = useState<MediaStream | null>(null)
+  const [isFirstLoad, setIsFirstLoad] = useState(true)
   const videoRef = useRef<HTMLVideoElement>(null)
   const { isRecording, audioLevel, recordedMedia, isAutoRecording, startRecording, stopRecording } = useVideoRecording(webcamStream)
   const { emotion, confidence } = useEmotionDetection(videoRef, isRecording)
@@ -325,18 +326,21 @@ export function VoiceStoryTellingSession({ onBack }: VoiceSessionProps) {
   ]
 
   useEffect(() => {
-    replayQuestion()
+    if (isFirstLoad) {
+      replayQuestion()
+      setIsFirstLoad(false)
+    }
 
     // 컴포넌트가 언마운트될 때 TTS 정지
     return () => {
       stopCurrentAudio()
     }
-  }, [currentTopic])
+  }, [currentTopic, isFirstLoad])
 
   const handleNext = () => {
     if (currentTopic < topics.length - 1) {
       setCurrentTopic(currentTopic + 1)
-      setIsAITalking(true)
+      setIsFirstLoad(true)  // 다음 주제로 넘어갈 때 첫 로딩 상태로 설정
       if (isRecording) {
         stopRecording()
       }
@@ -348,6 +352,7 @@ export function VoiceStoryTellingSession({ onBack }: VoiceSessionProps) {
   }
 
   const handleBackToMain = () => {
+    stopCurrentAudio()
     onBack()
   }
 

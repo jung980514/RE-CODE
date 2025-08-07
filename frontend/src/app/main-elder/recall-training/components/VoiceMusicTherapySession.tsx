@@ -305,57 +305,75 @@ export function VoiceMusicTherapySession({ onBack }: VoiceSessionProps) {
 
   const localname = localStorage.getItem("name")
 
-  useEffect(() => {
-    // 오디오 엘리먼트 생성 및 설정
-    const newAudio = new Audio(songs[currentSong].audioUrl);
-    newAudio.volume = volume / 100;
-
-    // 재생 상태 변경 시 처리
-    const handlePlay = () => setIsPlaying(true);
-    const handlePause = () => setIsPlaying(false);
-    const handleEnded = () => {
+  const setupAudio = () => {
+    const audio = new Audio();
+    audio.onplay = () => setIsPlaying(true);
+    audio.onpause = () => setIsPlaying(false);
+    audio.onended = () => {
       setIsPlaying(false);
       setIsAITalking(false);
     };
+    return audio;
+  };
 
-    // 이벤트 리스너 등록
-    newAudio.addEventListener('play', handlePlay);
-    newAudio.addEventListener('pause', handlePause);
-    newAudio.addEventListener('ended', handleEnded);
+  const cleanupAudio = (audio: HTMLAudioElement) => {
+    audio.onplay = null;
+    audio.onpause = null;
+    audio.onended = null;
+    audio.pause();
+    audio.src = '';
+    audio.load();
+  };
 
-    // 이전 오디오 정리
-    if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current.removeEventListener('play', handlePlay);
-      audioRef.current.removeEventListener('pause', handlePause);
-      audioRef.current.removeEventListener('ended', handleEnded);
+  const playAudio = async (audio: HTMLAudioElement, url: string) => {
+    try {
+      audio.src = url;
+      audio.volume = volume / 100;
+      
+      await new Promise((resolve) => {
+        const handleLoad = () => {
+          audio.removeEventListener('loadeddata', handleLoad);
+          resolve(true);
+        };
+        audio.addEventListener('loadeddata', handleLoad);
+      });
+
+      await audio.play();
+    } catch (error) {
+      console.error('오디오 재생 실패:', error);
+      setIsPlaying(false);
     }
+  };
 
-    audioRef.current = newAudio;
+  useEffect(() => {
+    let audio: HTMLAudioElement | null = null;
 
-    // 컴포넌트 마운트 시 자동 재생
-    const playAudio = async () => {
-      try {
-        await new Promise((resolve) => {
-          newAudio.onloadeddata = resolve;
-        });
-        await newAudio.play();
-      } catch (error) {
-        console.error('자동 재생 실패:', error);
+    const init = async () => {
+      if (audioRef.current) {
+        cleanupAudio(audioRef.current);
       }
+
+      audio = setupAudio();
+      audioRef.current = audio;
+      await playAudio(audio, songs[currentSong].audioUrl);
     };
-    playAudio();
+
+    init();
 
     return () => {
-      if (audioRef.current) {
-        audioRef.current.removeEventListener('play', handlePlay);
-        audioRef.current.removeEventListener('pause', handlePause);
-        audioRef.current.removeEventListener('ended', handleEnded);
-        audioRef.current.pause();
-        audioRef.current = null;
+      if (audio) {
+        cleanupAudio(audio);
       }
+      audioRef.current = null;
     };
-  }, [currentSong, volume]);
+  }, [currentSong]);
+
+  // 볼륨 변경 처리
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.volume = volume / 100;
+    }
+  }, [volume]);
 
   // AI 대화 타이머
   useEffect(() => {
@@ -392,33 +410,24 @@ export function VoiceMusicTherapySession({ onBack }: VoiceSessionProps) {
     if (audioRef.current) {
       audioRef.current.pause();
       audioRef.current.currentTime = 0;
+      audioRef.current.src = '';
+      audioRef.current.load();
+      audioRef.current = null;
     }
     onBack();
   }
 
-  const replayQuestion = () => {
-    setIsAITalking(true)
+  const replayQuestion = async () => {
+    setIsAITalking(true);
+    
+    // 녹화 중이면 중지
     if (isRecording) {
-      stopRecording()
+      stopRecording();
     }
-    // 오디오 재시작
+
     if (audioRef.current) {
       audioRef.current.currentTime = 0;
-      const playAudio = async () => {
-        try {
-          await new Promise((resolve) => {
-            if (audioRef.current) {
-              audioRef.current.onloadeddata = resolve;
-            }
-          });
-          if (audioRef.current) {
-            await audioRef.current.play();
-          }
-        } catch (error) {
-          console.error('재생 실패:', error);
-        }
-      };
-      playAudio();
+      await playAudio(audioRef.current, songs[currentSong].audioUrl);
     }
   }
 

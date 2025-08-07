@@ -39,8 +39,11 @@ export interface SurveyFirstQuestionProps {
 }
 
 export interface SurveyQuestionProps {
-  onComplete: () => void;
+  questionIndex: number;
+  onNext: () => void;
   onBack: () => void;
+  onComplete: () => void;
+  isLastQuestion: boolean;
 }
 
 export interface SurveyFormProps {

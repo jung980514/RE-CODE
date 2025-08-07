@@ -1,7 +1,19 @@
 "use client"
 
-import DailySurvey from "./index"
+import { useRouter } from "next/navigation"
+import SurveyIntro from "./SurveyIntro"
 
 export default function DailySurveyPage() {
-  return <DailySurvey />
+  const router = useRouter()
+
+  const handleStartSurvey = () => {
+    // 첫 번째 질문 페이지로 이동
+    router.push('/main-elder/daily-survey/question/1')
+  }
+
+  return (
+    <div className="min-h-screen">
+      <SurveyIntro onStartSurvey={handleStartSurvey} />
+    </div>
+  )
 } 
