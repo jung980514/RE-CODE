@@ -3,9 +3,8 @@ package com.ssafy.recode.domain.personal.controller;
 import com.ssafy.recode.domain.auth.entity.User;
 import com.ssafy.recode.domain.personal.entity.PersonalQuestion;
 import com.ssafy.recode.domain.personal.service.PersonalService;
-import com.ssafy.recode.global.dto.request.PersonalAnswerRequestDto;
+import com.ssafy.recode.global.dto.request.AnswerRequestDto;
 import com.ssafy.recode.global.dto.response.ApiResponse;
-import com.ssafy.recode.global.dto.response.PersonalAnswerResponseDto;
 import com.ssafy.recode.global.security.annotation.LoginUser;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -16,7 +15,6 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
 
@@ -44,13 +42,13 @@ public class PersonalController {
           required = true,
           content  = @Content(
               mediaType = MediaType.MULTIPART_FORM_DATA_VALUE,
-              schema    = @Schema(implementation = PersonalAnswerRequestDto.class)
+              schema    = @Schema(implementation = AnswerRequestDto.class)
           )
       )
   )
   public ApiResponse<?> submitAnswer(
       @Parameter(hidden = true) @LoginUser User user,
-      @Valid @ModelAttribute PersonalAnswerRequestDto dto
+      @Valid @ModelAttribute AnswerRequestDto dto
   ) {
     String wavKey = personalService.uploadMedia(dto.getVideoFile());
     personalService.processAnswerAsync(
