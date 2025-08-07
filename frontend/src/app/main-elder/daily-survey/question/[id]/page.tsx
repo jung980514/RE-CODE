@@ -5,6 +5,7 @@ import { useEffect, useState } from "react"
 import { surveyQuestions } from "../../surveyData"
 import SurveyQuestion from "../../SurveyQuestion"
 import { setDailySurveyCompleted, getCurrentUserId } from "@/lib/auth"
+import { FloatingButtons } from "@/components/common/Floting-Buttons"
 
 export default function QuestionPage() {
   const params = useParams()
@@ -62,6 +63,7 @@ export default function QuestionPage() {
         onComplete={handleCompleteSurvey}
         isLastQuestion={questionId === surveyQuestions.length}
       />
+      <FloatingButtons />
     </div>
   )
 }

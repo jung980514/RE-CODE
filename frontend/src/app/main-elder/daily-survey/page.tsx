@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation"
 import SurveyIntro from "./SurveyIntro"
+import { FloatingButtons } from "@/components/common/Floting-Buttons"
 
 export default function DailySurveyPage() {
   const router = useRouter()
@@ -14,6 +15,7 @@ export default function DailySurveyPage() {
   return (
     <div className="min-h-screen">
       <SurveyIntro onStartSurvey={handleStartSurvey} />
+      <FloatingButtons />
     </div>
   )
 } 

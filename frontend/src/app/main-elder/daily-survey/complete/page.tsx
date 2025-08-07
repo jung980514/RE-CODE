@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation"
 import { useEffect } from "react"
 import SurveyCompleteModal from "../SurveyCompleteModal"
+import { FloatingButtons } from "@/components/common/Floting-Buttons"
 
 export default function CompletePage() {
   const router = useRouter()
@@ -23,6 +24,7 @@ export default function CompletePage() {
         isOpen={true}
         onConfirm={handleConfirmComplete}
       />
+      <FloatingButtons />
     </div>
   )
 }

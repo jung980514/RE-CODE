@@ -158,14 +158,15 @@ function useEmotionDetection(videoRef: React.RefObject<HTMLVideoElement | null>,
     if (emotionHistory.current.length === 0) return;
 
     const emotions = emotionHistory.current;
-    const totalDuration = (emotions[emotions.length - 1].timestamp - emotions[0].timestamp) / 1000;
+    const totalDuration = (emotions[emotions.length - 1].timestamp - emotions[0].timestamp) / 1000; // 초 단위
 
+    // 각 감정별 지속 시간 계산
     const emotionDurations: { [key: string]: number } = {};
     const emotionConfidences: { [key: string]: number[] } = {};
 
     emotions.forEach((record, index) => {
       const duration = index === emotions.length - 1
-        ? 1
+        ? 1 // 마지막 기록은 1초로 계산
         : (emotions[index + 1].timestamp - record.timestamp) / 1000;
 
       emotionDurations[record.emotion] = (emotionDurations[record.emotion] || 0) + duration;
@@ -173,15 +174,34 @@ function useEmotionDetection(videoRef: React.RefObject<HTMLVideoElement | null>,
       emotionConfidences[record.emotion].push(record.confidence);
     });
 
+    // 중립을 제외한 감정 중 17%를 넘는 감정 찾기
+    const dominantEmotion = Object.entries(emotionDurations).find(([emotion, duration]) => {
+      const percentage = (duration / totalDuration * 100);
+      return emotion !== '중립' && percentage > 17;
+    });
+
+    // 분석 결과 출력
     console.log('=== 감정 분석 결과 ===');
     console.log(`총 녹화 시간: ${totalDuration.toFixed(1)}초`);
-    Object.entries(emotionDurations).forEach(([emotion, duration]) => {
+    
+    if (dominantEmotion) {
+      // 중립을 제외한 감정이 17%를 넘는 경우 해당 감정만 출력
+      const [emotion, duration] = dominantEmotion;
       const percentage = (duration / totalDuration * 100).toFixed(1);
       const avgConfidence = (emotionConfidences[emotion].reduce((a, b) => a + b, 0) / emotionConfidences[emotion].length * 100).toFixed(1);
-      console.log(`${emotion}: ${percentage}% (${duration.toFixed(1)}초, 평균 신뢰도: ${avgConfidence}%)`);
-    });
+      console.log(`주요 감정: ${emotion} (${percentage}%, 평균 신뢰도: ${avgConfidence}%)`);
+    } else {
+      // 중립을 제외한 감정이 17%를 넘지 않는 경우 중립만 출력
+      const neutralDuration = emotionDurations['중립'] || 0;
+      const neutralPercentage = (neutralDuration / totalDuration * 100).toFixed(1);
+      const neutralAvgConfidence = emotionConfidences['중립'] 
+        ? (emotionConfidences['중립'].reduce((a, b) => a + b, 0) / emotionConfidences['중립'].length * 100).toFixed(1)
+        : '0.0';
+      console.log(`주요 감정: 중립 (${neutralPercentage}%, 평균 신뢰도: ${neutralAvgConfidence}%)`);
+    }
     console.log('==================');
 
+    // 기록 초기화
     emotionHistory.current = [];
     lastRecordTime.current = 0;
   };
@@ -190,15 +210,13 @@ function useEmotionDetection(videoRef: React.RefObject<HTMLVideoElement | null>,
     if (videoRef.current && isRecording && modelsLoaded.current) {
       detectEmotion()
       
+      // 녹화 시작 시 기록 초기화
       if (emotionHistory.current.length === 0) {
         emotionHistory.current = [];
         lastRecordTime.current = Date.now();
       }
     } else {
-      if (!isRecording && emotionHistory.current.length > 0) {
-        analyzeEmotionHistory();
-      }
-
+      // 녹화 중지 시에는 감정 분석을 실행하지 않음 (최종 완료 시에만 실행)
       setEmotion('중립')
       setConfidence(0)
       if (requestRef.current) {
@@ -212,7 +230,7 @@ function useEmotionDetection(videoRef: React.RefObject<HTMLVideoElement | null>,
     }
   }, [videoRef.current, isRecording, modelsLoaded.current])
 
-  return { emotion, confidence }
+  return { emotion, confidence, analyzeEmotionHistory }
 }
 
 function useVideoRecording(
@@ -292,13 +310,25 @@ export function VoiceMusicTherapySession({ onBack }: VoiceSessionProps) {
   const videoRef = useRef<HTMLVideoElement>(null)
   const audioRef = useRef<HTMLAudioElement>(null)
   const { isRecording, recordedVideo, startRecording, stopRecording } = useVideoRecording(audioRef, setIsPlaying)
-  const { emotion, confidence } = useEmotionDetection(videoRef, isRecording)
+  const { emotion, confidence, analyzeEmotionHistory } = useEmotionDetection(videoRef, isRecording)
 
   const songs = [
     {
       title: "인지자극훈련",
       artist: "소리",
       question: "이 소리를 들으시면서 떠오르는 기억이 있으신가요?\n언제 처음 들으셨는지, 누구와 함께 들으셨는지 말씀해 주세요. 준비가 완료되면 답변하기를 눌러 말씀해주세요",
+      audioUrl: "/sound/test-sound.mp3"
+    },
+    {
+      title: "인지자극훈련",
+      artist: "소리",
+      question: "이 소리를 들으시면서 떠오르는 기억이 있으신가요?2\n언제 처음 들으셨는지, 누구와 함께 들으셨는지 말씀해 주세요. 준비가 완료되면 답변하기를 눌러 말씀해주세요",
+      audioUrl: "/sound/test-sound.mp3"
+    },
+    {
+      title: "인지자극훈련",
+      artist: "소리",
+      question: "이 소리를 들으시면서 떠오르는 기억이 있으신가요?3\n언제 처음 들으셨는지, 누구와 함께 들으셨는지 말씀해 주세요. 준비가 완료되면 답변하기를 눌러 말씀해주세요",
       audioUrl: "/sound/test-sound.mp3"
     },
   ]
@@ -400,7 +430,9 @@ export function VoiceMusicTherapySession({ onBack }: VoiceSessionProps) {
         stopRecording()
       }
     } else {
-      // 마지막 질문 완료 시
+      // 마지막 노래 완료 시 최종 감정 분석 실행
+      console.log('=== 들려오는 추억 훈련 최종 감정 분석 결과 ===')
+      analyzeEmotionHistory()
       markRecallTrainingSessionAsCompleted('music')
       setShowCompletionModal(true)
     }
@@ -687,7 +719,7 @@ export function VoiceMusicTherapySession({ onBack }: VoiceSessionProps) {
                     : "bg-gray-200 text-gray-500"
               }`}
             >
-              {index < currentSong ? <CheckCircle className="w-6 h-6" /> : index + 1}
+
             </div>
           ))}
         </div>

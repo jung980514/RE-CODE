@@ -250,14 +250,15 @@ function useEmotionDetection(videoRef: React.RefObject<HTMLVideoElement | null>,
     if (emotionHistory.current.length === 0) return;
 
     const emotions = emotionHistory.current;
-    const totalDuration = (emotions[emotions.length - 1].timestamp - emotions[0].timestamp) / 1000;
+    const totalDuration = (emotions[emotions.length - 1].timestamp - emotions[0].timestamp) / 1000; // 초 단위
 
+    // 각 감정별 지속 시간 계산
     const emotionDurations: { [key: string]: number } = {};
     const emotionConfidences: { [key: string]: number[] } = {};
 
     emotions.forEach((record, index) => {
       const duration = index === emotions.length - 1
-        ? 1
+        ? 1 // 마지막 기록은 1초로 계산
         : (emotions[index + 1].timestamp - record.timestamp) / 1000;
 
       emotionDurations[record.emotion] = (emotionDurations[record.emotion] || 0) + duration;
@@ -265,15 +266,34 @@ function useEmotionDetection(videoRef: React.RefObject<HTMLVideoElement | null>,
       emotionConfidences[record.emotion].push(record.confidence);
     });
 
+    // 중립을 제외한 감정 중 17%를 넘는 감정 찾기
+    const dominantEmotion = Object.entries(emotionDurations).find(([emotion, duration]) => {
+      const percentage = (duration / totalDuration * 100);
+      return emotion !== '중립' && percentage > 17;
+    });
+
+    // 분석 결과 출력
     console.log('=== 감정 분석 결과 ===');
     console.log(`총 녹화 시간: ${totalDuration.toFixed(1)}초`);
-    Object.entries(emotionDurations).forEach(([emotion, duration]) => {
+    
+    if (dominantEmotion) {
+      // 중립을 제외한 감정이 17%를 넘는 경우 해당 감정만 출력
+      const [emotion, duration] = dominantEmotion;
       const percentage = (duration / totalDuration * 100).toFixed(1);
       const avgConfidence = (emotionConfidences[emotion].reduce((a, b) => a + b, 0) / emotionConfidences[emotion].length * 100).toFixed(1);
-      console.log(`${emotion}: ${percentage}% (${duration.toFixed(1)}초, 평균 신뢰도: ${avgConfidence}%)`);
-    });
+      console.log(`주요 감정: ${emotion} (${percentage}%, 평균 신뢰도: ${avgConfidence}%)`);
+    } else {
+      // 중립을 제외한 감정이 17%를 넘지 않는 경우 중립만 출력
+      const neutralDuration = emotionDurations['중립'] || 0;
+      const neutralPercentage = (neutralDuration / totalDuration * 100).toFixed(1);
+      const neutralAvgConfidence = emotionConfidences['중립'] 
+        ? (emotionConfidences['중립'].reduce((a, b) => a + b, 0) / emotionConfidences['중립'].length * 100).toFixed(1)
+        : '0.0';
+      console.log(`주요 감정: 중립 (${neutralPercentage}%, 평균 신뢰도: ${neutralAvgConfidence}%)`);
+    }
     console.log('==================');
 
+    // 기록 초기화
     emotionHistory.current = [];
     lastRecordTime.current = 0;
   };
@@ -282,15 +302,13 @@ function useEmotionDetection(videoRef: React.RefObject<HTMLVideoElement | null>,
     if (videoRef.current && isRecording && modelsLoaded.current) {
       detectEmotion()
       
+      // 녹화 시작 시 기록 초기화
       if (emotionHistory.current.length === 0) {
         emotionHistory.current = [];
         lastRecordTime.current = Date.now();
       }
     } else {
-      if (!isRecording && emotionHistory.current.length > 0) {
-        analyzeEmotionHistory();
-      }
-
+      // 녹화 중지 시에는 감정 분석을 실행하지 않음 (최종 완료 시에만 실행)
       setEmotion('중립')
       setConfidence(0)
       if (requestRef.current) {
@@ -304,7 +322,7 @@ function useEmotionDetection(videoRef: React.RefObject<HTMLVideoElement | null>,
     }
   }, [videoRef.current, isRecording, modelsLoaded.current])
 
-  return { emotion, confidence }
+  return { emotion, confidence, analyzeEmotionHistory }
 }
 
 
@@ -314,10 +332,9 @@ export function VoicePhotoReminiscenceSession({ onBack }: VoiceSessionProps) {
   const [isAITalking, setIsAITalking] = useState(true)
   const [showCompletionModal, setShowCompletionModal] = useState(false)
   const [webcamStream, setWebcamStream] = useState<MediaStream | null>(null)
-  const [isFirstLoad, setIsFirstLoad] = useState(true)
   const videoRef = useRef<HTMLVideoElement>(null)
   const { isRecording, audioLevel, recordedMedia, isAutoRecording, startRecording, stopRecording } = useVoiceRecording(webcamStream)
-  const { emotion, confidence } = useEmotionDetection(videoRef, isRecording)
+  const { emotion, confidence, analyzeEmotionHistory } = useEmotionDetection(videoRef, isRecording)
 
   const photos = [
     {
@@ -348,36 +365,36 @@ export function VoicePhotoReminiscenceSession({ onBack }: VoiceSessionProps) {
   useEffect(() => {
     setProgress(((currentPhoto + 1) / photos.length) * 100)
     
-    if (isFirstLoad) {
-      const playInitial = async () => {
-        try {
-          setIsAITalking(true)
-          const audioContent = await synthesizeSpeech(photos[currentPhoto].question)
-          await playAudio(audioContent)
-        } catch (error) {
-          console.error('TTS 에러:', error)
-        } finally {
-          setIsAITalking(false)
-          setIsFirstLoad(false)
-        }
+    // 사진이 변경될 때마다 TTS 재생
+    const playPhotoTTS = async () => {
+      try {
+        setIsAITalking(true)
+        const audioContent = await synthesizeSpeech(photos[currentPhoto].question)
+        await playAudio(audioContent)
+      } catch (error) {
+        console.error('TTS 에러:', error)
+      } finally {
+        setIsAITalking(false)
       }
-      playInitial()
     }
+    
+    playPhotoTTS()
 
     return () => {
       stopCurrentAudio()
     }
-  }, [currentPhoto, photos.length, isFirstLoad])
+  }, [currentPhoto, photos.length])
 
   const handleNext = () => {
     if (currentPhoto < photos.length - 1) {
       setCurrentPhoto(currentPhoto + 1)
-      setIsFirstLoad(true)
       if (isRecording) {
         stopRecording()
       }
     } else {
-      // 마지막 질문 완료 시
+      // 마지막 사진 완료 시 최종 감정 분석 실행
+      console.log('=== 추억의 시대 훈련 최종 감정 분석 결과 ===')
+      analyzeEmotionHistory()
       markRecallTrainingSessionAsCompleted('photo')
       setShowCompletionModal(true)
     }
@@ -450,12 +467,8 @@ export function VoicePhotoReminiscenceSession({ onBack }: VoiceSessionProps) {
             <h1 className="text-2xl font-bold text-gray-800">추억의 시대 훈련</h1>
           </div>
           <div className="text-right">
-            <p className="text-sm text-gray-500">진행률</p>
-            <p className="text-lg font-semibold text-purple-600">{Math.round(progress)}%</p>
           </div>
         </div>
-
-        <Progress value={progress} className="mb-6 h-2" />
 
         {/* 메인 콘텐츠 */}
         <div className="grid lg:grid-cols-3 gap-6">
@@ -646,24 +659,6 @@ export function VoicePhotoReminiscenceSession({ onBack }: VoiceSessionProps) {
               </CardContent>
             </Card>
           </div>
-        </div>
-
-        {/* 진행 단계 표시 */}
-        <div className="mt-8 flex justify-center gap-4">
-          {photos.map((_, index) => (
-            <div
-              key={index}
-              className={`w-12 h-12 rounded-full flex items-center justify-center font-bold transition-all ${
-                index === currentPhoto
-                  ? "bg-purple-500 text-white shadow-lg scale-110"
-                  : index < currentPhoto
-                    ? "bg-green-500 text-white"
-                    : "bg-gray-200 text-gray-500"
-              }`}
-            >
-              {index < currentPhoto ? <CheckCircle className="w-6 h-6" /> : index + 1}
-            </div>
-          ))}
         </div>
       </div>
     </div>

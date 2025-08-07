@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { synthesizeSpeech, playAudio, stopCurrentAudio } from "@/api/googleTTS/googleTTSService"
 import { Card, CardContent } from "@/components/ui/card"
 import { WebcamView } from "@/components/common/WebcamView"
+import { Progress } from "@/components/ui/progress"
 import {
   ArrowLeft,
   ArrowRight,
@@ -280,14 +281,31 @@ function useEmotionDetection(videoRef: React.RefObject<HTMLVideoElement | null>,
       emotionConfidences[record.emotion].push(record.confidence);
     });
 
+    // 중립을 제외한 감정 중 17%를 넘는 감정 찾기
+    const dominantEmotion = Object.entries(emotionDurations).find(([emotion, duration]) => {
+      const percentage = (duration / totalDuration * 100);
+      return emotion !== '중립' && percentage > 17;
+    });
+
     // 분석 결과 출력
     console.log('=== 감정 분석 결과 ===');
     console.log(`총 녹화 시간: ${totalDuration.toFixed(1)}초`);
-    Object.entries(emotionDurations).forEach(([emotion, duration]) => {
+    
+    if (dominantEmotion) {
+      // 중립을 제외한 감정이 17%를 넘는 경우 해당 감정만 출력
+      const [emotion, duration] = dominantEmotion;
       const percentage = (duration / totalDuration * 100).toFixed(1);
       const avgConfidence = (emotionConfidences[emotion].reduce((a, b) => a + b, 0) / emotionConfidences[emotion].length * 100).toFixed(1);
-      console.log(`${emotion}: ${percentage}% (${duration.toFixed(1)}초, 평균 신뢰도: ${avgConfidence}%)`);
-    });
+      console.log(`주요 감정: ${emotion} (${percentage}%, 평균 신뢰도: ${avgConfidence}%)`);
+    } else {
+      // 중립을 제외한 감정이 17%를 넘지 않는 경우 중립만 출력
+      const neutralDuration = emotionDurations['중립'] || 0;
+      const neutralPercentage = (neutralDuration / totalDuration * 100).toFixed(1);
+      const neutralAvgConfidence = emotionConfidences['중립'] 
+        ? (emotionConfidences['중립'].reduce((a, b) => a + b, 0) / emotionConfidences['중립'].length * 100).toFixed(1)
+        : '0.0';
+      console.log(`주요 감정: 중립 (${neutralPercentage}%, 평균 신뢰도: ${neutralAvgConfidence}%)`);
+    }
     console.log('==================');
 
     // 기록 초기화
@@ -305,11 +323,7 @@ function useEmotionDetection(videoRef: React.RefObject<HTMLVideoElement | null>,
         lastRecordTime.current = Date.now();
       }
     } else {
-      // 녹화 중지 시 감정 분석 실행
-      if (!isRecording && emotionHistory.current.length > 0) {
-        analyzeEmotionHistory();
-      }
-
+      // 녹화 중지 시에는 감정 분석을 실행하지 않음 (최종 완료 시에만 실행)
       setEmotion('중립')
       setConfidence(0)
       if (requestRef.current) {
@@ -323,7 +337,7 @@ function useEmotionDetection(videoRef: React.RefObject<HTMLVideoElement | null>,
     }
   }, [videoRef.current, isRecording, modelsLoaded.current])
 
-  return { emotion, confidence }
+  return { emotion, confidence, analyzeEmotionHistory }
 }
 
 // 자동 녹음 시작 함수
@@ -357,52 +371,60 @@ export function VoiceMemoryTrainingSession({ onBack }: VoiceSessionProps) {
   const [isAITalking, setIsAITalking] = useState(false)
   const [showCompletionModal, setShowCompletionModal] = useState(false)
   const [webcamStream, setWebcamStream] = useState<MediaStream | null>(null)
-  const [isFirstLoad, setIsFirstLoad] = useState(true)
   const videoRef = useRef<HTMLVideoElement>(null)
   const { isRecording, audioLevel, recordedMedia, isAutoRecording, startRecording, stopRecording } = useVoiceRecording(webcamStream)
-  const { emotion, confidence } = useEmotionDetection(videoRef, isRecording)
+  const { emotion, confidence, analyzeEmotionHistory } = useEmotionDetection(videoRef, isRecording)
   const { showCountdown, countdown, startAutoRecording } = useAutoRecording(startRecording)
 
   const questions = [
     {
       title: "기초 질문",
-      question: "어린 시절 살았던 집은 어떤 모습이었나요?\n집의 색깔이나 마당, 가장 좋아했던 방에 대해 자유롭게 말씀해 주세요. 준비되시면 답변하기를 눌러 시작해주세요"
-    }
+      question: "어린 시절 살았던 집은 어떤 모습이었나요?\n집의 색깔이나 마당, 가장 좋아했던 방에 대해 자유롭게 말씀해 주세요1. 준비되시면 답변하기를 눌러 시작해주세요"
+    },
+    {
+      title: "기초 질문",
+      question: "어린 시절 살았던 집은 어떤 모습이었나요?\n집의 색깔이나 마당, 가장 좋아했던 방에 대해 자유롭게 말씀해 주세요2. 준비되시면 답변하기를 눌러 시작해주세요"
+    },
+    {
+      title: "기초 질문",
+      question: "어린 시절 살았던 집은 어떤 모습이었나요?\n집의 색깔이나 마당, 가장 좋아했던 방에 대해 자유롭게 말씀해 주세요3. 준비되시면 답변하기를 눌러 시작해주세요"
+    },
+
   ]
 
   useEffect(() => {
     setProgress(((currentStep + 1) / questions.length) * 100)
     
-    // 첫 로딩 시에만 자동 재생
-    if (isFirstLoad) {
-      const playInitial = async () => {
-        try {
-          setIsAITalking(true)
-          const audioContent = await synthesizeSpeech(questions[currentStep].question)
-          await playAudio(audioContent)
-        } catch (error) {
-          console.error('TTS 에러:', error)
-        } finally {
-          setIsAITalking(false)
-          setIsFirstLoad(false)
-        }
+    // 질문이 변경될 때마다 TTS 재생
+    const playQuestionTTS = async () => {
+      try {
+        setIsAITalking(true)
+        const audioContent = await synthesizeSpeech(questions[currentStep].question)
+        await playAudio(audioContent)
+      } catch (error) {
+        console.error('TTS 에러:', error)
+      } finally {
+        setIsAITalking(false)
       }
-      playInitial()
     }
+    
+    // 질문이 변경될 때마다 TTS 재생
+    playQuestionTTS()
 
     // 컴포넌트가 언마운트될 때 TTS 정지
     return () => {
       stopCurrentAudio()
     }
-  }, [currentStep, questions.length, isFirstLoad])
+  }, [currentStep, questions.length])
 
   const handleNext = () => {
     if (currentStep < questions.length - 1) {
       setCurrentStep(currentStep + 1)
-      setIsFirstLoad(true)  // 다음 질문으로 넘어갈 때 첫 로딩 상태로 설정
-      startAutoRecording()
+      // startAutoRecording() 제거 - 자동 녹음 시작하지 않음
     } else {
-      // 마지막 질문 완료 시
+      // 마지막 질문 완료 시 최종 감정 분석 실행
+      console.log('=== 기억 꺼내기 훈련 최종 감정 분석 결과 ===')
+      analyzeEmotionHistory()
       markRecallTrainingSessionAsCompleted('memory')
       setShowCompletionModal(true)
     }
