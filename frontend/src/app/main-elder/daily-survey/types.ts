@@ -22,6 +22,12 @@ export interface VoiceRecording {
   duration?: number;
 }
 
+export interface RecordingData {
+  audioUrl: string;
+  duration: number;
+  blob: Blob;
+}
+
 export interface SurveyState {
   currentStep: 'intro' | 'first-question' | 'form' | 'complete';
   currentQuestionIndex: number;
