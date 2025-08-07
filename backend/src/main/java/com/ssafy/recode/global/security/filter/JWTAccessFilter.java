@@ -53,7 +53,7 @@ public class JWTAccessFilter extends OncePerRequestFilter {
         String uri = request.getRequestURI();
 
         // 인증 제외 대상 경로
-        if (isUrlLogin(uri) || isUrlOAuth2(uri) || isReissue(uri) || isAnswers(uri) || isQuestions(uri)) {
+        if (isUrlLogin(uri) || isUrlOAuth2(uri) || isReissue(uri)) {
             filterChain.doFilter(request, response);
             return;
         }
@@ -150,11 +150,4 @@ public class JWTAccessFilter extends OncePerRequestFilter {
         return requestUri.matches("^\\/api/reissue(?:\\/.*)?$");
     }
 
-    private boolean isAnswers(String requestUri) {
-        return requestUri.matches("^\\/api/answers(?:\\/.*)?$");
-    }
-
-    private boolean isQuestions(String requestUri) {
-        return requestUri.matches("^\\/api/questions(?:\\/.*)?$");
-    }
 }
