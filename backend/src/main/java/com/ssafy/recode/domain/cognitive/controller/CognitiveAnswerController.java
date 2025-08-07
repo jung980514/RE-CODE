@@ -26,15 +26,12 @@ public class CognitiveAnswerController {
         produces = MediaType.APPLICATION_JSON_VALUE
     )
     @Operation(
-        summary     = "인지 회상 훈련 답변 제출 및 비동기 처리",
-        description = """
-            요청 DTO의 mediaType 필드로 오디오/이미지를 구분합니다.
-            1) mediaType="audio" → MP4→WAV 변환 후 S3 업로드  
-            2) mediaType="image" → 이미지 파일 바로 S3 업로드  
-            3) audio인 경우 STT 전사, image인 경우 파일 URL 그대로 LLM에 전달  
-            4) 0~100 점수로 평가 후 match 여부 판단  
-            5) BasicAnswer 엔티티에 score, isMatch, mediaPath(mediaKey), mediaType 저장  
-            """,
+        summary     = "인지 질문 답변 제출 및 적합도 평가",
+        description = "1) 클라이언트가 업로드한 MP4 비디오 파일을 S3에 저장합니다.  \n"
+            + "2) STT로 텍스트 변환하고,  \n"
+            + "3) 변환된 텍스트를 LLM에 전달하여 0~100점으로 “질문에 대한 답변 적합도”를 평가합니다.  \n"
+            + "4) 평가 점수가 임계값(예: 70) 이상이면 적합(true), 미만이면 부적합(false)으로 판단하고,  \n"
+            + "5) 평가 점수(score), 적합 여부(isMatch), 원본 MP4 링크(videoPath)를 함께 DB에 저장합니다.",
         requestBody = @RequestBody(
             required = true,
             content = @Content(

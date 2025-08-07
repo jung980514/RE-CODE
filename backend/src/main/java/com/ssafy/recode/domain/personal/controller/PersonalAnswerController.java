@@ -28,8 +28,8 @@ public class PersonalAnswerController {
   )
   @Operation(
       summary     = "개인화 질문 답변 제출 및 적합도 평가",
-      description = "1) 클라이언트가 업로드한 MP4 비디오 파일을 WAV로 변환 후 S3에 저장합니다.  \n"
-          + "2) 저장된 WAV를 STT로 텍스트 변환하고,  \n"
+      description = "1) 클라이언트가 업로드한 MP4 비디오 파일을 S3에 저장합니다.  \n"
+          + "2) STT로 텍스트 변환하고,  \n"
           + "3) 변환된 텍스트를 LLM에 전달하여 0~100점으로 “질문에 대한 답변 적합도”를 평가합니다.  \n"
           + "4) 평가 점수가 임계값(예: 70) 이상이면 적합(true), 미만이면 부적합(false)으로 판단하고,  \n"
           + "5) 평가 점수(score), 적합 여부(isMatch), 원본 MP4 링크(videoPath)를 함께 DB에 저장합니다.",
