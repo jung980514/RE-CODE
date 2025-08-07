@@ -1,13 +1,19 @@
 package com.ssafy.recode.domain.personal.controller;
 
-import com.ssafy.recode.domain.personal.service.PersonalAnswerService;
+import com.ssafy.recode.domain.auth.entity.User;
+import com.ssafy.recode.domain.personal.entity.PersonalQuestion;
+import com.ssafy.recode.domain.personal.service.PersonalService;
 import com.ssafy.recode.global.dto.request.PersonalAnswerRequestDto;
+import com.ssafy.recode.global.dto.response.ApiResponse;
 import com.ssafy.recode.global.dto.response.PersonalAnswerResponseDto;
+import com.ssafy.recode.global.security.annotation.LoginUser;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -16,13 +22,14 @@ import jakarta.validation.Valid;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/answers/personal")
-@Tag(name = "PersonalAnswer", description = "개인화 질문 답변 저장 및 적합도 평가 API")
-public class PersonalAnswerController {
+@RequestMapping("/api/personal")
+@Tag(name = "Personal", description = "개인화 질문 API")
+public class PersonalController {
 
-  private final PersonalAnswerService personalAnswerService;
+  private final PersonalService personalService;
 
   @PostMapping(
+      path     = "/answers",
       consumes = MediaType.MULTIPART_FORM_DATA_VALUE,
       produces = MediaType.APPLICATION_JSON_VALUE
   )
@@ -41,22 +48,34 @@ public class PersonalAnswerController {
           )
       )
   )
-  public ResponseEntity<PersonalAnswerResponseDto> submitAnswer(
-      @Valid @ModelAttribute PersonalAnswerRequestDto reqDto
+  public ApiResponse<?> submitAnswer(
+      @Parameter(hidden = true) @LoginUser User user,
+      @Valid @ModelAttribute PersonalAnswerRequestDto dto
   ) {
-    // 1) MP4 파일을 WAV로 변환한 뒤 S3에 업로드하고, 업로드된 WAV 파일의 키를 반환합니다.
-    String wavKey = personalAnswerService.uploadMedia(reqDto.getVideoFile());
-
-    // 2) 변환된 WAV 키와 함께 비동기 파이프라인(STT → 요약 → 유사도 계산 → DB 저장)을 실행합니다.
-    personalAnswerService.processAnswerAsync(
-        reqDto.getQuestionId(),
-        reqDto.getUserId(),
+    String wavKey = personalService.uploadMedia(dto.getVideoFile());
+    personalService.processAnswerAsync(
+        dto.getQuestionId(),
+        user.getId(),
         wavKey
     );
-
-    // 3) 즉시 200 OK 응답을 반환하여 클라이언트에 업로드 성공 및 평가 진행 중임을 알립니다.
-    return ResponseEntity.ok(
-        new PersonalAnswerResponseDto("개인화 질문 답변 업로드 완료, 평가를 진행 중입니다.")
+    return ApiResponse.successResponseWithMessage(
+        "개인화 질문 답변 업로드 완료, 평가를 진행 중입니다.", null
     );
+  }
+
+  @Operation(
+      summary     = "개인화 질문 조회",
+      description = "유저가 마지막으로 답변한 questionId 이후부터 3개씩 순차 조회합니다. "
+          + "답변이 한 번도 없으면 처음 3개, 끝까지 다 읽었으면 처음부터 다시 제공합니다."
+  )
+  @GetMapping(
+      path     = "/questions",
+      produces = MediaType.APPLICATION_JSON_VALUE
+  )
+  public ApiResponse<?> getQuestions(
+      @Parameter(hidden = true) @LoginUser User user
+  ) {
+    List<PersonalQuestion> questions =personalService.getNextQuestions(user.getId());
+    return ApiResponse.successResponse(questions);
   }
 }
