@@ -1,6 +1,7 @@
 package com.ssafy.recode.domain.survey.controller;
 
 import com.ssafy.recode.domain.auth.entity.User;
+import com.ssafy.recode.domain.common.service.AiPromptService;
 import com.ssafy.recode.domain.survey.service.SurveyService;
 import com.ssafy.recode.global.dto.request.AnswerRequestDto;
 import com.ssafy.recode.global.dto.request.survey.SurveyAnswerRequestDto;
@@ -28,6 +29,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class SurveyController {
 
   private final SurveyService surveyService;
+  private final AiPromptService aiPromptService;
 
   /**
    * 일일 설문 질문 조회
@@ -76,6 +78,22 @@ public class SurveyController {
     // 3) 즉시 200 OK 응답을 반환하여 클라이언트에 업로드 성공 및 저장 진행 중임을 알립니다.
     return ResponseEntity.ok(
         ApiResponse.successResponseWithMessage("업로드 완료, 답변 내용을 저장합니다.", null)
+    );
+  }
+
+  /**
+   * 일일 설문 진행 완료 후 개인화 질문 생성
+   * @param user
+   * @return
+   * @throws Exception
+   */
+  @GetMapping("/api/survey/generate/personal")
+  public ResponseEntity<?> generatePersonalQuestions(@LoginUser User user) throws Exception {
+    aiPromptService.generatePersonalQuestions(user);
+    return ResponseEntity.ok(
+        ApiResponse.successResponse(
+            null
+        )
     );
   }
 }

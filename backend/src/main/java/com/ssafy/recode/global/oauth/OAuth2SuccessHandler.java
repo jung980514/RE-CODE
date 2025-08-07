@@ -100,7 +100,7 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
 
         response.getWriter().write(loginResponse);
         response.setStatus(HttpServletResponse.SC_OK);
-        response.sendRedirect("http://localhost:8080/index.html");
+        response.sendRedirect("http://localhost:3000/auth/kakao/callback");
     }
 
     /**

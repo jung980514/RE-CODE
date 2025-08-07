@@ -1,6 +1,7 @@
 // src/main/java/com/ssafy/recode/domain/common/service/PromptEvaluationService.java
 package com.ssafy.recode.domain.common.service;
 
+import com.ssafy.recode.domain.auth.entity.User;
 import java.util.List;
 
 public interface AiPromptService {
@@ -12,4 +13,6 @@ public interface AiPromptService {
     double evaluateAnswer(String question, String answer) throws Exception;
 
     List<String> generateDailyQuestions() throws Exception;
+
+    void generatePersonalQuestions(User user) throws Exception;
 }

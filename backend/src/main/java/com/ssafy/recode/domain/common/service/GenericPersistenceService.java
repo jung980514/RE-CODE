@@ -6,6 +6,7 @@ import com.ssafy.recode.domain.cognitive.entity.CognitiveAnswer;
 import com.ssafy.recode.domain.cognitive.repository.CognitiveAnswerRepository;
 import com.ssafy.recode.domain.personal.entity.PersonalAnswer;
 import com.ssafy.recode.domain.personal.repository.PersonalAnswerRepository;
+import com.ssafy.recode.domain.personal.repository.PersonalQuestionRepository;
 import com.ssafy.recode.domain.survey.repository.SurveyRepository;
 import jakarta.annotation.PostConstruct;
 import java.util.HashMap;
@@ -30,6 +31,8 @@ public class GenericPersistenceService {
     private final PersonalAnswerRepository personalAnswerRepository;
     private final CognitiveAnswerRepository cognitiveAnswerRepository;
     private final SurveyRepository surveyRepository;
+    // 개인화 질문 리포지토리
+    private final PersonalQuestionRepository personalQuestionRepository;
 
     // 엔티티 클래스 타입을 Key로, 해당 리포지토리를 Value로 갖는 맵
     private final Map<Class<?>, JpaRepository<?, ?>> repositoryMap = new HashMap<>();
@@ -43,6 +46,7 @@ public class GenericPersistenceService {
         repositoryMap.put(PersonalAnswer.class, personalAnswerRepository);
         repositoryMap.put(CognitiveAnswer.class, cognitiveAnswerRepository);
         repositoryMap.put(SurveyRepository.class, surveyRepository);
+        repositoryMap.put(PersonalQuestionRepository.class, personalQuestionRepository);
     }
 
     /**
