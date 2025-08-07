@@ -13,7 +13,7 @@ public interface CognitiveAnswerRepository extends JpaRepository<CognitiveAnswer
   /**
    * 해당 유저가 마지막으로 답변한 question_id 의 최대값을 가져옵니다. 아직 답변이 없으면 0을 리턴하도록 COALESCE 처리합니다.
    */
-  @Query("SELECT COALESCE(MAX(c.questionId), 0) FROM CognitiveAnswer c WHERE c.userId = :userId")
+  @Query("SELECT COALESCE(MAX(c.question.questionId), 0) FROM CognitiveAnswer c WHERE c.userId = :userId")
   Long findMaxQuestionIdByUserId(@Param("userId") Long userId);
 
   /**
