@@ -6,6 +6,10 @@ import com.ssafy.recode.domain.common.service.S3UploaderService;
 import com.ssafy.recode.domain.common.service.VideoTranscriptionService;
 import com.ssafy.recode.domain.survey.entity.SurveyAnswer;
 import com.ssafy.recode.domain.survey.repository.SurveyRepository;
+import com.ssafy.recode.domain.survey.repository.DailyServeyCheckRepository;
+
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,6 +25,7 @@ public class SurveyService {
   private static final String FOLDER = "servey";
 
   private final SurveyRepository surveyRepository;
+  private final DailyServeyCheckRepository dailyServeyCheckRepository;
   private final VideoTranscriptionService transcriptionService;
   private final S3UploaderService uploader;
   private final GenericPersistenceService genericPersistenceService;
@@ -64,6 +69,20 @@ public class SurveyService {
       throw new RuntimeException(
           "SurveyAnswer 처리 중 오류 (questionId=" + questionId + ")", e);
     }
+  }
+
+  /**
+   * 당일 기초 설문 달성 여부
+   */
+  public boolean hasCompletedDailySurvey(Long userId) {
+    LocalDate today = LocalDate.now();  // 시스템 로컬타임(Asia/Seoul)
+    LocalDateTime startOfDay = today.atStartOfDay();
+    LocalDateTime endOfDay = today.plusDays(1).atStartOfDay().minusNanos(1);
+
+    // 단순 응답 존재 여부
+    return dailyServeyCheckRepository.existsByUserIdAndCreatedAtBetween(
+            userId, startOfDay, endOfDay
+    );
   }
 
 }

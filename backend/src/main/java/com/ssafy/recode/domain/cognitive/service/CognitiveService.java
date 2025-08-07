@@ -8,6 +8,9 @@ import com.ssafy.recode.domain.common.service.AiPromptService;
 import com.ssafy.recode.domain.common.service.GenericPersistenceService;
 import com.ssafy.recode.domain.common.service.S3UploaderService;
 import com.ssafy.recode.domain.common.service.VideoTranscriptionService;
+
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.scheduling.annotation.Async;
@@ -28,6 +31,7 @@ public class CognitiveService {
   private final CognitiveQuestionRepository questionRepo;
   private final CognitiveAnswerRepository   answerRepo;
   private final GenericPersistenceService   genericPersistenceService;
+  private final CognitiveAnswerRepository cognitiveAnswerRepository;
 
   /**
    * mediaType에 따라 audio/mp4 또는 이미지 파일을 S3에 업로드
@@ -102,5 +106,14 @@ public class CognitiveService {
     }
 
     return next;
+  }
+  public boolean isCognitiveCompleted(Long userId, String mediaType) {
+    LocalDate today = LocalDate.now();  // 시스템 로컬타임(Asia/Seoul)
+    LocalDateTime startOfDay = today.atStartOfDay();
+    LocalDateTime endOfDay = today.plusDays(1).atStartOfDay().minusNanos(1);
+
+    return cognitiveAnswerRepository.existsByUserIdAndCreatedAtBetweenAndMediaType(
+            userId, startOfDay, endOfDay, mediaType
+    );
   }
 }

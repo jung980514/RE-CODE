@@ -6,6 +6,8 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
+
 @Repository
 public interface CognitiveAnswerRepository extends JpaRepository<CognitiveAnswer, Long> {
   /**
@@ -13,4 +15,15 @@ public interface CognitiveAnswerRepository extends JpaRepository<CognitiveAnswer
    */
   @Query("SELECT COALESCE(MAX(c.questionId), 0) FROM CognitiveAnswer c WHERE c.userId = :userId")
   Long findMaxQuestionIdByUserId(@Param("userId") Long userId);
+
+  /**
+   * 당일 인지 질문 답변 확인 용
+   * @param userId 사용자 아이디
+   * @param start 당일 0시
+   * @param end 당일 24시
+   * @param mediaType 질문 종류. 음성 : audio, 사진: image
+   * @return true: 존재함, false: 없음
+   */
+  boolean existsByUserIdAndCreatedAtBetweenAndMediaType(Long userId, LocalDateTime start, LocalDateTime end, String mediaType);
+
 }

@@ -8,6 +8,9 @@ import com.ssafy.recode.domain.personal.entity.PersonalAnswer;
 import com.ssafy.recode.domain.personal.entity.PersonalQuestion;
 import com.ssafy.recode.domain.personal.repository.PersonalAnswerRepository;
 import com.ssafy.recode.domain.personal.repository.PersonalQuestionRepository;
+
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.scheduling.annotation.Async;
@@ -27,6 +30,7 @@ public class PersonalService {
   private final PersonalQuestionRepository   questionRepo;
   private final PersonalAnswerRepository     answerRepo;
   private final GenericPersistenceService    genericPersistenceService;
+  private final PersonalAnswerRepository personalAnswerRepository;
 
   /**
    * MP4 파일을 S3에 올리고 key 반환
@@ -89,5 +93,15 @@ public class PersonalService {
       next.addAll(head.subList(0, Math.min(need, head.size())));
     }
     return next;
+  }
+
+  public boolean isPersonalCompleted(Long userId) {
+    LocalDate today = LocalDate.now();  // 시스템 로컬타임(Asia/Seoul)
+    LocalDateTime startOfDay = today.atStartOfDay();
+    LocalDateTime endOfDay = today.plusDays(1).atStartOfDay().minusNanos(1);
+
+    return personalAnswerRepository.existsByUserIdAndCreatedAtBetween(
+            userId, startOfDay, endOfDay
+    );
   }
 }
