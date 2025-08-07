@@ -6,6 +6,7 @@ import com.ssafy.recode.domain.common.service.S3UploaderService;
 import com.ssafy.recode.domain.common.service.VideoTranscriptionService;
 import com.ssafy.recode.domain.survey.entity.SurveyAnswer;
 import com.ssafy.recode.domain.survey.repository.SurveyRepository;
+import com.ssafy.recode.domain.survey.repository.DailyServeyCheckRepository;
 import com.ssafy.recode.global.dto.response.survey.SurveyQAResponse;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -24,6 +25,7 @@ public class SurveyService {
   private static final String FOLDER = "servey";
 
   private final SurveyRepository surveyRepository;
+  private final DailyServeyCheckRepository dailyServeyCheckRepository;
   private final VideoTranscriptionService transcriptionService;
   private final S3UploaderService uploader;
   private final GenericPersistenceService genericPersistenceService;
@@ -70,6 +72,17 @@ public class SurveyService {
   }
 
   /**
+   * 당일 기초 설문 달성 여부
+   */
+  public boolean hasCompletedDailySurvey(Long userId) {
+    LocalDate today = LocalDate.now();  // 시스템 로컬타임(Asia/Seoul)
+    LocalDateTime startOfDay = today.atStartOfDay();
+    LocalDateTime endOfDay = today.plusDays(1).atStartOfDay().minusNanos(1);
+
+    // 단순 응답 존재 여부
+    return dailyServeyCheckRepository.existsByUserIdAndCreatedAtBetween(
+            userId, startOfDay, endOfDay
+    );
    * 일일 설문 답변 조회(당일)
    * @param userId
    * @return

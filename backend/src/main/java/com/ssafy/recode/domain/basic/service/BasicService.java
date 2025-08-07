@@ -13,6 +13,8 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -28,6 +30,7 @@ public class BasicService {
   private final BasicQuestionRepository      questionRepo;
   private final BasicAnswerRepository        answerRepo;
   private final GenericPersistenceService    genericPersistenceService;
+  private final BasicAnswerRepository basicAnswerRepository;
 
   /** MP4 파일을 S3에 업로드하고 key 반환 */
   public String uploadMedia(MultipartFile file) {
@@ -85,5 +88,15 @@ public class BasicService {
     }
 
     return next;
+  }
+
+  public boolean isBasicCompleted(Long userId) {
+    LocalDate today = LocalDate.now();  // 시스템 로컬타임(Asia/Seoul)
+    LocalDateTime startOfDay = today.atStartOfDay();
+    LocalDateTime endOfDay = today.plusDays(1).atStartOfDay().minusNanos(1);
+
+    return basicAnswerRepository.existsByUserIdAndCreatedAtBetween(
+            userId, startOfDay, endOfDay
+    );
   }
 }
