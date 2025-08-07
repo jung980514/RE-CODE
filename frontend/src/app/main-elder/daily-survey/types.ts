@@ -22,6 +22,12 @@ export interface VoiceRecording {
   duration?: number;
 }
 
+export interface RecordingData {
+  audioUrl: string;
+  duration: number;
+  blob: Blob;
+}
+
 export interface SurveyState {
   currentStep: 'intro' | 'first-question' | 'form' | 'complete';
   currentQuestionIndex: number;
@@ -39,8 +45,11 @@ export interface SurveyFirstQuestionProps {
 }
 
 export interface SurveyQuestionProps {
-  onComplete: () => void;
+  questionIndex: number;
+  onNext: () => void;
   onBack: () => void;
+  onComplete: () => void;
+  isLastQuestion: boolean;
 }
 
 export interface SurveyFormProps {

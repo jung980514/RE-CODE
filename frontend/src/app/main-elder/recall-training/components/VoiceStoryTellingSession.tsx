@@ -157,14 +157,15 @@ function useEmotionDetection(videoRef: React.RefObject<HTMLVideoElement | null>,
     if (emotionHistory.current.length === 0) return;
 
     const emotions = emotionHistory.current;
-    const totalDuration = (emotions[emotions.length - 1].timestamp - emotions[0].timestamp) / 1000;
+    const totalDuration = (emotions[emotions.length - 1].timestamp - emotions[0].timestamp) / 1000; // 초 단위
 
+    // 각 감정별 지속 시간 계산
     const emotionDurations: { [key: string]: number } = {};
     const emotionConfidences: { [key: string]: number[] } = {};
 
     emotions.forEach((record, index) => {
       const duration = index === emotions.length - 1
-        ? 1
+        ? 1 // 마지막 기록은 1초로 계산
         : (emotions[index + 1].timestamp - record.timestamp) / 1000;
 
       emotionDurations[record.emotion] = (emotionDurations[record.emotion] || 0) + duration;
@@ -172,15 +173,34 @@ function useEmotionDetection(videoRef: React.RefObject<HTMLVideoElement | null>,
       emotionConfidences[record.emotion].push(record.confidence);
     });
 
+    // 중립을 제외한 감정 중 17%를 넘는 감정 찾기
+    const dominantEmotion = Object.entries(emotionDurations).find(([emotion, duration]) => {
+      const percentage = (duration / totalDuration * 100);
+      return emotion !== '중립' && percentage > 17;
+    });
+
+    // 분석 결과 출력
     console.log('=== 감정 분석 결과 ===');
     console.log(`총 녹화 시간: ${totalDuration.toFixed(1)}초`);
-    Object.entries(emotionDurations).forEach(([emotion, duration]) => {
+    
+    if (dominantEmotion) {
+      // 중립을 제외한 감정이 17%를 넘는 경우 해당 감정만 출력
+      const [emotion, duration] = dominantEmotion;
       const percentage = (duration / totalDuration * 100).toFixed(1);
       const avgConfidence = (emotionConfidences[emotion].reduce((a, b) => a + b, 0) / emotionConfidences[emotion].length * 100).toFixed(1);
-      console.log(`${emotion}: ${percentage}% (${duration.toFixed(1)}초, 평균 신뢰도: ${avgConfidence}%)`);
-    });
+      console.log(`주요 감정: ${emotion} (${percentage}%, 평균 신뢰도: ${avgConfidence}%)`);
+    } else {
+      // 중립을 제외한 감정이 17%를 넘지 않는 경우 중립만 출력
+      const neutralDuration = emotionDurations['중립'] || 0;
+      const neutralPercentage = (neutralDuration / totalDuration * 100).toFixed(1);
+      const neutralAvgConfidence = emotionConfidences['중립'] 
+        ? (emotionConfidences['중립'].reduce((a, b) => a + b, 0) / emotionConfidences['중립'].length * 100).toFixed(1)
+        : '0.0';
+      console.log(`주요 감정: 중립 (${neutralPercentage}%, 평균 신뢰도: ${neutralAvgConfidence}%)`);
+    }
     console.log('==================');
 
+    // 기록 초기화
     emotionHistory.current = [];
     lastRecordTime.current = 0;
   };
@@ -189,15 +209,13 @@ function useEmotionDetection(videoRef: React.RefObject<HTMLVideoElement | null>,
     if (videoRef.current && isRecording && modelsLoaded.current) {
       detectEmotion()
       
+      // 녹화 시작 시 기록 초기화
       if (emotionHistory.current.length === 0) {
         emotionHistory.current = [];
         lastRecordTime.current = Date.now();
       }
     } else {
-      if (!isRecording && emotionHistory.current.length > 0) {
-        analyzeEmotionHistory();
-      }
-
+      // 녹화 중지 시에는 감정 분석을 실행하지 않음 (최종 완료 시에만 실행)
       setEmotion('중립')
       setConfidence(0)
       if (requestRef.current) {
@@ -211,7 +229,7 @@ function useEmotionDetection(videoRef: React.RefObject<HTMLVideoElement | null>,
     }
   }, [videoRef.current, isRecording, modelsLoaded.current])
 
-  return { emotion, confidence }
+  return { emotion, confidence, analyzeEmotionHistory }
 }
 
 // 비디오 녹화 훅
@@ -314,40 +332,65 @@ export function VoiceStoryTellingSession({ onBack }: VoiceSessionProps) {
   const [webcamStream, setWebcamStream] = useState<MediaStream | null>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
   const { isRecording, audioLevel, recordedMedia, isAutoRecording, startRecording, stopRecording } = useVideoRecording(webcamStream)
-  const { emotion, confidence } = useEmotionDetection(videoRef, isRecording)
+  const { emotion, confidence, analyzeEmotionHistory } = useEmotionDetection(videoRef, isRecording)
 
   const topics = [
     {
       title: "개인화 질문",
-      question: "인생에서 가장 행복했던 순간은 언제였나요?\n그때의 기분과 주변 사람들에 대해 말씀해 주세요. 준비가 완료되면 답변하기를 눌러 시작해주세요",
+      question: "인생에서1 가장 행복했던 순간은 언제였나요?\n그때의 기분과 주변 사람들에 대해 말씀해 주세요. 준비가 완료되면 답변하기를 눌러 시작해주세요",
+      icon: "🌟",
+    },
+    {
+      title: "개인화 질문",
+      question: "인생에서2 가장 행복했던 순간은 언제였나요?\n그때의 기분과 주변 사람들에 대해 말씀해 주세요. 준비가 완료되면 답변하기를 눌러 시작해주세요",
+      icon: "🌟",
+    },
+    {
+      title: "개인화 질문",
+      question: "인생에서3 가장 행복했던 순간은 언제였나요?\n그때의 기분과 주변 사람들에 대해 말씀해 주세요. 준비가 완료되면 답변하기를 눌러 시작해주세요",
       icon: "🌟",
     },
   ]
 
   useEffect(() => {
-    replayQuestion()
+    // 주제가 변경될 때마다 TTS 재생
+    const playTopicTTS = async () => {
+      try {
+        setIsAITalking(true)
+        const audioContent = await synthesizeSpeech(topics[currentTopic].question)
+        await playAudio(audioContent)
+      } catch (error) {
+        console.error('TTS 에러:', error)
+      } finally {
+        setIsAITalking(false)
+      }
+    }
+    
+    playTopicTTS()
 
     // 컴포넌트가 언마운트될 때 TTS 정지
     return () => {
       stopCurrentAudio()
     }
-  }, [currentTopic])
+  }, [currentTopic, topics.length])
 
   const handleNext = () => {
     if (currentTopic < topics.length - 1) {
       setCurrentTopic(currentTopic + 1)
-      setIsAITalking(true)
       if (isRecording) {
         stopRecording()
       }
     } else {
-      // 마지막 질문 완료 시
+      // 마지막 주제 완료 시 최종 감정 분석 실행
+      console.log('=== 이야기 나누기 훈련 최종 감정 분석 결과 ===')
+      analyzeEmotionHistory()
       markRecallTrainingSessionAsCompleted('story')
       setShowCompletionModal(true)
     }
   }
 
   const handleBackToMain = () => {
+    stopCurrentAudio()
     onBack()
   }
 

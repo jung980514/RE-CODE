@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { ReminiscenceCalendar } from "@/app/calender/reminiscence-calendar" 
 import { ReminiscenceModal } from "@/app/calender/reminiscence-modal"
+import { FloatingButtons } from "@/components/common/Floting-Buttons"
 
 // Define types for key moments and videos
 export interface KeyMoment {
@@ -42,7 +43,7 @@ export interface TrainingRecord {
 // Mock data for demonstration, updated to match the image structure and new video/duration requirements
 const mockTrainingRecords: TrainingRecord[] = [
   {
-    date: "2025-07-01",
+    date: "2025-08-01",
     overallEmotionEmoji: "😊",
     overallConfidence: 90,
     aiInsight: "상쾌한 아침 산책과 명상으로 하루를 긍정적으로 시작했습니다.",
@@ -59,6 +60,8 @@ const mockTrainingRecords: TrainingRecord[] = [
         ],
         keyMoments: [
           { timestamp: "00:30", description: "식사 내용을 기억하려고 노력하는 모습" },
+          { timestamp: "00:30", description: "식사 내용을 기억하려고 노력하는 모습" },
+          { timestamp: "00:30", description: "식사 내용을 기억하려고 노력하는 모습" },
         ],
         emotionEmoji: "😊",
         emotionIntensity: 7,
@@ -73,6 +76,8 @@ const mockTrainingRecords: TrainingRecord[] = [
           { id: "v1-1", url: "/placeholder.svg?height=100&width=150", description: "식사 내용 회상 영상 1" },
         ],
         keyMoments: [
+          { timestamp: "00:30", description: "식사 내용을 기억하려고 노력하는 모습" },
+          { timestamp: "00:30", description: "식사 내용을 기억하려고 노력하는 모습" },
           { timestamp: "00:30", description: "식사 내용을 기억하려고 노력하는 모습" },
         ],
         emotionEmoji: "😊",
@@ -89,6 +94,8 @@ const mockTrainingRecords: TrainingRecord[] = [
         ],
         keyMoments: [
           { timestamp: "00:30", description: "식사 내용을 기억하려고 노력하는 모습" },
+          { timestamp: "00:30", description: "식사 내용을 기억하려고 노력하는 모습" },
+          { timestamp: "00:30", description: "식사 내용을 기억하려고 노력하는 모습" },
         ],
         emotionEmoji: "😊",
         emotionIntensity: 7,
@@ -96,7 +103,7 @@ const mockTrainingRecords: TrainingRecord[] = [
     ],
   },
   {
-    date: "2025-07-08", // Example date matching the image
+    date: "2025-08-08", // Example date matching the image
     overallEmotionEmoji: "😠", // Example: Frown for the overall emotion
     overallConfidence: 85,
     aiInsight: "오늘은 기억을 되찾는 과정에서 약간의 좌절감을 보였지만, 점차 안정을 찾아가는 모습을 보였습니다.",
@@ -159,12 +166,15 @@ export default function HomePage() {
   }
 
   return (
-    <main className="flex max-h-218 flex-col items-center justify-center p-4 md:p-8 bg-blue-50">
-      <h1 className="text-3xl md:text-4xl font-bold mb-8 text-gray-800" style={{fontFamily: 'Paperlogy'}}>회상 기록 달력</h1>
-      <ReminiscenceCalendar trainingRecords={mockTrainingRecords} onDateClick={handleDateClick} />
-      {selectedRecord && (
-        <ReminiscenceModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} record={selectedRecord} />
-      )}
-    </main>
+    <>
+      <main className="flex max-h-218 flex-col items-center justify-center p-4 md:p-8 bg-blue-50">
+        <h1 className="text-3xl md:text-4xl font-bold mb-8 text-gray-800" style={{fontFamily: 'Paperlogy'}}>회상 기록 달력</h1>
+        <ReminiscenceCalendar trainingRecords={mockTrainingRecords} onDateClick={handleDateClick} />
+        {selectedRecord && (
+          <ReminiscenceModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} record={selectedRecord} />
+        )}
+      </main>
+      <FloatingButtons />
+    </>
   )
 }

@@ -1,12 +1,14 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 import { useRouter } from "next/navigation"
+import { usePathname } from "next/navigation"
 import { SurveyQuestionProps } from "./types"
 import { surveyQuestions } from "./surveyData"
 import { ArrowLeft, Play, Check, Volume2, Clock, User, Brain, Heart, Mic, MicOff, Video, VideoOff, Download, AlertTriangle, VolumeX, Volume1, ArrowRight, CheckCircle, RotateCcw } from "lucide-react"
 import { useGoogleTTS } from "@/api/googleTTS"
 import { WebcamView } from "@/components/common/WebcamView"
+import { setupTTSLeaveDetection, forceStopAllAudio, muteAllAudio } from "@/utils/ttsCleanup"
 
 // 음성 및 영상 녹화 훅 (recall-training 방식)
 function useVoiceRecording() {
@@ -117,9 +119,19 @@ function useVoiceRecording() {
 
 
 
-export default function SurveyQuestion({ onComplete, onBack }: SurveyQuestionProps) {
-  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0)
+export default function SurveyQuestion({ 
+  questionIndex, 
+  onNext, 
+  onBack, 
+  onComplete, 
+  isLastQuestion 
+}: SurveyQuestionProps) {
   const [showWarningModal, setShowWarningModal] = useState(false)
+  
+  // showWarningModal 상태 변화 로그
+  useEffect(() => {
+    console.log('showWarningModal changed to:', showWarningModal)
+  }, [showWarningModal])
   const [isTTSFinished, setIsTTSFinished] = useState(false)
   const [webcamStream, setWebcamStream] = useState<MediaStream | null>(null)
   const [showNoResponseWarning, setShowNoResponseWarning] = useState(false)
@@ -127,6 +139,7 @@ export default function SurveyQuestion({ onComplete, onBack }: SurveyQuestionPro
   const [preparationMessagePlayed, setPreparationMessagePlayed] = useState(false)
   
   const router = useRouter()
+  const pathname = usePathname()
   
   // TTS Hook 사용
   const { 
@@ -139,23 +152,31 @@ export default function SurveyQuestion({ onComplete, onBack }: SurveyQuestionPro
   // 녹화 훅 사용
   const { isRecording, recordedMedia, isAutoRecording, startRecording, stopRecording, resetRecording } = useVoiceRecording()
 
-  const currentQuestion = surveyQuestions[currentQuestionIndex]
-  const progress = ((currentQuestionIndex + 1) / surveyQuestions.length) * 100
+  const currentQuestion = surveyQuestions[questionIndex]
+  const progress = ((questionIndex + 1) / surveyQuestions.length) * 100
 
-  // 진행 상황이 있는지 확인 (첫 번째 질문이 아니거나 녹화가 있는 경우)
-  const hasProgress = currentQuestionIndex > 0 || recordedMedia !== null
+  // 진행 상황이 있는지 확인 (설문조사 페이지에 들어왔거나 녹화 중이거나 녹화가 완료된 경우)
+  const hasProgress = true // 항상 true로 설정하여 모달이 나타나도록 함
+  
+  // 디버깅을 위한 로그
+  console.log('hasProgress:', hasProgress, 'questionIndex:', questionIndex, 'isRecording:', isRecording, 'recordedMedia:', recordedMedia)
 
   // 페이지 이탈 방지 이벤트 핸들러들
   const handleKeyDown = (e: KeyboardEvent) => {
     if (hasProgress && (e.key === 'Escape' || e.key === 'Backspace')) {
       e.preventDefault()
+      console.log('Setting showWarningModal to true (handleKeyDown)')
       setShowWarningModal(true)
     }
   }
 
   const handlePopState = (e: PopStateEvent) => {
+    console.log('handlePopState called, hasProgress:', hasProgress)
     if (hasProgress) {
       e.preventDefault()
+      // 페이지 이탈 시 TTS 음소거
+      muteAllAudio()
+      console.log('Setting showWarningModal to true (handlePopState)')
       setShowWarningModal(true)
       // 브라우저 히스토리에 다시 추가
       window.history.pushState(null, '', window.location.href)
@@ -164,14 +185,19 @@ export default function SurveyQuestion({ onComplete, onBack }: SurveyQuestionPro
 
   // 새로고침 방지를 위한 커스텀 핸들러
   const handleRefresh = (e: KeyboardEvent) => {
+    console.log('handleRefresh called, hasProgress:', hasProgress, 'key:', e.key)
     if (hasProgress && (e.key === 'F5' || (e.ctrlKey && e.key === 'r'))) {
       e.preventDefault()
+      // 페이지 새로고침 시 TTS 음소거
+      muteAllAudio()
+      console.log('Setting showWarningModal to true (handleRefresh)')
       setShowWarningModal(true)
     }
   }
 
   // navbar 링크 클릭 감지를 위한 전역 이벤트 리스너
   const handleNavbarLinkClick = (e: MouseEvent) => {
+    console.log('handleNavbarLinkClick called, hasProgress:', hasProgress)
     if (hasProgress) {
       // navbar 내의 링크나 버튼 클릭 감지
       const target = e.target as HTMLElement
@@ -195,6 +221,9 @@ export default function SurveyQuestion({ onComplete, onBack }: SurveyQuestionPro
       if (navbar && navbar.contains(target)) {
         e.preventDefault()
         e.stopPropagation()
+        // navbar 클릭 시 TTS 음소거
+        muteAllAudio()
+        console.log('Setting showWarningModal to true (handleNavbarLinkClick)')
         setShowWarningModal(true)
         return false
       }
@@ -233,7 +262,10 @@ export default function SurveyQuestion({ onComplete, onBack }: SurveyQuestionPro
         if (isLink || isButton || isClickable) {
           e.preventDefault()
           e.stopPropagation()
-          setShowWarningModal(true)
+                  // navbar 링크/버튼 클릭 시 TTS 음소거
+        muteAllAudio()
+        console.log('Setting showWarningModal to true (handleEnhancedNavbarClick)')
+        setShowWarningModal(true)
           return false
         }
       }
@@ -287,7 +319,10 @@ export default function SurveyQuestion({ onComplete, onBack }: SurveyQuestionPro
           if (navbar && navbar.contains(target)) {
             e.preventDefault()
             e.stopPropagation()
-            setShowWarningModal(true)
+                    // 전역 클릭 감지 시 TTS 음소거
+        muteAllAudio()
+        console.log('Setting showWarningModal to true (handleGlobalClick)')
+        setShowWarningModal(true)
             return false
           }
         }
@@ -330,14 +365,19 @@ export default function SurveyQuestion({ onComplete, onBack }: SurveyQuestionPro
 
   const handleBackClick = () => {
     if (hasProgress) {
+      console.log('Setting showWarningModal to true (handleBackClick)')
       setShowWarningModal(true)
     } else {
+      // TTS 음소거 후 뒤로가기
+      muteAllAudio()
       onBack()
     }
   }
 
   const handleConfirmExit = () => {
     console.log('handleConfirmExit called')
+    // 페이지 이탈 시 TTS 음소거
+    muteAllAudio()
     setShowWarningModal(false)
     onBack()
   }
@@ -348,7 +388,7 @@ export default function SurveyQuestion({ onComplete, onBack }: SurveyQuestionPro
   }
 
   // TTS 관련 함수들
-  const speakQuestion = async (text: string) => {
+  const speakQuestion = useCallback(async (text: string) => {
     const result = await ttsSpeak({
       text,
       language: 'ko-KR'
@@ -357,9 +397,9 @@ export default function SurveyQuestion({ onComplete, onBack }: SurveyQuestionPro
     if (!result.success) {
       console.error('TTS 오류:', result.error)
     }
-  }
+  }, [ttsSpeak])
 
-  const speakPreparationMessage = async () => {
+  const speakPreparationMessage = useCallback(async () => {
     const preparationText = "준비가 완료되시면 수동 녹음 버튼을 눌러주세요"
     const result = await ttsSpeak({
       text: preparationText,
@@ -369,11 +409,11 @@ export default function SurveyQuestion({ onComplete, onBack }: SurveyQuestionPro
     if (!result.success) {
       console.error('TTS 오류:', result.error)
     }
-  }
+  }, [ttsSpeak])
 
-  const stopTTS = () => {
+  const stopTTS = useCallback(() => {
     ttsStop()
-  }
+  }, [ttsStop])
 
 
 
@@ -389,7 +429,7 @@ export default function SurveyQuestion({ onComplete, onBack }: SurveyQuestionPro
       
       return () => clearTimeout(timer)
     }
-  }, [isTTSPlaying, isTTSFinished, preparationMessagePlayed])
+  }, [isTTSPlaying, isTTSFinished, preparationMessagePlayed, speakPreparationMessage])
 
   // TTS 재생 상태 감지
   useEffect(() => {
@@ -402,27 +442,84 @@ export default function SurveyQuestion({ onComplete, onBack }: SurveyQuestionPro
   }, [isTTSPlaying])
 
   useEffect(() => {
-    // 컴포넌트 마운트 시 정리
+    // 컴포넌트 마운트 시 이전 TTS 정리
+    forceStopAllAudio()
+    
     return () => {
-      // TTS 정리
-      ttsStop()
+      // 컴포넌트 언마운트 시 음소거
+      muteAllAudio()
     }
   }, [])
 
-  // 질문 변경 시 TTS 실행
+  // 페이지 이탈 시 TTS 음소거를 위한 추가 useEffect
   useEffect(() => {
-    if (currentQuestion) {
-      const questionText = `${currentQuestion.title} ${currentQuestion.description}`
-      speakQuestion(questionText)
+    // 강화된 페이지 이탈 감지 설정
+    const cleanup = setupTTSLeaveDetection()
+
+    return () => {
+      // 컴포넌트 언마운트 시 정리
+      cleanup()
+      muteAllAudio()
     }
-  }, [currentQuestionIndex])
+  }, [])
+
+  // 라우터 경로 변경 감지하여 TTS 음소거
+  useEffect(() => {
+    // pathname이 변경되면 TTS 음소거
+    if (pathname !== '/main-elder/daily-survey/question/1' && 
+        pathname !== '/main-elder/daily-survey/question/2' && 
+        pathname !== '/main-elder/daily-survey/question/3') {
+      muteAllAudio()
+    }
+  }, [pathname])
+
+  // 윈도우 포커스 변경 시 TTS 중지 (이미 setupTTSLeaveDetection에서 처리됨)
+  // useEffect(() => {
+  //   const handleWindowBlur = () => {
+  //     // 윈도우가 포커스를 잃으면 TTS 중지
+  //     forceStopAllAudio()
+  //   }
+
+  //   const handleWindowFocus = () => {
+  //     // 윈도우가 포커스를 얻으면 TTS 중지 (안전장치)
+  //     forceStopAllAudio()
+  //   }
+
+  //   window.addEventListener('blur', handleWindowBlur)
+  //   window.addEventListener('focus', handleWindowFocus)
+
+  //   return () => {
+  //     window.removeEventListener('blur', handleWindowBlur)
+  //     window.removeEventListener('focus', handleWindowFocus)
+  //   }
+  // }, [])
+
+  // 질문 변경 시 TTS 실행 (단일 실행 보장)
+  useEffect(() => {
+    // 이전 TTS 정리
+    forceStopAllAudio()
+    
+    // 약간의 지연 후 새로운 TTS 실행
+    const timer = setTimeout(() => {
+      const question = surveyQuestions[questionIndex]
+      if (question) {
+        const questionText = `${question.title} ${question.description}`
+        speakQuestion(questionText)
+      }
+    }, 100)
+    
+    return () => {
+      clearTimeout(timer)
+      forceStopAllAudio()
+    }
+  }, [questionIndex, speakQuestion]) // questionIndex가 변경될 때만 실행
 
   // 녹음 시작 시 TTS 중지
   useEffect(() => {
     if (isRecording) {
       ttsStop()
     }
-  }, [isRecording])
+  }, [isRecording, ttsStop])
 
   const handleNextQuestion = () => {
     // 응답이 없으면 경고 표시
@@ -431,16 +528,15 @@ export default function SurveyQuestion({ onComplete, onBack }: SurveyQuestionPro
       return
     }
 
-    if (currentQuestionIndex < surveyQuestions.length - 1) {
-      setCurrentQuestionIndex(currentQuestionIndex + 1)
-      // 다음 질문으로 넘어갈 때 녹화 상태 완전 초기화
-      resetRecording()
-      // 다음 질문에서 준비 메시지를 다시 재생할 수 있도록 상태 초기화
-      setPreparationMessagePlayed(false)
-    } else {
-      // 설문 완료 시 현재 녹화 파일 다운로드
-      downloadAllRecordings()
+    // 현재 녹화 파일 다운로드
+    downloadAllRecordings()
+
+    if (isLastQuestion) {
+      // 마지막 질문이면 완료 처리
       onComplete()
+    } else {
+      // 다음 질문으로 이동
+      onNext()
     }
   }
 
@@ -456,11 +552,7 @@ export default function SurveyQuestion({ onComplete, onBack }: SurveyQuestionPro
     }
   }
 
-  const getQuestionStatus = (questionIndex: number) => {
-    if (questionIndex < currentQuestionIndex) return "completed"
-    if (questionIndex === currentQuestionIndex) return "current"
-    return "pending"
-  }
+
 
   const getQuestionIcon = (index: number) => {
     switch (index) {
@@ -473,12 +565,13 @@ export default function SurveyQuestion({ onComplete, onBack }: SurveyQuestionPro
 
 
 
-  const replayQuestion = () => {
-    if (currentQuestion) {
-      const questionText = `${currentQuestion.title} ${currentQuestion.description}`
+  const replayQuestion = useCallback(() => {
+    const question = surveyQuestions[questionIndex]
+    if (question) {
+      const questionText = `${question.title} ${question.description}`
       speakQuestion(questionText)
     }
-  }
+  }, [questionIndex, speakQuestion])
 
   const handleCloseNoResponseWarning = () => {
     setShowNoResponseWarning(false)
@@ -503,7 +596,7 @@ export default function SurveyQuestion({ onComplete, onBack }: SurveyQuestionPro
                 일일 설문조사
               </h1>
               <p className="text-gray-600">
-                개인화 질문 {currentQuestionIndex + 1}/{surveyQuestions.length}
+                개인화 질문 {questionIndex + 1}/{surveyQuestions.length}
               </p>
             </div>
             
@@ -532,7 +625,7 @@ export default function SurveyQuestion({ onComplete, onBack }: SurveyQuestionPro
               {/* Question Header */}
               <div className="flex items-center gap-3 mb-6">
                 <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                  {getQuestionIcon(currentQuestionIndex)}
+                  {getQuestionIcon(questionIndex)}
                 </div>
                 <span className="text-blue-600 font-medium">
                   {currentQuestion.category}
@@ -610,10 +703,19 @@ export default function SurveyQuestion({ onComplete, onBack }: SurveyQuestionPro
                   </button>
 
                   <button
-                    onClick={isRecording ? stopRecording : () => startRecording(false)}
+                    onClick={isRecording ? stopRecording : () => {
+                      // 수동 녹음 버튼 클릭 시 TTS 즉시 중지
+                      ttsStop()
+                      // 준비 메시지 재생 상태를 true로 설정하여 중복 재생 방지
+                      setPreparationMessagePlayed(true)
+                      startRecording(false)
+                    }}
+                    disabled={isTTSPlaying}
                     className={`flex items-center gap-2 px-6 py-2 rounded-lg font-medium transition-colors ${
                       isRecording
                         ? "bg-red-500 hover:bg-red-600 text-white"
+                        : isTTSPlaying
+                        ? "bg-gray-300 text-gray-500 cursor-not-allowed"
                         : "bg-green-500 hover:bg-green-600 text-white"
                     }`}
                   >
@@ -621,6 +723,11 @@ export default function SurveyQuestion({ onComplete, onBack }: SurveyQuestionPro
                       <>
                         <MicOff className="w-5 h-5" />
                         녹음 중지
+                      </>
+                    ) : isTTSPlaying ? (
+                      <>
+                        <Mic className="w-5 h-5" />
+                        말이 끝나면 수동 녹음 버튼이 활성화 됩니다
                       </>
                     ) : (
                       <>
@@ -639,7 +746,7 @@ export default function SurveyQuestion({ onComplete, onBack }: SurveyQuestionPro
                         : "bg-gray-300 text-gray-500 cursor-not-allowed"
                     }`}
                   >
-                    {currentQuestionIndex < surveyQuestions.length - 1 ? '다음 질문' : '설문 완료'}
+                    {isLastQuestion ? '설문 완료' : '다음 질문'}
                     <ArrowRight className="w-4 h-4" />
                   </button>
                 </div>
@@ -668,7 +775,7 @@ export default function SurveyQuestion({ onComplete, onBack }: SurveyQuestionPro
               <button
                 key={page}
                 className={`w-8 h-8 rounded-full text-sm font-medium transition-colors ${
-                  page === currentQuestionIndex + 1
+                  page === questionIndex + 1
                     ? "bg-blue-600 text-white"
                     : "bg-gray-200 text-gray-600"
                 }`}
@@ -724,7 +831,7 @@ export default function SurveyQuestion({ onComplete, onBack }: SurveyQuestionPro
                   </div>
                   <div className="text-center">
                     <p className="text-xs opacity-80 mb-1">질문</p>
-                    <p className="text-2xl font-bold">{currentQuestionIndex + 1}/{surveyQuestions.length}</p>
+                    <p className="text-2xl font-bold">{questionIndex + 1}/{surveyQuestions.length}</p>
                   </div>
                 </div>
               </div>
@@ -741,14 +848,14 @@ export default function SurveyQuestion({ onComplete, onBack }: SurveyQuestionPro
                 </div>
                 <div className="space-y-2 text-sm opacity-90">
                   {/* 현재 질문이 완료되지 않은 경우 */}
-                  {currentQuestionIndex < surveyQuestions.length && (
+                  {questionIndex < surveyQuestions.length && (
                     <div className="flex items-center gap-2">
                       <div className="w-2 h-2 bg-yellow-300 rounded-full"></div>
-                      <p>• {surveyQuestions[currentQuestionIndex].title}</p>
+                      <p>• {surveyQuestions[questionIndex].title}</p>
                     </div>
                   )}
                   {/* 남은 질문들 */}
-                  {surveyQuestions.slice(currentQuestionIndex + 1).map((question, index) => (
+                  {surveyQuestions.slice(questionIndex + 1).map((question, index) => (
                     <div key={question.id} className="flex items-center gap-2">
                       <div className="w-2 h-2 bg-yellow-300 rounded-full"></div>
                       <p>• {question.title}</p>
