@@ -2,7 +2,7 @@ package com.ssafy.recode.domain.survey.controller;
 
 import com.ssafy.recode.domain.auth.entity.User;
 import com.ssafy.recode.domain.survey.service.SurveyService;
-import com.ssafy.recode.global.dto.request.BasicAnswerRequestDto;
+import com.ssafy.recode.global.dto.request.AnswerRequestDto;
 import com.ssafy.recode.global.dto.request.survey.SurveyAnswerRequestDto;
 import com.ssafy.recode.global.dto.response.ApiResponse;
 import com.ssafy.recode.global.security.annotation.LoginUser;
@@ -55,7 +55,7 @@ public class SurveyController {
           required = true,
           content  = @Content(
               mediaType = MediaType.MULTIPART_FORM_DATA_VALUE,
-              schema    = @Schema(implementation = BasicAnswerRequestDto.class)
+              schema    = @Schema(implementation = AnswerRequestDto.class)
           )
       )
   )
