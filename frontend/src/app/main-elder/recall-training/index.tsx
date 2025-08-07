@@ -124,7 +124,7 @@ export default function RecallTrainingMain() {
     const isCompleted = isRecallTrainingSessionCompleted(sessionId)
 
     return (
-      <Card key={sessionId} className={`bg-white/95 backdrop-blur border-0 shadow-xl overflow-hidden ${isCompleted ? 'opacity-75' : ''}`}>
+      <Card key={sessionId} className={`bg-white/95 backdrop-blur border-0 shadow-xl overflow-hidden ${isCompleted ? 'opacity-25' : ''}`}>
         <div className={`bg-gradient-to-r ${config.gradient} p-6 text-white relative`}>
           {isCompleted && (
             <div className="absolute top-4 right-4 bg-white/20 rounded-full p-2">
