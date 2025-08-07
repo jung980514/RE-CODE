@@ -315,6 +315,33 @@ function useVideoRecording(videoStream: MediaStream | null) {
     }
   }
 
+  const resetRecording = () => {
+    // 녹화 중이면 중지
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop()
+    }
+    // 스트림 정리
+    if (combinedStreamRef.current) {
+      combinedStreamRef.current.getTracks().forEach((track) => track.stop())
+    }
+    if (audioContextRef.current) {
+      audioContextRef.current.close()
+    }
+    // 기존 URL 정리
+    if (recordedMedia) {
+      URL.revokeObjectURL(recordedMedia)
+    }
+    // 상태 초기화
+    setIsRecording(false)
+    setIsAutoRecording(false)
+    setAudioLevel(0)
+    setRecordedMedia(null)
+    // ref 정리
+    mediaRecorderRef.current = null
+    audioContextRef.current = null
+    combinedStreamRef.current = null
+  }
+
   return {
     isRecording,
     audioLevel,
@@ -322,6 +349,7 @@ function useVideoRecording(videoStream: MediaStream | null) {
     isAutoRecording,
     startRecording,
     stopRecording,
+    resetRecording,
   }
 }
 
@@ -330,24 +358,25 @@ export function VoiceStoryTellingSession({ onBack }: VoiceSessionProps) {
   const [isAITalking, setIsAITalking] = useState(true)
   const [showCompletionModal, setShowCompletionModal] = useState(false)
   const [webcamStream, setWebcamStream] = useState<MediaStream | null>(null)
+  const [hasStartedRecording, setHasStartedRecording] = useState(false)
   const videoRef = useRef<HTMLVideoElement>(null)
-  const { isRecording, audioLevel, recordedMedia, isAutoRecording, startRecording, stopRecording } = useVideoRecording(webcamStream)
+  const { isRecording, audioLevel, recordedMedia, isAutoRecording, startRecording, stopRecording, resetRecording } = useVideoRecording(webcamStream)
   const { emotion, confidence, analyzeEmotionHistory } = useEmotionDetection(videoRef, isRecording)
 
   const topics = [
     {
       title: "개인화 질문",
-      question: "인생에서1 가장 행복했던 순간은 언제였나요?\n그때의 기분과 주변 사람들에 대해 말씀해 주세요. 준비가 완료되면 답변하기를 눌러 시작해주세요",
+      question: "인생에서1 가장 행복했던 순간은 언제였나요?\n준비가 완료되면 답변하기를 눌러 시작해주세요",
       icon: "🌟",
     },
     {
       title: "개인화 질문",
-      question: "인생에서2 가장 행복했던 순간은 언제였나요?\n그때의 기분과 주변 사람들에 대해 말씀해 주세요. 준비가 완료되면 답변하기를 눌러 시작해주세요",
+      question: "인생에서2 가장 행복했던 순간은 언제였나요?\n준비가 완료되면 답변하기를 눌러 시작해주세요",
       icon: "🌟",
     },
     {
       title: "개인화 질문",
-      question: "인생에서3 가장 행복했던 순간은 언제였나요?\n그때의 기분과 주변 사람들에 대해 말씀해 주세요. 준비가 완료되면 답변하기를 눌러 시작해주세요",
+      question: "인생에서3 가장 행복했던 순간은 언제였나요?\n준비가 완료되면 답변하기를 눌러 시작해주세요",
       icon: "🌟",
     },
   ]
@@ -374,12 +403,19 @@ export function VoiceStoryTellingSession({ onBack }: VoiceSessionProps) {
     }
   }, [currentTopic, topics.length])
 
+  // 주제가 바뀌면 다음 버튼을 비활성화 상태로 초기화
+  useEffect(() => {
+    setHasStartedRecording(false)
+  }, [currentTopic])
+
   const handleNext = () => {
     if (currentTopic < topics.length - 1) {
       setCurrentTopic(currentTopic + 1)
       if (isRecording) {
         stopRecording()
       }
+      // 이전 주제의 녹화 결과 창 숨김을 위해 녹음 상태 초기화
+      resetRecording()
     } else {
       // 마지막 주제 완료 시 최종 감정 분석 실행
       console.log('=== 이야기 나누기 훈련 최종 감정 분석 결과 ===')
@@ -387,6 +423,12 @@ export function VoiceStoryTellingSession({ onBack }: VoiceSessionProps) {
       markRecallTrainingSessionAsCompleted('story')
       setShowCompletionModal(true)
     }
+  }
+
+  // 답변하기(녹음 시작) 버튼 클릭 시: 녹음 시작과 동시에 다음 버튼 활성화
+  const handleStartRecording = () => {
+    startRecording(false)
+    setHasStartedRecording(true)
   }
 
   const handleBackToMain = () => {
@@ -420,16 +462,16 @@ export function VoiceStoryTellingSession({ onBack }: VoiceSessionProps) {
             <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
               <CheckCircle className="w-10 h-10 text-green-600" />
             </div>
-            <h2 className="text-2xl font-bold text-gray-800 mb-4">이야기 나누기 완료!</h2>
-            <p className="text-gray-600 mb-8">
+            <h2 className="text-4xl font-bold text-gray-800 mb-6">이야기 나누기 완료!</h2>
+            <p className="text-2xl text-gray-600 mb-10 font-medium">
               모든 주제를 성공적으로 완료하셨습니다.<br />
               다른 훈련 프로그램도 진행해보세요.
             </p>
-            <div className="flex gap-4">
+            <div className="flex gap-6">
               <Button
                 variant="outline"
                 onClick={handleBackToMain}
-                className="flex-1"
+                className="flex-1 h-16 text-xl font-bold px-8"
               >
                 메인으로 돌아가기
               </Button>
@@ -445,12 +487,15 @@ export function VoiceStoryTellingSession({ onBack }: VoiceSessionProps) {
       <div className="max-w-7xl mx-auto">
         {/* 헤더 */}
         <div className="flex items-center justify-between mb-6">
-          <Button variant="ghost" onClick={onBack} className="flex items-center gap-2 text-lg">
-            <ArrowLeft className="w-5 h-5" />
+          <Button variant="ghost" onClick={onBack} className="flex items-center gap-3 text-2xl font-bold hover:bg-white/50 bg-white/80 backdrop-blur px-6 py-4">
+            <ArrowLeft className="w-7 h-7" />
             돌아가기
           </Button>
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold text-gray-800">개인화 훈련</h1>
+          <div className="text-center">
+            <h1 className="text-5xl font-bold text-gray-800 mb-2" style={{ fontFamily: "Paperlogy, sans-serif" }}>
+              이야기 나누기 훈련
+            </h1>
+            <p className="text-2xl text-gray-600 font-medium">개인화된 심층 질문으로 소중한 추억을 되살려보세요</p>
           </div>
           <div className="text-right">
           </div>
@@ -464,25 +509,25 @@ export function VoiceStoryTellingSession({ onBack }: VoiceSessionProps) {
               <CardContent className="p-8">
                 {/* 주제 제목 */}
                 <div className="text-center mb-8">
-                  <div className="inline-flex items-center gap-3 bg-orange-100 text-orange-700 px-4 py-2 rounded-full mb-4">
-                    <BookOpen className="w-5 h-5" />
-                    <span className="font-medium">
+                  <div className="inline-flex items-center gap-4 bg-orange-100 text-orange-700 px-6 py-3 rounded-full mb-6">
+                    <BookOpen className="w-7 h-7" />
+                    <span className="font-bold text-xl">
                       주제 {currentTopic + 1}/{topics.length}
                     </span>
                   </div>
-                  <div className="text-6xl mb-4">{topics[currentTopic].icon}</div>
-                  <h2 className="text-3xl font-bold text-gray-800 mb-4">{topics[currentTopic].title}</h2>
+                  <div className="text-8xl mb-6">{topics[currentTopic].icon}</div>
+                  <h2 className="text-4xl font-bold text-gray-800 mb-6">{topics[currentTopic].title}</h2>
                 </div>
 
                 {/* 질문 내용 */}
-                <div className="bg-gradient-to-r from-orange-50 to-red-50 p-8 rounded-2xl mb-8">
-                  <div className="flex items-start gap-4">
-                    <div className="w-12 h-12 bg-orange-500 rounded-full flex items-center justify-center flex-shrink-0">
-                      <BookOpen className="w-6 h-6 text-white" />
+                <div className="bg-gradient-to-r from-orange-50 to-red-50 p-10 rounded-2xl mb-10">
+                  <div className="flex items-start gap-6">
+                    <div className="w-16 h-16 bg-orange-500 rounded-full flex items-center justify-center flex-shrink-0">
+                      <BookOpen className="w-8 h-8 text-white" />
                     </div>
                     <div className="flex-1">
-                      <p className="text-sm text-orange-600 font-medium mb-2">질문을 읽어주세요</p>
-                      <p className="text-xl leading-relaxed text-gray-800 whitespace-pre-line">
+                      <p className="text-lg text-orange-600 font-bold mb-3">질문을 읽어주세요</p>
+                      <p className="text-2xl leading-relaxed text-gray-800 whitespace-pre-line font-medium">
                         {topics[currentTopic].question}
                       </p>
                     </div>
@@ -493,17 +538,17 @@ export function VoiceStoryTellingSession({ onBack }: VoiceSessionProps) {
                   <div className="mb-8">
                     <div className="bg-red-50 border border-red-200 rounded-lg p-6">
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className="w-4 h-4 bg-red-500 rounded-full animate-pulse"></div>
+                        <div className="flex items-center gap-4">
+                          <div className="w-6 h-6 bg-red-500 rounded-full animate-pulse"></div>
                           <div>
-                            <p className="font-medium text-red-800">녹음 중...</p>
-                            <p className="text-sm text-red-600">자유롭게 말씀해 주세요</p>
+                            <p className="font-bold text-red-800 text-xl">녹음 중...</p>
+                            <p className="text-lg text-red-600">자유롭게 말씀해 주세요</p>
                           </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
-                          <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" style={{ animationDelay: '0.2s' }}></div>
-                          <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" style={{ animationDelay: '0.4s' }}></div>
+                        <div className="flex items-center gap-3">
+                          <div className="w-4 h-4 bg-red-500 rounded-full animate-pulse"></div>
+                          <div className="w-4 h-4 bg-red-500 rounded-full animate-pulse" style={{ animationDelay: '0.2s' }}></div>
+                          <div className="w-4 h-4 bg-red-500 rounded-full animate-pulse" style={{ animationDelay: '0.4s' }}></div>
                         </div>
                       </div>
                       
@@ -531,11 +576,11 @@ export function VoiceStoryTellingSession({ onBack }: VoiceSessionProps) {
                   <div className="mb-8">
                     <div className="bg-green-50 border border-green-200 rounded-lg p-6">
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <CheckCircle className="w-6 h-6 text-green-600" />
+                        <div className="flex items-center gap-4">
+                          <CheckCircle className="w-8 h-8 text-green-600" />
                           <div>
-                            <p className="font-medium text-green-800">답변이 녹화되었습니다</p>
-                            <p className="text-sm text-green-600">아래에서 다시 확인하실 수 있습니다</p>
+                            <p className="font-bold text-green-800 text-xl">답변이 녹화되었습니다</p>
+                            <p className="text-lg text-green-600">아래에서 다시 확인하실 수 있습니다</p>
                           </div>
                         </div>
                         <video controls src={recordedMedia} className="w-100 h-31 rounded-lg" />
@@ -545,44 +590,44 @@ export function VoiceStoryTellingSession({ onBack }: VoiceSessionProps) {
                 )}
 
                 {/* 컨트롤 버튼들 */}
-                <div className="flex items-center justify-center gap-4">
+                <div className="flex items-center justify-center gap-6">
                   <Button
                     onClick={replayQuestion}
                     variant="outline"
-                    className="h-12 px-6 border-orange-300 text-orange-600 hover:bg-orange-50 bg-transparent"
+                    className="h-16 px-8 border-2 border-orange-400 text-orange-700 hover:bg-orange-50 bg-transparent text-xl font-bold"
                   >
-                    <RotateCcw className="w-4 h-4 mr-2" />
+                    <RotateCcw className="w-6 h-6 mr-3" />
                     다시재생
                   </Button>
 
                   <Button
-                    onClick={isRecording ? stopRecording : () => startRecording(false)}
-                    className={`h-12 px-8 font-medium ${
+                    onClick={isRecording ? stopRecording : handleStartRecording}
+                    className={`h-16 px-12 text-xl font-bold ${
                       isRecording
-                        ? "bg-red-500 hover:bg-red-600 text-white"
-                        : "bg-green-500 hover:bg-green-600 text-white"
+                        ? "bg-red-600 hover:bg-red-700 text-white"
+                        : "bg-green-600 hover:bg-green-700 text-white"
                     }`}
                   >
                     {isRecording ? (
                       <>
-                        <MicOff className="w-5 h-5 mr-2" />
+                        <MicOff className="w-6 h-6 mr-3" />
                         녹음 중지
                       </>
                     ) : (
                       <>
-                        <Mic className="w-5 h-5 mr-2" />
-                        수동 녹음
+                        <Mic className="w-6 h-6 mr-3" />
+                        답변하기
                       </>
                     )}
                   </Button>
 
                   <Button
                     onClick={handleNext}
-                    disabled={!recordedMedia && !isRecording}
-                    className="h-12 px-6 bg-orange-500 hover:bg-orange-600 text-white"
+                    disabled={!hasStartedRecording}
+                    className="h-16 px-12 bg-orange-600 hover:bg-orange-700 text-white text-xl font-bold"
                   >
                     {currentTopic === topics.length - 1 ? '완료하기' : '다음 주제'}
-                    <ArrowRight className="w-4 h-4 ml-2" />
+                    <ArrowRight className="w-6 h-6 ml-3" />
                   </Button>
                 </div>
               </CardContent>
@@ -601,20 +646,20 @@ export function VoiceStoryTellingSession({ onBack }: VoiceSessionProps) {
                   />
                   
                   {/* 감정 분석 결과 */}
-                  <div className="bg-white/80 backdrop-blur rounded-lg p-4">
-                    <h3 className="text-lg font-semibold mb-2">감정 분석</h3>
-                    <div className="space-y-2">
+                  <div className="bg-white/80 backdrop-blur rounded-lg p-6">
+                    <h3 className="text-2xl font-bold mb-4">감정 분석</h3>
+                    <div className="space-y-4">
                       <div className="flex justify-between items-center">
-                        <span>현재 감정:</span>
-                        <span className="font-medium text-orange-600">{emotion}</span>
+                        <span className="text-lg font-medium">현재 감정:</span>
+                        <span className="font-bold text-orange-600 text-xl">{emotion}</span>
                       </div>
                       <div className="flex justify-between items-center">
-                        <span>신뢰도:</span>
-                        <span className="font-medium text-orange-600">{Math.round(confidence * 100)}%</span>
+                        <span className="text-lg font-medium">신뢰도:</span>
+                        <span className="font-bold text-orange-600 text-xl">{Math.round(confidence * 100)}%</span>
                       </div>
-                      <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div className="w-full bg-gray-200 rounded-full h-3">
                         <div
-                          className="bg-orange-600 h-2 rounded-full transition-all duration-300"
+                          className="bg-orange-600 h-3 rounded-full transition-all duration-300"
                           style={{ width: `${confidence * 100}%` }}
                         />
                       </div>

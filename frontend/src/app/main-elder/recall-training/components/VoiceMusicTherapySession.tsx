@@ -292,11 +292,31 @@ function useVideoRecording(
     }
   }
 
+  const resetRecording = () => {
+    // 생성된 URL 해제
+    if (recordedVideo) {
+      try {
+        URL.revokeObjectURL(recordedVideo)
+      } catch (_) {
+        // 무시
+      }
+    }
+    setRecordedVideo(null)
+    setIsRecording(false)
+
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop())
+      streamRef.current = null
+    }
+    mediaRecorderRef.current = null
+  }
+
   return {
     isRecording,
     recordedVideo,
     startRecording,
     stopRecording,
+    resetRecording,
   }
 }
 
@@ -309,26 +329,26 @@ export function VoiceMusicTherapySession({ onBack }: VoiceSessionProps) {
   const [showCompletionModal, setShowCompletionModal] = useState(false)
   const videoRef = useRef<HTMLVideoElement>(null)
   const audioRef = useRef<HTMLAudioElement>(null)
-  const { isRecording, recordedVideo, startRecording, stopRecording } = useVideoRecording(audioRef, setIsPlaying)
+  const { isRecording, recordedVideo, startRecording, stopRecording, resetRecording } = useVideoRecording(audioRef, setIsPlaying)
   const { emotion, confidence, analyzeEmotionHistory } = useEmotionDetection(videoRef, isRecording)
 
   const songs = [
     {
       title: "인지자극훈련",
       artist: "소리",
-      question: "이 소리를 들으시면서 떠오르는 기억이 있으신가요?\n언제 처음 들으셨는지, 누구와 함께 들으셨는지 말씀해 주세요. 준비가 완료되면 답변하기를 눌러 말씀해주세요",
+      question: "이 소리를 들으시면서 떠오르는 기억이 있으신가요?\n준비가 완료되면 답변하기를 눌러 말씀해주세요",
       audioUrl: "/sound/test-sound.mp3"
     },
     {
       title: "인지자극훈련",
       artist: "소리",
-      question: "이 소리를 들으시면서 떠오르는 기억이 있으신가요?2\n언제 처음 들으셨는지, 누구와 함께 들으셨는지 말씀해 주세요. 준비가 완료되면 답변하기를 눌러 말씀해주세요",
+      question: "이 소리를 들으시면서 떠오르는 기억이 있으신가요?2\n준비가 완료되면 답변하기를 눌러 말씀해주세요",
       audioUrl: "/sound/test-sound.mp3"
     },
     {
       title: "인지자극훈련",
       artist: "소리",
-      question: "이 소리를 들으시면서 떠오르는 기억이 있으신가요?3\n언제 처음 들으셨는지, 누구와 함께 들으셨는지 말씀해 주세요. 준비가 완료되면 답변하기를 눌러 말씀해주세요",
+      question: "이 소리를 들으시면서 떠오르는 기억이 있으신가요?3\n준비가 완료되면 답변하기를 눌러 말씀해주세요",
       audioUrl: "/sound/test-sound.mp3"
     },
   ]
@@ -423,12 +443,14 @@ export function VoiceMusicTherapySession({ onBack }: VoiceSessionProps) {
     }
 
     if (currentSong < songs.length - 1) {
-      setCurrentSong(currentSong + 1)
-      setIsAITalking(true)
-      setIsPlaying(false)
       if (isRecording) {
         stopRecording()
       }
+      // 다음 곡으로 넘어갈 때 이전 녹화 상태 초기화
+      resetRecording()
+      setCurrentSong(currentSong + 1)
+      setIsAITalking(true)
+      setIsPlaying(false)
     } else {
       // 마지막 노래 완료 시 최종 감정 분석 실행
       console.log('=== 들려오는 추억 훈련 최종 감정 분석 결과 ===')
@@ -496,16 +518,16 @@ export function VoiceMusicTherapySession({ onBack }: VoiceSessionProps) {
             <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
               <CheckCircle className="w-10 h-10 text-green-600" />
             </div>
-            <h2 className="text-2xl font-bold text-gray-800 mb-4">들려오는 추억 완료!</h2>
-            <p className="text-gray-600 mb-8">
+            <h2 className="text-4xl font-bold text-gray-800 mb-6">들려오는 추억 완료!</h2>
+            <p className="text-2xl text-gray-600 mb-10 font-medium">
               모든 음악을 성공적으로 완료하셨습니다.<br />
               다른 훈련 프로그램도 진행해보세요.
             </p>
-            <div className="flex gap-4">
+            <div className="flex gap-6">
               <Button
                 variant="outline"
                 onClick={handleBackToMain}
-                className="flex-1"
+                className="flex-1 h-16 text-xl font-bold px-8"
               >
                 메인으로 돌아가기
               </Button>
@@ -521,12 +543,15 @@ export function VoiceMusicTherapySession({ onBack }: VoiceSessionProps) {
       <div className="max-w-7xl mx-auto">
         {/* 헤더 */}
         <div className="flex items-center justify-between mb-6">
-          <Button variant="ghost" onClick={onBack} className="flex items-center gap-2 text-lg">
-            <ArrowLeft className="w-5 h-5" />
+          <Button variant="ghost" onClick={onBack} className="flex items-center gap-3 text-2xl font-bold hover:bg-white/50 bg-white/80 backdrop-blur px-6 py-4">
+            <ArrowLeft className="w-7 h-7" />
             돌아가기
           </Button>
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold text-gray-800">들려오는 추억 훈련</h1>
+          <div className="text-center">
+            <h1 className="text-5xl font-bold text-gray-800 mb-2" style={{ fontFamily: "Paperlogy, sans-serif" }}>
+              들려오는 추억 훈련
+            </h1>
+            <p className="text-2xl text-gray-600 font-medium">음악과 함께 소중한 추억을 되살려보세요</p>
           </div>
           <div className="text-right">
           </div>
@@ -540,44 +565,44 @@ export function VoiceMusicTherapySession({ onBack }: VoiceSessionProps) {
               <CardContent className="p-8">
                 {/* 음악 제목 */}
                 <div className="text-center mb-6">
-                  <div className="inline-flex items-center gap-3 bg-green-100 text-green-700 px-4 py-2 rounded-full mb-4">
-                    <Music className="w-5 h-5" />
-                    <span className="font-medium">
+                  <div className="inline-flex items-center gap-4 bg-green-100 text-green-700 px-6 py-3 rounded-full mb-6">
+                    <Music className="w-7 h-7" />
+                    <span className="font-bold text-xl">
                       노래 {currentSong + 1}/{songs.length}
                     </span>
                   </div>
-                  <h2 className="text-3xl font-bold text-gray-800 mb-2">{songs[currentSong].title}</h2>
-                  <p className="text-lg text-green-600 font-medium">{songs[currentSong].artist}</p>
+                  <h2 className="text-4xl font-bold text-gray-800 mb-4">{songs[currentSong].title}</h2>
+                  <p className="text-2xl text-green-600 font-medium">{songs[currentSong].artist}</p>
                 </div>
 
                 {/* 음악 플레이어 */}
-                <div className="bg-gradient-to-r from-green-50 to-teal-50 p-6 rounded-2xl mb-6">
-                  <div className="flex items-center justify-center gap-4">
-                    <div className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center">
-                      <Music className="w-8 h-8 text-white" />
+                <div className="bg-gradient-to-r from-green-50 to-teal-50 p-8 rounded-2xl mb-8">
+                  <div className="flex items-center justify-center gap-6">
+                    <div className="w-20 h-20 bg-green-500 rounded-full flex items-center justify-center">
+                      <Music className="w-10 h-10 text-white" />
                     </div>
                     <div className="flex-1">
-                      <h3 className="text-xl font-bold text-gray-800 mb-2">{songs[currentSong].title}</h3>
-                      <p className="text-green-600">{songs[currentSong].artist}</p>
+                      <h3 className="text-2xl font-bold text-gray-800 mb-3">{songs[currentSong].title}</h3>
+                      <p className="text-xl text-green-600 font-medium">{songs[currentSong].artist}</p>
                     </div>
                     <Button
                       onClick={togglePlay}
-                      className="w-12 h-12 bg-green-500 hover:bg-green-600 text-white rounded-full"
+                      className="w-16 h-16 bg-green-500 hover:bg-green-600 text-white rounded-full"
                     >
-                      {isPlaying ? <Pause className="w-6 h-6" /> : <Play className="w-6 h-6" />}
+                      {isPlaying ? <Pause className="w-8 h-8" /> : <Play className="w-8 h-8" />}
                     </Button>
                   </div>
                 </div>
 
                 {/* 질문 내용 */}
-                <div className="bg-gradient-to-r from-green-50 to-teal-50 p-8 rounded-2xl mb-8">
-                  <div className="flex items-start gap-4">
-                    <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0">
-                      <Music className="w-6 h-6 text-white" />
+                <div className="bg-gradient-to-r from-green-50 to-teal-50 p-10 rounded-2xl mb-10">
+                  <div className="flex items-start gap-6">
+                    <div className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0">
+                      <Music className="w-8 h-8 text-white" />
                     </div>
                     <div className="flex-1">
-                      <p className="text-sm text-green-600 font-medium mb-2">RE:CODE는 궁금해요</p>
-                      <p className="text-xl leading-relaxed text-gray-800 whitespace-pre-line">
+                      <p className="text-lg text-green-600 font-bold mb-3">RE:CODE는 궁금해요</p>
+                      <p className="text-2xl leading-relaxed text-gray-800 whitespace-pre-line font-medium">
                         {songs[currentSong].question}
                       </p>
                     </div>
@@ -591,11 +616,11 @@ export function VoiceMusicTherapySession({ onBack }: VoiceSessionProps) {
                   <div className="mb-8">
                     <div className="bg-red-50 border border-red-200 rounded-lg p-6">
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className="w-4 h-4 bg-red-500 rounded-full animate-pulse"></div>
+                        <div className="flex items-center gap-4">
+                          <div className="w-6 h-6 bg-red-500 rounded-full animate-pulse"></div>
                           <div>
-                            <p className="font-medium text-red-800">녹화 중...</p>
-                            <p className="text-sm text-red-600">자유롭게 말씀해 주세요</p>
+                            <p className="font-bold text-red-800 text-xl">녹화 중...</p>
+                            <p className="text-lg text-red-600">자유롭게 말씀해 주세요</p>
                           </div>
                         </div>
                       </div>
@@ -608,11 +633,11 @@ export function VoiceMusicTherapySession({ onBack }: VoiceSessionProps) {
                   <div className="mb-8">
                     <div className="bg-green-50 border border-green-200 rounded-lg p-6">
                       <div className="flex flex-col gap-4">
-                        <div className="flex items-center gap-3">
-                          <CheckCircle className="w-6 h-6 text-green-600" />
+                        <div className="flex items-center gap-4">
+                          <CheckCircle className="w-8 h-8 text-green-600" />
                           <div>
-                            <p className="font-medium text-green-800">답변이 녹화되었습니다</p>
-                            <p className="text-sm text-green-600">아래에서 다시 확인하실 수 있습니다</p>
+                            <p className="font-bold text-green-800 text-xl">답변이 녹화되었습니다</p>
+                            <p className="text-lg text-green-600">아래에서 다시 확인하실 수 있습니다</p>
                           </div>
                         </div>
                         <video 
@@ -627,32 +652,32 @@ export function VoiceMusicTherapySession({ onBack }: VoiceSessionProps) {
                 )}
 
                 {/* 컨트롤 버튼들 */}
-                <div className="flex items-center justify-center gap-4">
+                <div className="flex items-center justify-center gap-6">
                   <Button
                     onClick={replayQuestion}
                     variant="outline"
-                    className="h-12 px-6 border-green-300 text-green-600 hover:bg-green-50 bg-transparent"
+                    className="h-16 px-8 border-2 border-green-400 text-green-700 hover:bg-green-50 bg-transparent text-xl font-bold"
                   >
-                    <RotateCcw className="w-4 h-4 mr-2" />
+                    <RotateCcw className="w-6 h-6 mr-3" />
                     다시재생
                   </Button>
 
                   <Button
                     onClick={isRecording ? stopRecording : startRecording}
-                    className={`h-12 px-8 font-medium ${
+                    className={`h-16 px-12 text-xl font-bold ${
                       isRecording
-                        ? "bg-red-500 hover:bg-red-600 text-white"
-                        : "bg-green-500 hover:bg-green-600 text-white"
+                        ? "bg-red-600 hover:bg-red-700 text-white"
+                        : "bg-green-600 hover:bg-green-700 text-white"
                     }`}
                   >
                     {isRecording ? (
                       <>
-                        <MicOff className="w-5 h-5 mr-2" />
+                        <MicOff className="w-6 h-6 mr-3" />
                         녹화 중지
                       </>
                     ) : (
                       <>
-                        <Mic className="w-5 h-5 mr-2" />
+                        <Mic className="w-6 h-6 mr-3" />
                         답변하기
                       </>
                     )}
@@ -660,11 +685,11 @@ export function VoiceMusicTherapySession({ onBack }: VoiceSessionProps) {
 
                   <Button
                     onClick={handleNext}
-                    disabled={!recordedVideo && !isRecording}
-                    className="h-12 px-6 bg-green-500 hover:bg-green-600 text-white"
+                    disabled={!recordedVideo}
+                    className="h-16 px-12 bg-green-600 hover:bg-green-700 text-white text-xl font-bold"
                   >
                     {currentSong === songs.length - 1 ? '완료하기' : '다음 노래'}
-                    <ArrowRight className="w-4 h-4 ml-2" />
+                    <ArrowRight className="w-6 h-6 ml-3" />
                   </Button>
                 </div>
               </CardContent>
@@ -682,20 +707,20 @@ export function VoiceMusicTherapySession({ onBack }: VoiceSessionProps) {
                 />
                 
                 {/* 감정 분석 결과 */}
-                <div className="bg-white/80 backdrop-blur rounded-lg p-4 mt-4">
-                  <h3 className="text-lg font-semibold mb-2">감정 분석</h3>
-                  <div className="space-y-2">
+                <div className="bg-white/80 backdrop-blur rounded-lg p-6 mt-4">
+                  <h3 className="text-2xl font-bold mb-4">감정 분석</h3>
+                  <div className="space-y-4">
                     <div className="flex justify-between items-center">
-                      <span>현재 감정:</span>
-                      <span className="font-medium text-green-600">{emotion}</span>
+                      <span className="text-lg font-medium">현재 감정:</span>
+                      <span className="font-bold text-green-600 text-xl">{emotion}</span>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span>신뢰도:</span>
-                      <span className="font-medium text-green-600">{Math.round(confidence * 100)}%</span>
+                      <span className="text-lg font-medium">신뢰도:</span>
+                      <span className="font-bold text-green-600 text-xl">{Math.round(confidence * 100)}%</span>
                     </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div className="w-full bg-gray-200 rounded-full h-3">
                       <div
-                        className="bg-green-600 h-2 rounded-full transition-all duration-300"
+                        className="bg-green-600 h-3 rounded-full transition-all duration-300"
                         style={{ width: `${confidence * 100}%` }}
                       />
                     </div>
@@ -706,23 +731,6 @@ export function VoiceMusicTherapySession({ onBack }: VoiceSessionProps) {
           </div>
         </div>
 
-        {/* 진행 단계 표시 */}
-        <div className="mt-8 flex justify-center gap-4">
-          {songs.map((_, index) => (
-            <div
-              key={index}
-              className={`w-12 h-12 rounded-full flex items-center justify-center font-bold transition-all ${
-                index === currentSong
-                  ? "bg-green-500 text-white shadow-lg scale-110"
-                  : index < currentSong
-                    ? "bg-green-500 text-white"
-                    : "bg-gray-200 text-gray-500"
-              }`}
-            >
-
-            </div>
-          ))}
-        </div>
       </div>
     </div>
   )
