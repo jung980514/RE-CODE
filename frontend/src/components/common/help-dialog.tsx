@@ -312,7 +312,7 @@ export default function HelpDialog({ isOpen, onOpenChange, programs }: HelpDialo
                       <h5 className="font-semibold text-gray-800">녹음 상태 표시</h5>
                     </div>
                     <p className="text-sm text-gray-600 mb-2">
-                      • <strong>"REC"</strong> 표시: 현재 녹음 중
+                      • <strong>&quotREC&quot</strong> 표시: 현재 녹음 중
                     </p>
                     <p className="text-sm text-gray-600 mb-1">
                       • <strong>파형 애니메이션</strong>: AI가 말하거나 듣고 있을 때
@@ -483,21 +483,21 @@ export default function HelpDialog({ isOpen, onOpenChange, programs }: HelpDialo
               <div className="bg-white p-4 rounded-lg border border-gray-200">
                 <h4 className="font-semibold text-gray-800 mb-2">Q. 녹음 버튼을 눌렀는데 소리가 안 들려요</h4>
                 <p className="text-sm text-gray-600">
-                  A. 브라우저에서 마이크 권한을 허용해주세요. 화면 상단에 마이크 허용 알림이 나타나면 '허용'을
+                  A. 브라우저에서 마이크 권한을 허용해주세요. 화면 상단에 마이크 허용 알림이 나타나면 &apos허용&apos을
                   클릭하세요.
                 </p>
               </div>
               <div className="bg-white p-4 rounded-lg border border-gray-200">
                 <h4 className="font-semibold text-gray-800 mb-2">Q. AI 음성이 너무 빠르거나 느려요</h4>
                 <p className="text-sm text-gray-600">
-                  A. 음량 조절 버튼 옆에 있는 설정에서 속도를 조절할 수 있습니다. 또는 '다시재생' 버튼으로 다시
+                  A. 음량 조절 버튼 옆에 있는 설정에서 속도를 조절할 수 있습니다. 또는 &apos다시재생&apos 버튼으로 다시
                   들어보세요.
                 </p>
               </div>
               <div className="bg-white p-4 rounded-lg border border-gray-200">
                 <h4 className="font-semibold text-gray-800 mb-2">Q. 중간에 그만두고 싶어요</h4>
                 <p className="text-sm text-gray-600">
-                  A. 언제든지 '돌아가기' 버튼을 눌러서 메인 화면으로 돌아갈 수 있습니다. 진행 상황은 자동으로
+                  A. 언제든지 &apos돌아가기&apos 버튼을 눌러서 메인 화면으로 돌아갈 수 있습니다. 진행 상황은 자동으로
                   저장됩니다.
                 </p>
               </div>
