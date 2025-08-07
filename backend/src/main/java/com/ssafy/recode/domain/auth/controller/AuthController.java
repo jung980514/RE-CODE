@@ -3,6 +3,10 @@ package com.ssafy.recode.domain.auth.controller;
 import com.ssafy.recode.domain.auth.entity.User;
 import com.ssafy.recode.domain.auth.service.AuthService;
 import com.ssafy.recode.domain.auth.service.RefreshTokenService;
+import com.ssafy.recode.domain.basic.service.BasicService;
+import com.ssafy.recode.domain.cognitive.service.CognitiveService;
+import com.ssafy.recode.domain.personal.service.PersonalService;
+import com.ssafy.recode.domain.survey.service.SurveyService;
 import com.ssafy.recode.global.constant.AuthConstant;
 import com.ssafy.recode.global.dto.request.RegisterRequest;
 import com.ssafy.recode.global.dto.response.ApiResponse;
@@ -12,6 +16,8 @@ import com.ssafy.recode.global.security.util.JWTUtils;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
+
+import java.util.LinkedHashMap;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -39,6 +45,10 @@ public class AuthController {
     private final JWTUtils jwtUtil;
 
     private final RefreshTokenService refreshTokenService;
+    private final SurveyService surveyService;
+    private final BasicService basicService;
+    private final CognitiveService cognitiveService;
+    private final PersonalService personalService;;
 
     @GetMapping
     public ResponseEntity<?> getUser(@LoginUser User user) {
@@ -83,6 +93,35 @@ public class AuthController {
         // JWTLogoutFilter에서 쿠키 삭제 및 토큰 무효화 처리가 이미 수행됨
         // 이 컨트롤러는 클라이언트에게 정상적인 로그아웃 응답을 보내는 역할만 함
         return ResponseEntity.ok(ApiResponse.successResponse("로그아웃이 성공적으로 처리되었습니다."));
+    }
+    /**
+     * 오늘 일일 설문을 진행했는지 체크
+     */
+    @GetMapping("/daily-survey")
+    public ResponseEntity<?> isDailySurveyCompleted(@LoginUser User user) {
+        return ResponseEntity.ok(ApiResponse.successResponse(surveyService.hasCompletedDailySurvey(user.getId())));
+    }
+
+    /**
+     * 기초/인지-소리/인지-이미지/개인화 질문 당일 답변 여부
+     */
+    @GetMapping("/status")
+    public ResponseEntity<?> getTodayCompletionStatus(
+            @LoginUser User user
+    ) {
+        Long userId = user.getId();
+        boolean basicDone = basicService.isBasicCompleted(userId);
+        boolean cognitiveAudio = cognitiveService.isCognitiveCompleted(userId, "audio");
+        boolean cognitiveImage = cognitiveService.isCognitiveCompleted(userId, "image");
+        boolean personalDone = personalService.isPersonalCompleted(userId);
+
+        Map<String, Boolean> statusMap = new LinkedHashMap<>();
+        statusMap.put("basic",       basicDone);
+        statusMap.put("cognitiveAudio",  cognitiveAudio);
+        statusMap.put("cognitiveImage",  cognitiveImage);
+        statusMap.put("personal",    personalDone);
+
+        return ResponseEntity.ok(ApiResponse.successResponse((statusMap)));
     }
 
 }

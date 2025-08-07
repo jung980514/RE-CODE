@@ -5,6 +5,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.LocalDateTime;
+
 public interface BasicAnswerRepository extends JpaRepository<BasicAnswer, Long> {
 
   /**
@@ -12,4 +14,14 @@ public interface BasicAnswerRepository extends JpaRepository<BasicAnswer, Long> 
    */
   @Query("SELECT COALESCE(MAX(b.questionId), 0) FROM BasicAnswer b WHERE b.userId = :userId")
   Long findMaxQuestionIdByUserId(@Param("userId") Long userId);
+
+  /**
+   * 기초 질문 답변 확인용
+   * @param userId 사용자 아이디
+   * @param start 당일 0시
+   * @param end 당일 24시
+   * @return true: 존재함, false: 없음
+   */
+  boolean existsByUserIdAndCreatedAtBetween(Long userId, LocalDateTime start, LocalDateTime end);
+
 }
