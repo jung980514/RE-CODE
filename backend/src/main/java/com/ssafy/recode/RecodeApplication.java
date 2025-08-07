@@ -8,7 +8,6 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.annotation.EnableScheduling;
-import io.github.cdimascio.dotenv.Dotenv;
 
 @SpringBootApplication
 @OpenAPIDefinition(
@@ -25,6 +24,6 @@ import io.github.cdimascio.dotenv.Dotenv;
 @EnableScheduling
 public class RecodeApplication {
   public static void main(String[] args) {
-      // .env 자동 로드
-      Dotenv dotenv = Dotenv.configure().ignoreIfMissing().load(); 
+      SpringApplication.run(RecodeApplication.class, args);
+  }
 }

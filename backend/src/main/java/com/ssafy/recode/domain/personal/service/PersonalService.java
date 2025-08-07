@@ -6,7 +6,9 @@ import com.ssafy.recode.domain.common.service.S3UploaderService;
 import com.ssafy.recode.domain.common.service.VideoTranscriptionService;
 import com.ssafy.recode.domain.personal.entity.PersonalAnswer;
 import com.ssafy.recode.domain.personal.entity.PersonalQuestion;
+import com.ssafy.recode.domain.personal.repository.PersonalAnswerRepository;
 import com.ssafy.recode.domain.personal.repository.PersonalQuestionRepository;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
@@ -14,7 +16,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 @Service
 @RequiredArgsConstructor
-public class PersonalAnswerService {
+public class PersonalService {
 
   private static final String FOLDER = "personal";
   private static final double MATCH_THRESHOLD = 70.0;
@@ -23,6 +25,7 @@ public class PersonalAnswerService {
   private final S3UploaderService            uploader;
   private final AiPromptService              aiPromptService;
   private final PersonalQuestionRepository   questionRepo;
+  private final PersonalAnswerRepository     answerRepo;
   private final GenericPersistenceService    genericPersistenceService;
 
   /**
@@ -65,5 +68,26 @@ public class PersonalAnswerService {
       throw new RuntimeException(
           "PersonalAnswer 처리 중 오류 (questionId=" + questionId + ")", e);
     }
+  }
+  /**
+   * 유저가 마지막으로 답변한 questionId 이후의 질문 3개를 반환.
+   * (답변이 없으면 처음 3개, 모자랄 경우 앞에서 채움)
+   */
+  public List<PersonalQuestion> getNextQuestions(Long userId) {
+    // 가장 최근에 답변한 questionId (아직 없으면 0)
+    Long lastQuestionid = answerRepo.findMaxQuestionIdByUserId(userId);
+
+    // 이후 3개
+    List<PersonalQuestion> next = questionRepo
+        .findTop3ByUserIdAndQuestionIdGreaterThanOrderByQuestionIdAsc(userId, lastQuestionid);
+
+    // 모자르면 처음 3개
+    if (next.size() < 3) {
+      int need = 3 - next.size();
+      List<PersonalQuestion> head = questionRepo
+          .findTop3ByUserIdOrderByQuestionIdAsc(userId);
+      next.addAll(head.subList(0, Math.min(need, head.size())));
+    }
+    return next;
   }
 }
