@@ -7,7 +7,7 @@ import com.ssafy.recode.domain.common.service.VideoTranscriptionService;
 import com.ssafy.recode.domain.survey.entity.SurveyAnswer;
 import com.ssafy.recode.domain.survey.repository.SurveyRepository;
 import com.ssafy.recode.domain.survey.repository.DailyServeyCheckRepository;
-
+import com.ssafy.recode.global.dto.response.survey.SurveyQAResponse;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -83,6 +83,15 @@ public class SurveyService {
     return dailyServeyCheckRepository.existsByUserIdAndCreatedAtBetween(
             userId, startOfDay, endOfDay
     );
+   * 일일 설문 답변 조회(당일)
+   * @param userId
+   * @return
+   */
+  public List<SurveyQAResponse> getTodayPersonalQA(Long userId) {
+    LocalDateTime start = LocalDate.now().atStartOfDay();         // 오늘 00:00
+    LocalDateTime end = start.plusDays(1);                        // 내일 00:00
+
+    return surveyRepository.findTodayQAByUserId(userId, start, end);
   }
 
 }
