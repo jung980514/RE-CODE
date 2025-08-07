@@ -351,14 +351,16 @@ const [birthDateValue, setBirthDateValue] = useState<DateValueType>({
               </p>
             </div>
             <div className={styles.inputGroup}>
-              <label className={styles.label}>이메일</label>
+              <label className={styles.label}>비밀번호 확인 *</label>
               <input
-                type="email"
-                value={oldPeopleFormData.email}
-                onChange={(e) => handleInputChange('email', e.target.value)}
-                placeholder="이메일을 입력해주세요"
+                type="password"
+                value={oldPeopleFormData.confirmPassword}
+                onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
+                placeholder="비밀번호를 다시 입력해주세요"
                 className={styles.input}
+                required
               />
+              <p className={styles.inputHint}>비밀번호를 다시 입력해주세요</p>
             </div>
 
             {/* 4행: 성별(왼) - 비밀번호 확인(오) */}
@@ -375,17 +377,16 @@ const [birthDateValue, setBirthDateValue] = useState<DateValueType>({
                 <option value="female">여성</option>
               </select>
             </div>
+
             <div className={styles.inputGroup}>
-              <label className={styles.label}>비밀번호 확인 *</label>
+              <label className={styles.label}>이메일</label>
               <input
-                type="password"
-                value={oldPeopleFormData.confirmPassword}
-                onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
-                placeholder="비밀번호를 다시 입력해주세요"
+                type="email"
+                value={oldPeopleFormData.email}
+                onChange={(e) => handleInputChange('email', e.target.value)}
+                placeholder="이메일을 입력해주세요"
                 className={styles.input}
-                required
               />
-              <p className={styles.inputHint}>비밀번호를 다시 입력해주세요</p>
             </div>
           </div>
 

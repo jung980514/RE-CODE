@@ -97,7 +97,13 @@ const GuardianSignupModal: React.FC<GuardianSignupModalProps> = ({
   const handleBirthDateChange = (newValue: DateValueType) => {
     setBirthDateValue(newValue);
     if (newValue?.startDate) {
-      handleGuardianInputChange('birthDate', newValue.startDate.toString());
+      // Date 객체를 YYYY-MM-DD 형식으로 변환
+      const date = new Date(newValue.startDate);
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      const formattedDate = `${year}-${month}-${day}`;
+      handleGuardianInputChange('birthDate', formattedDate);
     }
   };
 
@@ -338,13 +344,14 @@ const GuardianSignupModal: React.FC<GuardianSignupModalProps> = ({
               />
             </div>
             <div className={styles.inputGroup}>
-              <label className={styles.label}>이메일</label>
+              <label className={styles.label}>비밀번호 확인 *</label>
               <input
-                type="email"
-                value={guardianFormData.email}
-                onChange={(e) => handleGuardianInputChange('email', e.target.value)}
-                placeholder="이메일을 입력해주세요"
+                type="password"
+                value={guardianFormData.confirmPassword}
+                onChange={(e) => handleGuardianInputChange('confirmPassword', e.target.value)}
+                placeholder="비밀번호를 다시 입력해주세요"
                 className={styles.input}
+                required
               />
             </div>
 
@@ -363,14 +370,13 @@ const GuardianSignupModal: React.FC<GuardianSignupModalProps> = ({
               </select>
             </div>
             <div className={styles.inputGroup}>
-              <label className={styles.label}>비밀번호 확인 *</label>
+              <label className={styles.label}>이메일</label>
               <input
-                type="password"
-                value={guardianFormData.confirmPassword}
-                onChange={(e) => handleGuardianInputChange('confirmPassword', e.target.value)}
-                placeholder="비밀번호를 다시 입력해주세요"
+                type="email"
+                value={guardianFormData.email}
+                onChange={(e) => handleGuardianInputChange('email', e.target.value)}
+                placeholder="이메일을 입력해주세요"
                 className={styles.input}
-                required
               />
             </div>
           </div>

@@ -105,7 +105,7 @@ export function ReminiscenceModal({ isOpen, onClose, record }: ReminiscenceModal
 
                   {question.keyMoments.length > 0 && (
                     <div className="mt-4">
-                      <h4 className="font-semibold text-gray-800 mb-2">주요 순간들</h4>
+                      <h4 className="font-semibold text-gray-800 mb-2">영상</h4>
                       <div className="grid gap-2">
                         {question.keyMoments.map((moment: KeyMoment, idx: number) => (
                           <div key={idx} className="flex items-center gap-2 bg-blue-50/50 p-2 rounded-md">
