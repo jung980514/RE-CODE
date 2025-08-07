@@ -22,7 +22,7 @@ public class CognitiveAnswer {
     /** 어떤 질문에 대한 답변인지 */
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "question_id")
-    private CognitiveQuestion questionId;
+    private CognitiveQuestion question;
 
     /** 답변자(사용자) ID */
     @Column(name = "user_id", nullable = false)

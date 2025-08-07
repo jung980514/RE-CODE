@@ -68,7 +68,7 @@ public class CognitiveService {
 
       // 4) 결과 엔티티 생성 및 저장
       CognitiveAnswer answer = CognitiveAnswer.builder()
-          .questionId(question)
+          .question(question)
           .userId(userId)
           .answer(answerText)
           .score(score)
