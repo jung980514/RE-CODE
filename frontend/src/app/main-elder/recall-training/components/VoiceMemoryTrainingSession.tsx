@@ -105,6 +105,33 @@ function useVoiceRecording(videoStream: MediaStream | null) {
     }
   }
 
+  const resetRecording = () => {
+    // 녹화 중이면 중지
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop()
+    }
+    // 스트림 정리
+    if (combinedStreamRef.current) {
+      combinedStreamRef.current.getTracks().forEach((track) => track.stop())
+    }
+    if (audioContextRef.current) {
+      audioContextRef.current.close()
+    }
+    // 기존 URL 정리
+    if (recordedMedia) {
+      URL.revokeObjectURL(recordedMedia)
+    }
+    // 상태 초기화
+    setIsRecording(false)
+    setIsAutoRecording(false)
+    setAudioLevel(0)
+    setRecordedMedia(null)
+    // ref 정리
+    mediaRecorderRef.current = null
+    audioContextRef.current = null
+    combinedStreamRef.current = null
+  }
+
   return {
     isRecording,
     audioLevel,
@@ -112,6 +139,7 @@ function useVoiceRecording(videoStream: MediaStream | null) {
     isAutoRecording,
     startRecording,
     stopRecording,
+    resetRecording,
   }
 }
 
@@ -371,23 +399,24 @@ export function VoiceMemoryTrainingSession({ onBack }: VoiceSessionProps) {
   const [isAITalking, setIsAITalking] = useState(false)
   const [showCompletionModal, setShowCompletionModal] = useState(false)
   const [webcamStream, setWebcamStream] = useState<MediaStream | null>(null)
+  const [hasStartedRecording, setHasStartedRecording] = useState(false)
   const videoRef = useRef<HTMLVideoElement>(null)
-  const { isRecording, audioLevel, recordedMedia, isAutoRecording, startRecording, stopRecording } = useVoiceRecording(webcamStream)
+  const { isRecording, audioLevel, recordedMedia, isAutoRecording, startRecording, stopRecording, resetRecording } = useVoiceRecording(webcamStream)
   const { emotion, confidence, analyzeEmotionHistory } = useEmotionDetection(videoRef, isRecording)
   const { showCountdown, countdown, startAutoRecording } = useAutoRecording(startRecording)
 
   const questions = [
     {
       title: "기초 질문",
-      question: "어린 시절 살았던 집은 어떤 모습이었나요?\n집의 색깔이나 마당, 가장 좋아했던 방에 대해 자유롭게 말씀해 주세요1. 준비되시면 답변하기를 눌러 시작해주세요"
+      question: "어린 시절 살았던 집은 어떤 모습이었나요?\n준비되시면 답변하기를 눌러 시작해주세요"
     },
     {
       title: "기초 질문",
-      question: "어린 시절 살았던 집은 어떤 모습이었나요?\n집의 색깔이나 마당, 가장 좋아했던 방에 대해 자유롭게 말씀해 주세요2. 준비되시면 답변하기를 눌러 시작해주세요"
+      question: "어린 시절 살았던 집은 어떤 모습이었나요?2\n준비되시면 답변하기를 눌러 시작해주세요"
     },
     {
       title: "기초 질문",
-      question: "어린 시절 살았던 집은 어떤 모습이었나요?\n집의 색깔이나 마당, 가장 좋아했던 방에 대해 자유롭게 말씀해 주세요3. 준비되시면 답변하기를 눌러 시작해주세요"
+      question: "어린 시절 살았던 집은 어떤 모습이었나요?3\n준비되시면 답변하기를 눌러 시작해주세요"
     },
 
   ]
@@ -417,9 +446,16 @@ export function VoiceMemoryTrainingSession({ onBack }: VoiceSessionProps) {
     }
   }, [currentStep, questions.length])
 
+  // 질문이 바뀌면 다음 버튼을 비활성화 상태로 초기화
+  useEffect(() => {
+    setHasStartedRecording(false)
+  }, [currentStep])
+
   const handleNext = () => {
     if (currentStep < questions.length - 1) {
       setCurrentStep(currentStep + 1)
+      // 이전 질문의 녹화 결과 창 숨김을 위해 녹음 상태 초기화
+      resetRecording()
       // startAutoRecording() 제거 - 자동 녹음 시작하지 않음
     } else {
       // 마지막 질문 완료 시 최종 감정 분석 실행
@@ -449,6 +485,12 @@ export function VoiceMemoryTrainingSession({ onBack }: VoiceSessionProps) {
     }
   }
 
+  // 답변하기(녹음 시작) 버튼 클릭 시: 녹음 시작과 동시에 다음 버튼 활성화
+  const handleStartRecording = () => {
+    startRecording(false)
+    setHasStartedRecording(true)
+  }
+
   // 완료 모달
   if (showCompletionModal) {
     return (
@@ -458,16 +500,16 @@ export function VoiceMemoryTrainingSession({ onBack }: VoiceSessionProps) {
             <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
               <CheckCircle className="w-10 h-10 text-green-600" />
             </div>
-            <h2 className="text-2xl font-bold text-gray-800 mb-4">기억 꺼내기 완료!</h2>
-            <p className="text-gray-600 mb-8">
+            <h2 className="text-4xl font-bold text-gray-800 mb-6">기억 꺼내기 완료!</h2>
+            <p className="text-2xl text-gray-600 mb-10 font-medium">
               모든 질문을 성공적으로 완료하셨습니다.<br />
               다른 훈련 프로그램도 진행해보세요.
             </p>
-            <div className="flex gap-4">
+            <div className="flex gap-6">
               <Button
                 variant="outline"
                 onClick={handleBackToMain}
-                className="flex-1"
+                className="flex-1 h-16 text-xl font-bold px-8"
               >
                 메인으로 돌아가기
               </Button>
@@ -486,17 +528,17 @@ export function VoiceMemoryTrainingSession({ onBack }: VoiceSessionProps) {
           <Button 
             variant="ghost" 
             onClick={onBack} 
-            className="flex items-center gap-2 text-lg hover:bg-white/50 bg-white/80 backdrop-blur"
+            className="flex items-center gap-3 text-2xl font-bold hover:bg-white/50 bg-white/80 backdrop-blur px-6 py-4"
           >
-            <ArrowLeft className="w-5 h-5" />
+            <ArrowLeft className="w-7 h-7" />
             돌아가기
           </Button>
           
           <div className="text-center">
-            <h1 className="text-3xl font-bold text-gray-800" style={{ fontFamily: "Paperlogy, sans-serif" }}>
+            <h1 className="text-5xl font-bold text-gray-800 mb-2" style={{ fontFamily: "Paperlogy, sans-serif" }}>
               기억 꺼내기 훈련
             </h1>
-            <p className="text-gray-600">가벼운 질문으로 소중한 추억을 되살려보세요</p>
+            <p className="text-2xl text-gray-600 font-medium">가벼운 질문으로 소중한 추억을 되살려보세요</p>
           </div>
           
           <div className="w-20"></div>
@@ -510,24 +552,24 @@ export function VoiceMemoryTrainingSession({ onBack }: VoiceSessionProps) {
               <CardContent className="p-8">
                 {/* 질문 제목 */}
                 <div className="text-center mb-8">
-                  <div className="inline-flex items-center gap-3 bg-blue-100 text-blue-700 px-4 py-2 rounded-full mb-4">
-                    <Brain className="w-5 h-5" />
-                    <span className="font-medium">
+                  <div className="inline-flex items-center gap-4 bg-blue-100 text-blue-700 px-6 py-3 rounded-full mb-6">
+                    <Brain className="w-7 h-7" />
+                    <span className="font-bold text-xl">
                       질문 {currentStep + 1}/{questions.length}
                     </span>
                   </div>
-                  <h2 className="text-3xl font-bold text-gray-800 mb-4">{questions[currentStep].title}</h2>
+                  <h2 className="text-4xl font-bold text-gray-800 mb-6">{questions[currentStep].title}</h2>
                 </div>
 
                 {/* 질문 내용 */}
-                <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-8 rounded-2xl mb-8">
-                  <div className="flex items-start gap-4">
-                    <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0">
-                      <Brain className="w-6 h-6 text-white" />
+                <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-10 rounded-2xl mb-10">
+                  <div className="flex items-start gap-6">
+                    <div className="w-16 h-16 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0">
+                      <Brain className="w-8 h-8 text-white" />
                     </div>
                     <div className="flex-1">
-                      <p className="text-sm text-blue-600 font-medium mb-2">RE:CODE는 궁금해요</p>
-                      <p className="text-xl leading-relaxed text-gray-800 whitespace-pre-line">
+                      <p className="text-lg text-blue-600 font-bold mb-3">RE:CODE는 궁금해요</p>
+                      <p className="text-2xl leading-relaxed text-gray-800 whitespace-pre-line font-medium">
                         {questions[currentStep].question}
                       </p>
                     </div>
@@ -537,8 +579,8 @@ export function VoiceMemoryTrainingSession({ onBack }: VoiceSessionProps) {
                 {/* 카운트다운 */}
                 {showCountdown && (
                   <div className="text-center mb-8">
-                    <div className="text-6xl font-bold text-blue-500 mb-4">{countdown}</div>
-                    <p className="text-gray-600">곧 녹음이 시작됩니다...</p>
+                    <div className="text-8xl font-bold text-blue-500 mb-6">{countdown}</div>
+                    <p className="text-2xl text-gray-600 font-medium">곧 녹음이 시작됩니다...</p>
                   </div>
                 )}
 
@@ -547,17 +589,17 @@ export function VoiceMemoryTrainingSession({ onBack }: VoiceSessionProps) {
                   <div className="mb-8">
                     <div className="bg-red-50 border border-red-200 rounded-lg p-6">
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className="w-4 h-4 bg-red-500 rounded-full animate-pulse"></div>
+                        <div className="flex items-center gap-4">
+                          <div className="w-6 h-6 bg-red-500 rounded-full animate-pulse"></div>
                           <div>
-                            <p className="font-medium text-red-800">녹음 중...</p>
-                            <p className="text-sm text-red-600">자유롭게 말씀해 주세요</p>
+                            <p className="font-bold text-red-800 text-xl">녹음 중...</p>
+                            <p className="text-lg text-red-600">자유롭게 말씀해 주세요</p>
                           </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
-                          <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" style={{ animationDelay: '0.2s' }}></div>
-                          <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" style={{ animationDelay: '0.4s' }}></div>
+                        <div className="flex items-center gap-3">
+                          <div className="w-4 h-4 bg-red-500 rounded-full animate-pulse"></div>
+                          <div className="w-4 h-4 bg-red-500 rounded-full animate-pulse" style={{ animationDelay: '0.2s' }}></div>
+                          <div className="w-4 h-4 bg-red-500 rounded-full animate-pulse" style={{ animationDelay: '0.4s' }}></div>
                         </div>
                       </div>
                       
@@ -585,11 +627,11 @@ export function VoiceMemoryTrainingSession({ onBack }: VoiceSessionProps) {
                   <div className="mb-8">
                     <div className="bg-green-50 border border-green-200 rounded-lg p-6">
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <CheckCircle className="w-6 h-6 text-green-600" />
+                        <div className="flex items-center gap-4">
+                          <CheckCircle className="w-8 h-8 text-green-600" />
                           <div>
-                            <p className="font-medium text-green-800">답변이 녹화되었습니다</p>
-                            <p className="text-sm text-green-600">아래에서 다시 확인하실 수 있습니다</p>
+                            <p className="font-bold text-green-800 text-xl">답변이 녹화되었습니다</p>
+                            <p className="text-lg text-green-600">아래에서 다시 확인하실 수 있습니다</p>
                           </div>
                         </div>
                         <video controls src={recordedMedia} className="w-100 h-31 rounded-lg" />
@@ -599,32 +641,32 @@ export function VoiceMemoryTrainingSession({ onBack }: VoiceSessionProps) {
                 )}
 
                 {/* 컨트롤 버튼들 */}
-                <div className="flex items-center justify-center gap-4">
+                <div className="flex items-center justify-center gap-6">
                   <Button
                     onClick={replayQuestion}
                     variant="outline"
-                    className="h-12 px-6 border-blue-300 text-blue-600 hover:bg-blue-50 bg-transparent"
+                    className="h-16 px-8 border-2 border-blue-400 text-blue-700 hover:bg-blue-50 bg-transparent text-xl font-bold"
                   >
-                    <RotateCcw className="w-4 h-4 mr-2" />
+                    <RotateCcw className="w-6 h-6 mr-3" />
                     다시재생
                   </Button>
 
                   <Button
-                    onClick={isRecording ? stopRecording : () => startRecording(false)}
-                    className={`h-12 px-8 font-medium ${
+                    onClick={isRecording ? stopRecording : handleStartRecording}
+                    className={`h-16 px-12 text-xl font-bold ${
                       isRecording
-                        ? "bg-red-500 hover:bg-red-600 text-white"
-                        : "bg-green-500 hover:bg-green-600 text-white"
+                        ? "bg-red-600 hover:bg-red-700 text-white"
+                        : "bg-green-600 hover:bg-green-700 text-white"
                     }`}
                   >
                     {isRecording ? (
                       <>
-                        <MicOff className="w-5 h-5 mr-2" />
+                        <MicOff className="w-6 h-6 mr-3" />
                         녹음 중지
                       </>
                     ) : (
                       <>
-                        <Mic className="w-5 h-5 mr-2" />
+                        <Mic className="w-6 h-6 mr-3" />
                         답변하기
                       </>
                     )}
@@ -632,11 +674,11 @@ export function VoiceMemoryTrainingSession({ onBack }: VoiceSessionProps) {
 
                   <Button
                     onClick={handleNext}
-                    disabled={!recordedMedia && !isRecording}
-                    className="h-12 px-6 bg-blue-500 hover:bg-blue-600 text-white"
+                    disabled={!hasStartedRecording}
+                    className="h-16 px-12 bg-blue-600 hover:bg-blue-700 text-white text-xl font-bold"
                   >
                     {currentStep === questions.length - 1 ? '완료하기' : '다음 질문'}
-                    <ArrowRight className="w-4 h-4 ml-2" />
+                    <ArrowRight className="w-6 h-6 ml-3" />
                   </Button>
                 </div>
               </CardContent>
@@ -655,20 +697,20 @@ export function VoiceMemoryTrainingSession({ onBack }: VoiceSessionProps) {
                   />
                   
                   {/* 감정 분석 결과 */}
-                  <div className="bg-white/80 backdrop-blur rounded-lg p-4">
-                    <h3 className="text-lg font-semibold mb-2">감정 분석</h3>
-                    <div className="space-y-2">
+                  <div className="bg-white/80 backdrop-blur rounded-lg p-6">
+                    <h3 className="text-2xl font-bold mb-4">감정 분석</h3>
+                    <div className="space-y-4">
                       <div className="flex justify-between items-center">
-                        <span>현재 감정:</span>
-                        <span className="font-medium text-blue-600">{emotion}</span>
+                        <span className="text-lg font-medium">현재 감정:</span>
+                        <span className="font-bold text-blue-600 text-xl">{emotion}</span>
                       </div>
                       <div className="flex justify-between items-center">
-                        <span>신뢰도:</span>
-                        <span className="font-medium text-blue-600">{Math.round(confidence * 100)}%</span>
+                        <span className="text-lg font-medium">신뢰도:</span>
+                        <span className="font-bold text-blue-600 text-xl">{Math.round(confidence * 100)}%</span>
                       </div>
-                      <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div className="w-full bg-gray-200 rounded-full h-3">
                         <div
-                          className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                          className="bg-blue-600 h-3 rounded-full transition-all duration-300"
                           style={{ width: `${confidence * 100}%` }}
                         />
                       </div>
