@@ -19,13 +19,35 @@ export default function GuardianLinkPage() {
   const [token, setToken] = useState("");
   const [linkedElders, setLinkedElders] = useState<LinkedElder[]>([...dummyLinkedOldPeople]);
 
-  const handleTokenSubmit = (e: React.FormEvent) => {
+  const handleTokenSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (token.trim()) {
-      alert('연동 요청이 전송되었습니다. 어르신의 승인을 기다려주세요.');
-      setToken("");
-    } else {
+    const trimmed = token.trim();
+    if (!trimmed) {
       alert('토큰을 입력해주세요.');
+      return;
+    }
+    try {
+      const response = await fetch('https://recode-my-life.site/api/link/req', {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ token: trimmed }),
+      });
+      if (!response.ok) {
+        let message = '연동 요청 전송에 실패했습니다.';
+        try {
+          const err = await response.json();
+          message = err?.message || message;
+        } catch (_) {}
+        throw new Error(message);
+      }
+      alert('연동 요청이 전송되었습니다. 어르신의 승인을 기다려주세요.');
+      setToken('');
+    } catch (error) {
+      console.error(error);
+      alert(error instanceof Error ? error.message : '연동 요청 전송에 실패했습니다.');
     }
   };
 
