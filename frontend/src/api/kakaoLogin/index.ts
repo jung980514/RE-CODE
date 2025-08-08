@@ -180,10 +180,10 @@ export const submitSurvey = async (surveyData: SurveyData): Promise<KakaoLoginRe
     
     // 추가 정보 localStorage에 저장
     if (surveyData.additionalInfo?.phoneNumber) {
-      localStorage.setItem('phone', surveyData.additionalInfo.phoneNumber);
+      localStorage.setItem('phone', String(surveyData.additionalInfo.phoneNumber));
     }
     if (surveyData.additionalInfo?.birthDate) {
-      localStorage.setItem('birthDate', surveyData.additionalInfo.birthDate);
+      localStorage.setItem('birthDate', String(surveyData.additionalInfo.birthDate));
     }
     
     // 카카오 설문조사 완료 플래그 (이메일별로 저장)

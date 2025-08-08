@@ -33,7 +33,7 @@ export interface KakaoPopupResult {
 // 설문조사 데이터 타입
 export interface SurveyData {
   userType: 0 | 1; // 0: 노인, 1: 보호자
-  additionalInfo?: Record<string, any>; // 추가 정보
+  additionalInfo?: Record<string, unknown>; // 추가 정보
 }
 
 // 카카오 API 응답 타입

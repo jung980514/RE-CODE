@@ -217,7 +217,7 @@ const KakaoSetupPage: React.FC = () => {
   const handleGoBack = () => {
     if (currentStep === 'userInfo') {
       setCurrentStep('userType');
-      handleInputChange('userType', null);
+      handleInputChange('userType', '');
     } else {
       handleCancel();
     }
