@@ -5,6 +5,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
+import org.springframework.data.redis.connection.RedisPassword;
+import org.springframework.data.redis.connection.RedisStandaloneConfiguration;
 import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.serializer.Jackson2JsonRedisSerializer;
@@ -19,9 +21,17 @@ public class RedisConfig {
   @Value("${spring.data.redis.port}")
   private int port;
 
+  @Value("${REDIS_PASSWORD}")
+  private String password;
+
   @Bean
   public RedisConnectionFactory redisConnectionFactory() {
-    return new LettuceConnectionFactory(host, port);
+
+//    return new LettuceConnectionFactory(host, port);
+    RedisStandaloneConfiguration cfg = new RedisStandaloneConfiguration(host, port);
+    cfg.setUsername("default");                   // Redis 6 ACL을 쓸 경우
+    cfg.setPassword(RedisPassword.of(password));  // 비밀번호 설정
+    return new LettuceConnectionFactory(cfg);
   }
 
   @Bean
