@@ -34,6 +34,7 @@ export interface SurveyState {
   recordings: Record<number, VoiceRecording>;
   progress: SurveyProgress;
 }
+
 export interface SurveyIntroProps {
   onStartSurvey: () => void;
 }
