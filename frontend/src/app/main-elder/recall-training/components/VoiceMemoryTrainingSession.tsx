@@ -400,31 +400,62 @@ export function VoiceMemoryTrainingSession({ onBack }: VoiceSessionProps) {
   const [showCompletionModal, setShowCompletionModal] = useState(false)
   const [webcamStream, setWebcamStream] = useState<MediaStream | null>(null)
   const [hasStartedRecording, setHasStartedRecording] = useState(false)
+  const [questions, setQuestions] = useState<Array<{ title: string; question: string }>>([])
+  const [questionIds, setQuestionIds] = useState<number[]>([])
+  const [isLoadingQuestions, setIsLoadingQuestions] = useState<boolean>(false)
   const videoRef = useRef<HTMLVideoElement>(null)
   const { isRecording, audioLevel, recordedMedia, isAutoRecording, startRecording, stopRecording, resetRecording } = useVoiceRecording(webcamStream)
   const { emotion, confidence, analyzeEmotionHistory } = useEmotionDetection(videoRef, isRecording)
   const { showCountdown, countdown, startAutoRecording } = useAutoRecording(startRecording)
 
-  const questions = [
-    {
-      title: "기초 질문",
-      question: "어린 시절 살았던 집은 어떤 모습이었나요?\n준비되시면 답변하기를 눌러 시작해주세요"
-    },
-    {
-      title: "기초 질문",
-      question: "어린 시절 살았던 집은 어떤 모습이었나요?2\n준비되시면 답변하기를 눌러 시작해주세요"
-    },
-    {
-      title: "기초 질문",
-      question: "어린 시절 살았던 집은 어떤 모습이었나요?3\n준비되시면 답변하기를 눌러 시작해주세요"
-    },
+  // 질문 불러오기 (쿠키 세션 포함)
+  useEffect(() => {
+    const fetchQuestions = async () => {
+      try {
+        setIsLoadingQuestions(true)
+        const response = await fetch('https://recode-my-life.site/api/basic/questions', {
+          method: 'GET',
+          credentials: 'include',
+          headers: {
+            'Accept': 'application/json',
+          },
+        })
 
-  ]
+        if (!response.ok) {
+          throw new Error(`질문 불러오기 실패: ${response.status}`)
+        }
+
+        const result = await response.json()
+        const data: Array<{ id: number; content: string }> = Array.isArray(result?.data) ? result.data : []
+
+        const mapped = data.map((item) => ({
+          title: '기초 질문',
+          question: `${item.content}\n준비되시면 답변하기를 눌러 시작해주세요`,
+        }))
+        const ids = data.map((item) => item.id)
+
+        setQuestions(mapped)
+        setQuestionIds(ids)
+        setCurrentStep(0)
+        setHasStartedRecording(false)
+      } catch (error) {
+        console.error(error)
+      } finally {
+        setIsLoadingQuestions(false)
+      }
+    }
+
+    fetchQuestions()
+  }, [])
 
   useEffect(() => {
+    if (questions.length === 0) {
+      setProgress(0)
+      return
+    }
+
     setProgress(((currentStep + 1) / questions.length) * 100)
     
-    // 질문이 변경될 때마다 TTS 재생
     const playQuestionTTS = async () => {
       try {
         setIsAITalking(true)
@@ -437,14 +468,12 @@ export function VoiceMemoryTrainingSession({ onBack }: VoiceSessionProps) {
       }
     }
     
-    // 질문이 변경될 때마다 TTS 재생
     playQuestionTTS()
 
-    // 컴포넌트가 언마운트될 때 TTS 정지
     return () => {
       stopCurrentAudio()
     }
-  }, [currentStep, questions.length])
+  }, [currentStep, questions])
 
   // 질문이 바뀌면 다음 버튼을 비활성화 상태로 초기화
   useEffect(() => {
@@ -452,6 +481,7 @@ export function VoiceMemoryTrainingSession({ onBack }: VoiceSessionProps) {
   }, [currentStep])
 
   const handleNext = () => {
+    if (questions.length === 0) return
     if (currentStep < questions.length - 1) {
       setCurrentStep(currentStep + 1)
       // 이전 질문의 녹화 결과 창 숨김을 위해 녹음 상태 초기화
@@ -555,10 +585,10 @@ export function VoiceMemoryTrainingSession({ onBack }: VoiceSessionProps) {
                   <div className="inline-flex items-center gap-4 bg-blue-100 text-blue-700 px-6 py-3 rounded-full mb-6">
                     <Brain className="w-7 h-7" />
                     <span className="font-bold text-xl">
-                      질문 {currentStep + 1}/{questions.length}
+                      질문 {questions.length > 0 ? currentStep + 1 : 0}/{questions.length}
                     </span>
                   </div>
-                  <h2 className="text-4xl font-bold text-gray-800 mb-6">{questions[currentStep].title}</h2>
+                  <h2 className="text-4xl font-bold text-gray-800 mb-6">{questions[currentStep]?.title ?? '기초 질문'}</h2>
                 </div>
 
                 {/* 질문 내용 */}
@@ -569,9 +599,9 @@ export function VoiceMemoryTrainingSession({ onBack }: VoiceSessionProps) {
                     </div>
                     <div className="flex-1">
                       <p className="text-lg text-blue-600 font-bold mb-3">RE:CODE는 궁금해요</p>
-                      <p className="text-2xl leading-relaxed text-gray-800 whitespace-pre-line font-medium">
-                        {questions[currentStep].question}
-                      </p>
+                       <p className="text-2xl leading-relaxed text-gray-800 whitespace-pre-line font-medium">
+                        {questions[currentStep]?.question ?? '질문을 불러오는 중입니다...'}
+                       </p>
                     </div>
                   </div>
                 </div>
@@ -645,6 +675,7 @@ export function VoiceMemoryTrainingSession({ onBack }: VoiceSessionProps) {
                   <Button
                     onClick={replayQuestion}
                     variant="outline"
+                    disabled={questions.length === 0 || isLoadingQuestions}
                     className="h-16 px-8 border-2 border-blue-400 text-blue-700 hover:bg-blue-50 bg-transparent text-xl font-bold"
                   >
                     <RotateCcw className="w-6 h-6 mr-3" />
@@ -653,6 +684,7 @@ export function VoiceMemoryTrainingSession({ onBack }: VoiceSessionProps) {
 
                   <Button
                     onClick={isRecording ? stopRecording : handleStartRecording}
+                    disabled={(questions.length === 0 || isLoadingQuestions) ? true : false}
                     className={`h-16 px-12 text-xl font-bold ${
                       isRecording
                         ? "bg-red-600 hover:bg-red-700 text-white"
@@ -674,7 +706,7 @@ export function VoiceMemoryTrainingSession({ onBack }: VoiceSessionProps) {
 
                   <Button
                     onClick={handleNext}
-                    disabled={!hasStartedRecording}
+                    disabled={!hasStartedRecording || questions.length === 0}
                     className="h-16 px-12 bg-blue-600 hover:bg-blue-700 text-white text-xl font-bold"
                   >
                     {currentStep === questions.length - 1 ? '완료하기' : '다음 질문'}
