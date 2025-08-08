@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState, useEffect } from 'react';
-import { dummyLinkedGuardians, dummyPendingGuardianRequest } from '../../../../dummy-data/DummyGuardianLinks';
+import { dummyLinkedGuardians } from '../../../../dummy-data/DummyGuardianLinks';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Key, Clock, Copy, Check, X } from 'lucide-react';
 
@@ -13,15 +13,23 @@ export default function GuardianLinkPage() {
   const [tokenExpiry, setTokenExpiry] = useState<number>(0);
   const [isTokenGenerated, setIsTokenGenerated] = useState(false);
 
-  // 더미 데이터로 초기화
-  const [pendingRequest, setPendingRequest] = useState<typeof dummyPendingGuardianRequest | null>(dummyPendingGuardianRequest);
+  type LinkRequestItem = {
+    guardianId: number;
+    guardianName: string;
+    guardianEmail: string;
+    status: 'PENDING' | 'APPROVED' | 'REJECTED' | string;
+    requestedAt: string;
+  };
+
+  // 대기중 연동 요청 목록
+  const [pendingRequests, setPendingRequests] = useState<LinkRequestItem[]>([]);
   const [linkedGuardians, setLinkedGuardians] = useState([...dummyLinkedGuardians]);
 
   // 토큰 만료 시간 카운트다운
   useEffect(() => {
     if (tokenExpiry > 0) {
       const timer = setInterval(() => {
-        setTokenExpiry(prev => {
+        setTokenExpiry((prev: number) => {
           if (prev <= 1) {
             setIsTokenGenerated(false);
             setGeneratedToken('');
@@ -81,24 +89,60 @@ export default function GuardianLinkPage() {
     }
   };
 
-  // 연동 요청 승인
-  const approveRequest = () => {
-    alert('연동 요청이 승인되었습니다.');
-    setPendingRequest(null);
+  // 연동 요청 목록 불러오기
+  const fetchPendingRequests = async () => {
+    try {
+      const response = await fetch('https://recode-my-life.site/api/link/list', {
+        method: 'GET',
+        credentials: 'include',
+        cache: 'no-store',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch pending link requests');
+      }
+
+      const result = await response.json();
+      const items: LinkRequestItem[] | undefined = result?.data;
+
+      if (!Array.isArray(items)) {
+        setPendingRequests([]);
+        return;
+      }
+
+      // 서버에서 다양한 상태가 올 수 있으므로 PENDING만 표시
+      const onlyPending = items.filter((item) => item.status === 'PENDING');
+      setPendingRequests(onlyPending);
+    } catch (error) {
+      // 실패 시 빈 목록 처리
+      setPendingRequests([]);
+    }
   };
 
-  // 연동 요청 거절
-  const rejectRequest = () => {
+  useEffect(() => {
+    fetchPendingRequests();
+  }, []);
+
+  // 연동 요청 승인 (UI 제거만 수행)
+  const approveRequest = (guardianId: number) => {
+    alert('연동 요청이 승인되었습니다.');
+    setPendingRequests((prev: LinkRequestItem[]) => prev.filter((r: LinkRequestItem) => r.guardianId !== guardianId));
+  };
+
+  // 연동 요청 거절 (UI 제거만 수행)
+  const rejectRequest = (guardianId: number) => {
     if (confirm('정말로 이 연동 요청을 거절하시겠습니까?')) {
       alert('연동 요청이 거절되었습니다.');
-      setPendingRequest(null);
+      setPendingRequests((prev: LinkRequestItem[]) => prev.filter((r: LinkRequestItem) => r.guardianId !== guardianId));
     }
   };
 
   // 보호자 연동 해제
+  type LinkedGuardian = typeof dummyLinkedGuardians[number];
+
   const unlinkGuardian = (id: number) => {
     if (confirm('정말로 이 보호자와의 연동을 해제하시겠습니까?')) {
-      setLinkedGuardians(linkedGuardians.filter(g => g.id !== id));
+      setLinkedGuardians(linkedGuardians.filter((g: LinkedGuardian) => g.id !== id));
       alert('보호자 연동이 해제되었습니다.');
     }
   };
@@ -159,37 +203,42 @@ export default function GuardianLinkPage() {
           )}
         </div>
 
-                 {/* 연동 요청 승인 섹션 */}
+         {/* 연동 요청 승인 섹션 */}
          <div className="bg-white rounded-lg p-6 mb-6 shadow-sm">
            <h3 className="text-lg font-semibold text-gray-800 mb-4">연동 요청 승인</h3>
-           {pendingRequest ? (
-             <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-               <div className="flex items-center justify-between">
-                 <div>
-                   <div className="font-semibold text-gray-800 mb-1">
-                     {pendingRequest.name}의 연동 요청
-                   </div>
-                   <div className="text-sm text-gray-500">
-                     요청 시간: {pendingRequest.requestTime}
+           {pendingRequests.length > 0 ? (
+             <div className="space-y-3">
+               {pendingRequests.map((req: LinkRequestItem) => (
+                 <div key={req.guardianId} className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                   <div className="flex items-center justify-between">
+                     <div>
+                       <div className="font-semibold text-gray-800 mb-1">
+                         {req.guardianName}의 연동 요청
+                       </div>
+                       <div className="text-sm text-gray-500">
+                         요청 시간: {new Date(req.requestedAt).toLocaleString('ko-KR')}
+                       </div>
+                       <div className="text-xs text-gray-400 mt-1">{req.guardianEmail}</div>
+                     </div>
+                     <div className="flex space-x-2">
+                       <button
+                         onClick={() => approveRequest(req.guardianId)}
+                         className="flex items-center space-x-1 bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+                       >
+                         <Check size={16} />
+                         <span>승인</span>
+                       </button>
+                       <button
+                         onClick={() => rejectRequest(req.guardianId)}
+                         className="flex items-center space-x-1 bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
+                       >
+                         <X size={16} />
+                         <span>거절</span>
+                       </button>
+                     </div>
                    </div>
                  </div>
-                 <div className="flex space-x-2">
-                   <button
-                     onClick={approveRequest}
-                     className="flex items-center space-x-1 bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
-                   >
-                     <Check size={16} />
-                     <span>승인</span>
-                   </button>
-                   <button
-                     onClick={rejectRequest}
-                     className="flex items-center space-x-1 bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
-                   >
-                     <X size={16} />
-                     <span>거절</span>
-                   </button>
-                 </div>
-               </div>
+               ))}
              </div>
            ) : (
              <div className="text-center py-8 text-gray-500">
@@ -208,7 +257,7 @@ export default function GuardianLinkPage() {
             </div>
           ) : (
             <div className="space-y-4">
-              {linkedGuardians.map((guardian) => (
+              {linkedGuardians.map((guardian: LinkedGuardian) => (
                 <div key={guardian.id} className="bg-white border border-gray-200 rounded-lg p-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-4">
