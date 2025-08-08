@@ -1,0 +1,86 @@
+.kakaoButton {
+  width: 100%;
+  height: 63px;
+  background: #FEE500;
+  border: none;
+  border-radius: 8px;
+  color: rgba(0, 0, 0, 0.85);
+  font-family: 'Pretendard', sans-serif;
+  font-size: 20px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.kakaoButton:hover:not(:disabled) {
+  background: #c4b003;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(254, 229, 0, 0.3);
+}
+
+.kakaoButton:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(254, 229, 0, 0.3);
+}
+
+.kakaoButton:disabled {
+  background: #f0f0f0;
+  color: #999;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.kakaoIcon {
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.loadingSpinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid transparent;
+  border-top: 2px solid rgba(0, 0, 0, 0.5);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* 반응형 디자인 */
+@media (max-width: 768px) {
+  .kakaoButton {
+    height: 56px;
+    font-size: 18px;
+  }
+  
+  .kakaoIcon {
+    width: 20px;
+    height: 20px;
+  }
+}
+
+@media (max-width: 480px) {
+  .kakaoButton {
+    height: 50px;
+    font-size: 16px;
+  }
+  
+  .kakaoIcon {
+    width: 18px;
+    height: 18px;
+  }
+}
