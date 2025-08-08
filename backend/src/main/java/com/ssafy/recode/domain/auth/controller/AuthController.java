@@ -8,7 +8,9 @@ import com.ssafy.recode.domain.cognitive.service.CognitiveService;
 import com.ssafy.recode.domain.personal.service.PersonalService;
 import com.ssafy.recode.domain.survey.service.SurveyService;
 import com.ssafy.recode.global.constant.AuthConstant;
+import com.ssafy.recode.global.dto.request.DeleteUserRequest;
 import com.ssafy.recode.global.dto.request.RegisterRequest;
+import com.ssafy.recode.global.dto.request.UpdateUserRequest;
 import com.ssafy.recode.global.dto.response.ApiResponse;
 import com.ssafy.recode.global.security.annotation.LoginUser;
 import com.ssafy.recode.global.security.util.CookieUtils;
@@ -23,7 +25,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -93,6 +97,26 @@ public class AuthController {
         // JWTLogoutFilter에서 쿠키 삭제 및 토큰 무효화 처리가 이미 수행됨
         // 이 컨트롤러는 클라이언트에게 정상적인 로그아웃 응답을 보내는 역할만 함
         return ResponseEntity.ok(ApiResponse.successResponse("로그아웃이 성공적으로 처리되었습니다."));
+    }
+    @PatchMapping("/update")
+    public ResponseEntity<?> updateUser(
+        @LoginUser User user,
+        @RequestBody @jakarta.validation.Valid UpdateUserRequest request
+    ) {
+      User updated = authService.updateUser(user.getId(), request);
+      return ResponseEntity.ok(ApiResponse.successResponse(updated)); // 필요 시 UserResponse로 변환
+    }
+
+    @DeleteMapping("/delete")
+    public ResponseEntity<?> deleteUser(
+        @LoginUser User user,
+        @RequestBody(required = false) DeleteUserRequest request,
+        HttpServletResponse response
+    ) {
+      if (request == null) request = new DeleteUserRequest();
+      authService.deleteUser(user.getId(), request);
+      CookieUtils.clearCookie(response);
+      return ResponseEntity.ok(ApiResponse.successResponse("회원 탈퇴가 완료되었습니다."));
     }
     /**
      * 오늘 일일 설문을 진행했는지 체크

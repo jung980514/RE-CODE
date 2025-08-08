@@ -13,6 +13,10 @@ public enum ErrorCode {
     TOKEN_UNSUPPORTED_ERROR(HttpStatus.BAD_REQUEST, "지원하지 않는 Token 입니다."),
     TOKEN_SIGNATURE_ERROR(HttpStatus.BAD_REQUEST, "Token 의 서명이 유효하지 않습니다."),
     TOKEN_ERROR(HttpStatus.BAD_REQUEST, "잘못된 Token 입니다."),
+    DUPLICATE_PHONE(HttpStatus.BAD_REQUEST, "이미 사용 중인 전화번호입니다."),
+    INVALID_PASSWORD(HttpStatus.UNAUTHORIZED, "비밀번호가 올바르지 않습니다."),
+    SOCIAL_ACCOUNT_PASSWORD_CHANGE_NOT_ALLOWED(HttpStatus.BAD_REQUEST, "소셜 계정은 비밀번호를 변경할 수 없습니다."),
+    SAME_AS_OLD_PASSWORD(HttpStatus.BAD_REQUEST, "새 비밀번호가 기존 비밀번호와 동일합니다."),
 
     //DATE
     DATE_INVALID_ERROR(HttpStatus.BAD_REQUEST, "날짜가 유효하지 않습니다."),
