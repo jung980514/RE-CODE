@@ -1,13 +1,10 @@
 pipeline {
     agent any
 
-
     stages {
         stage('Cleanup') {
             steps {
                 script {
-                    // Stop and remove any previous containers managed by this docker-compose file.
-                    // This is the correct and safe way to free up ports before a new deployment.
                     sh 'docker-compose down --remove-orphans || true'
                 }
             }
@@ -22,8 +19,13 @@ pipeline {
         stage('Push') {
             steps {
                 script {
-                    // Add your Docker Hub credentials to Jenkins
-                    withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
+                    withCredentials([
+                        usernamePassword(
+                          credentialsId: 'dockerhub-credentials',
+                          usernameVariable: 'DOCKER_USERNAME',
+                          passwordVariable: 'DOCKER_PASSWORD'
+                        )
+                    ]) {
                         sh 'echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin'
                         sh 'docker-compose push'
                     }
@@ -33,15 +35,31 @@ pipeline {
         stage('Deploy') {
             steps {
                 script {
-                    // Mount credentials and start services
-                    sh 'docker-compose up -d'
+                    // 여기에 나열된 모든 크리덴셜을 바인딩
+                    withCredentials([
+                        string(credentialsId: 'AWS_ACCESS_KEY',     variable: 'AWS_ACCESS_KEY'),
+                        string(credentialsId: 'AWS_SECRET_KEY',     variable: 'AWS_SECRET_KEY'),
+                        string(credentialsId: 'CLOVA_DOMAIN_CODE',  variable: 'CLOVA_DOMAIN_CODE'),
+                        string(credentialsId: 'CLOVA_DOMAIN_ID',    variable: 'CLOVA_DOMAIN_ID'),
+                        string(credentialsId: 'CLOVA_SECRET_KEY',   variable: 'CLOVA_SECRET_KEY'),
+                        string(credentialsId: 'GMS_API_KEY',        variable: 'GMS_API_KEY'),
+                        string(credentialsId: 'JWT_SECRET',         variable: 'JWT_SECRET'),
+                        string(credentialsId: 'KAKAO_CLIENT_ID',    variable: 'KAKAO_CLIENT_ID'),
+                        string(credentialsId: 'DB_IP',              variable: 'DB_IP'),
+                        string(credentialsId: 'DB_NAME',            variable: 'DB_NAME'),
+                        string(credentialsId: 'DB_USERNAME',        variable: 'DB_USERNAME'),
+                        string(credentialsId: 'DB_PASSWORD',        variable: 'DB_PASSWORD')
+                    ]) {
+                        // 환경변수로 주입된 값을 docker-compose가 .env 또는 직접 참조하도록 구성
+                        sh 'docker-compose up -d'
+                    }
                 }
             }
         }
     }
+
     post {
         always {
-            // Clean up dangling images
             sh 'docker image prune -f || true'
         }
     }
