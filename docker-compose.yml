@@ -16,6 +16,16 @@ services:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - AWS_ACCESS_KEY=${AWS_ACCESS_KEY}
+      - AWS_SECRET_KEY=${AWS_SECRET_KEY}
+      - CLOVA_DOMAIN_CODE=${CLOVA_DOMAIN_CODE}
+      - CLOVA_DOMAIN_ID=${CLOVA_DOMAIN_ID}
+      - CLOVA_SECRET_KEY=${CLOVA_SECRET_KEY}
+      - GMS_API_KEY=${GMS_API_KEY}
+      - JWT_SECRET=${JWT_SECRET}
+      - KAKAO_CLIENT_ID=${KAKAO_CLIENT_ID}
+      - DB_IP=${DB_IP}
+      - DB_PASSWORD=${DB_PASSWORD}
     depends_on:
       - redis
     expose:
