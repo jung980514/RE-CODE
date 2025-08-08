@@ -624,6 +624,13 @@ export default function SurveyQuestion({
 
               {/* Recording Area */}
               <div className="border border-gray-300 rounded-2xl p-7 mb-8 bg-white">
+                {/* 웹캠 미리보기 */}
+                <div className="mb-6" aria-label="웹캠 미리보기">
+                  <WebcamView
+                    isRecording={isRecording}
+                    onStreamReady={setWebcamStream}
+                  />
+                </div>
                 {/* 녹음 중 상태 */}
                 {isRecording && (
                   <div className="mb-6" role="status" aria-live="polite">
@@ -730,15 +737,7 @@ export default function SurveyQuestion({
             </div>
           </div>
 
-          {/* Right Column - Webcam View */}
-          <div className="lg:col-span-1">
-            <div className="bg-white rounded-2xl shadow-lg p-6" aria-label="웹캠 미리보기">
-              <WebcamView
-                isRecording={isRecording}
-                onStreamReady={setWebcamStream}
-              />
-            </div>
-          </div>
+          {/* Right Column - (웹캠 미리보기는 녹화 영역으로 이동) */}
         </div>
       </div>
 
