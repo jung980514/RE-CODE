@@ -26,6 +26,8 @@ services:
       - KAKAO_CLIENT_ID=${KAKAO_CLIENT_ID}
       - DB_IP=${DB_IP}
       - DB_PASSWORD=${DB_PASSWORD}
+      - DB_NAME=${DB_NAME}
+      - DB_USERNAME=${DB_USERNAME}
     depends_on:
       - redis
     expose:
