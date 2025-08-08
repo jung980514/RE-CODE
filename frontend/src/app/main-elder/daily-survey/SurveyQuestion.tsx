@@ -136,6 +136,7 @@ export default function SurveyQuestion({
   const [webcamStream, setWebcamStream] = useState<MediaStream | null>(null)
   const [showNoResponseWarning, setShowNoResponseWarning] = useState(false)
   const [showRecordingComplete, setShowRecordingComplete] = useState(false)
+  const [preparationMessagePlayed, setPreparationMessagePlayed] = useState(false)
   
   const router = useRouter()
   const pathname = usePathname()
@@ -398,7 +399,17 @@ export default function SurveyQuestion({
     }
   }, [ttsSpeak])
 
+  const speakPreparationMessage = useCallback(async () => {
+    const preparationText = "준비가 완료되시면 수동 녹음 버튼을 눌러주세요"
+    const result = await ttsSpeak({
+      text: preparationText,
+      language: 'ko-KR'
+    })
 
+    if (!result.success) {
+      console.error('TTS 오류:', result.error)
+    }
+  }, [ttsSpeak])
 
   const stopTTS = useCallback(() => {
     ttsStop()
@@ -406,7 +417,19 @@ export default function SurveyQuestion({
 
 
 
-
+  // TTS 완료 감지 및 준비 메시지 후 녹화 안내
+  useEffect(() => {
+    if (!isTTSPlaying && isTTSFinished && !preparationMessagePlayed) {
+      // TTS가 완료되면 준비 메시지를 읽고 녹화 안내 (1번만)
+      const timer = setTimeout(async () => {
+        await speakPreparationMessage()
+        setPreparationMessagePlayed(true)
+        setIsTTSFinished(false)
+      }, 1000)
+      
+      return () => clearTimeout(timer)
+    }
+  }, [isTTSPlaying, isTTSFinished, preparationMessagePlayed, speakPreparationMessage])
 
   // TTS 재생 상태 감지
   useEffect(() => {
@@ -533,10 +556,10 @@ export default function SurveyQuestion({
 
   const getQuestionIcon = (index: number) => {
     switch (index) {
-      case 0: return <User className="w-6 h-6" />
-      case 1: return <Brain className="w-6 h-6" />
-      case 2: return <Heart className="w-6 h-6" />
-      default: return <User className="w-6 h-6" />
+      case 0: return <User className="w-5 h-5" />
+      case 1: return <Brain className="w-5 h-5" />
+      case 2: return <Heart className="w-5 h-5" />
+      default: return <User className="w-5 h-5" />
     }
   }
 
@@ -560,33 +583,33 @@ export default function SurveyQuestion({
       <div className="pt-8 pb-4 px-6" style={{ backgroundColor: '#F8FAFC' }}>
         <div className="max-w-6xl mx-auto">
           <div className="flex items-center justify-between mb-6">
-                         <button
-               onClick={handleBackClick}
-               className="flex items-center gap-3 text-gray-700 hover:text-gray-900 transition-colors px-4 py-2 rounded-lg hover:bg-gray-100"
-             >
-               <ArrowLeft className="w-7 h-7" />
-               <span className="font-medium text-xl">돌아가기</span>
-             </button>
+            <button
+              onClick={handleBackClick}
+              className="flex items-center gap-2 text-gray-700 hover:text-gray-900 transition-colors"
+            >
+              <ArrowLeft className="w-5 h-5" />
+              <span className="font-medium">돌아가기</span>
+            </button>
             
             <div className="text-center">
-              <h1 className="text-3xl font-bold text-gray-900 mb-1">
+              <h1 className="text-2xl font-bold text-gray-900 mb-1">
                 일일 설문조사
               </h1>
-              <p className="text-gray-600 text-lg">
+              <p className="text-gray-600">
                 개인화 질문 {questionIndex + 1}/{surveyQuestions.length}
               </p>
             </div>
             
             <div className="text-right">
-              <p className="text-gray-600 text-base">진행률</p>
-              <p className="text-3xl font-bold text-blue-600">{Math.round(progress)}%</p>
+              <p className="text-gray-600 text-sm">진행률</p>
+              <p className="text-2xl font-bold text-blue-600">{Math.round(progress)}%</p>
             </div>
           </div>
           
           {/* Progress Bar */}
-          <div className="w-full bg-gray-200 rounded-full h-1.5">
+          <div className="w-full bg-gray-200 rounded-full h-1">
             <div 
-              className="bg-blue-600 h-1.5 rounded-full transition-all duration-300"
+              className="bg-blue-600 h-1 rounded-full transition-all duration-300"
               style={{ width: `${progress}%` }}
             />
           </div>
@@ -594,30 +617,30 @@ export default function SurveyQuestion({
       </div>
 
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-6 py-8">
+      <div className="max-w-6xl mx-auto px-6 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Left Column - Question */}
           <div className="lg:col-span-2">
             <div className="bg-white rounded-xl shadow-lg p-8">
               {/* Question Header */}
-              <div className="flex items-center gap-3 mb-10">
-                <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
                   {getQuestionIcon(questionIndex)}
                 </div>
-                <span className="text-blue-600 font-medium text-lg">
+                <span className="text-blue-600 font-medium">
                   {currentQuestion.category}
                 </span>
               </div>
 
               {/* Question Title */}
               <div className="mb-4">
-                <h2 className="text-3xl font-bold text-gray-900">
+                <h2 className="text-2xl font-bold text-gray-900">
                   {currentQuestion.title}
                 </h2>
               </div>
 
               {/* Question Description */}
-              <p className="text-gray-600 mb-8 text-lg">
+              <p className="text-gray-600 mb-8">
                 {currentQuestion.description}
               </p>
 
@@ -629,12 +652,12 @@ export default function SurveyQuestion({
                     <div className="bg-red-50 border border-red-200 rounded-lg p-6">
                       <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 bg-red-500 rounded-full flex items-center justify-center">
-                            <div className="w-3 h-3 bg-white rounded-full animate-pulse"></div>
+                          <div className="w-6 h-6 bg-red-500 rounded-full flex items-center justify-center">
+                            <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
                           </div>
                           <div>
-                            <p className="font-medium text-red-800 text-lg">녹음 중입니다</p>
-                            <p className="text-base text-red-600">답변을 마치시면 정지 버튼을 눌러주세요</p>
+                            <p className="font-medium text-red-800">녹음 중입니다</p>
+                            <p className="text-sm text-red-600">답변을 마치시면 정지 버튼을 눌러주세요</p>
                           </div>
                         </div>
                       </div>
@@ -649,9 +672,9 @@ export default function SurveyQuestion({
                   <div className="mb-6">
                     <div className="bg-green-50 border border-green-200 rounded-lg p-6">
                       <div className="flex items-center justify-center gap-3">
-                        <CheckCircle className="w-8 h-8 text-green-600" />
+                        <CheckCircle className="w-6 h-6 text-green-600" />
                         <div className="text-center">
-                          <p className="font-medium text-green-800 text-lg">녹화가 완료되었습니다</p>
+                          <p className="font-medium text-green-800">녹화가 완료되었습니다</p>
                         </div>
                       </div>
                     </div>
@@ -669,62 +692,64 @@ export default function SurveyQuestion({
                   </div>
                 )}
 
-                                 {/* 컨트롤 버튼들 */}
-                 <div className="flex items-center justify-center gap-6">
-                   <button
-                     onClick={replayQuestion}
-                     className="flex items-center gap-3 px-8 py-4 border border-blue-300 rounded-xl text-blue-600 hover:bg-blue-50 bg-transparent transition-colors text-xl font-medium"
-                   >
-                     <RotateCcw className="w-7 h-7" />
-                     다시재생
-                   </button>
+                {/* 컨트롤 버튼들 */}
+                <div className="flex items-center justify-center gap-4">
+                  <button
+                    onClick={replayQuestion}
+                    className="flex items-center gap-2 px-4 py-2 border border-blue-300 rounded-lg text-blue-600 hover:bg-blue-50 bg-transparent transition-colors"
+                  >
+                    <RotateCcw className="w-4 h-4" />
+                    다시재생
+                  </button>
 
-                                       <button
-                      onClick={isRecording ? stopRecording : () => {
-                        // 수동 녹음 버튼 클릭 시 TTS 즉시 중지
-                        ttsStop()
-                        startRecording(false)
-                      }}
-                     disabled={isTTSPlaying}
-                     className={`flex items-center gap-3 px-12 py-4 rounded-xl font-medium transition-colors text-xl ${
-                       isRecording
-                         ? "bg-red-500 hover:bg-red-600 text-white"
-                         : isTTSPlaying
-                         ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                         : "bg-green-500 hover:bg-green-600 text-white"
-                     }`}
-                   >
-                     {isRecording ? (
-                       <>
-                         <MicOff className="w-7 h-7" />
-                         녹음 중지
-                       </>
-                     ) : isTTSPlaying ? (
-                       <>
-                         <Mic className="w-7 h-7" />
-                          잠시만 기다려주세요
-                       </>
-                     ) : (
-                       <>
-                         <Mic className="w-7 h-7" />
-                         녹화
-                       </>
-                     )}
-                   </button>
+                  <button
+                    onClick={isRecording ? stopRecording : () => {
+                      // 수동 녹음 버튼 클릭 시 TTS 즉시 중지
+                      ttsStop()
+                      // 준비 메시지 재생 상태를 true로 설정하여 중복 재생 방지
+                      setPreparationMessagePlayed(true)
+                      startRecording(false)
+                    }}
+                    disabled={isTTSPlaying}
+                    className={`flex items-center gap-2 px-6 py-2 rounded-lg font-medium transition-colors ${
+                      isRecording
+                        ? "bg-red-500 hover:bg-red-600 text-white"
+                        : isTTSPlaying
+                        ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                        : "bg-green-500 hover:bg-green-600 text-white"
+                    }`}
+                  >
+                    {isRecording ? (
+                      <>
+                        <MicOff className="w-5 h-5" />
+                        녹음 중지
+                      </>
+                    ) : isTTSPlaying ? (
+                      <>
+                        <Mic className="w-5 h-5" />
+                        말이 끝나면 수동 녹음 버튼이 활성화 됩니다
+                      </>
+                    ) : (
+                      <>
+                        <Mic className="w-5 h-5" />
+                        수동 녹음
+                      </>
+                    )}
+                  </button>
 
-                   <button
-                     onClick={handleNextQuestion}
-                     disabled={!recordedMedia && !isRecording}
-                     className={`flex items-center gap-3 px-12 py-4 rounded-xl font-medium transition-colors text-xl ${
-                       recordedMedia || isRecording
-                         ? "bg-blue-500 hover:bg-blue-600 text-white"
-                         : "bg-gray-300 text-gray-500 cursor-not-allowed"
-                     }`}
-                   >
-                     {isLastQuestion ? '설문 완료' : '다음 질문'}
-                     <ArrowRight className="w-7 h-7" />
-                   </button>
-                 </div>
+                  <button
+                    onClick={handleNextQuestion}
+                    disabled={!recordedMedia && !isRecording}
+                    className={`flex items-center gap-2 px-6 py-2 rounded-lg font-medium transition-colors ${
+                      recordedMedia || isRecording
+                        ? "bg-blue-500 hover:bg-blue-600 text-white"
+                        : "bg-gray-300 text-gray-500 cursor-not-allowed"
+                    }`}
+                  >
+                    {isLastQuestion ? '설문 완료' : '다음 질문'}
+                    <ArrowRight className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -741,31 +766,31 @@ export default function SurveyQuestion({
         </div>
       </div>
 
-                {/* Bottom Controls */}
-          <div className="fixed bottom-6 left-6 right-6">
-            <div className="max-w-6xl mx-auto flex items-center justify-end">
-                             {/* Page Navigation */}
-               <div className="flex gap-3">
-                 {[1, 2, 3].map((page) => (
-                   <button
-                     key={page}
-                     className={`w-12 h-12 rounded-full text-lg font-medium transition-colors ${
-                       page === questionIndex + 1
-                         ? "bg-blue-600 text-white"
-                         : "bg-gray-200 text-gray-600"
-                     }`}
-                   >
-                     {page}
-                   </button>
-                 ))}
-               </div>
-            </div>
+      {/* Bottom Controls */}
+      <div className="fixed bottom-6 left-6 right-6">
+        <div className="max-w-6xl mx-auto flex items-center justify-end">
+          {/* Page Navigation */}
+          <div className="flex gap-2">
+            {[1, 2, 3].map((page) => (
+              <button
+                key={page}
+                className={`w-8 h-8 rounded-full text-sm font-medium transition-colors ${
+                  page === questionIndex + 1
+                    ? "bg-blue-600 text-white"
+                    : "bg-gray-200 text-gray-600"
+                }`}
+              >
+                {page}
+              </button>
+            ))}
           </div>
+        </div>
+      </div>
 
       {/* Warning Modal */}
       {showWarningModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[9999] backdrop-blur-sm">
-          <div className="bg-gradient-to-br from-blue-50 to-purple-50 p-12 rounded-3xl shadow-2xl max-w-2xl w-full border-4 border-blue-200 relative overflow-hidden">
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[9999] backdrop-blur-sm">
+          <div className="bg-gradient-to-br from-blue-50 to-purple-50 p-8 rounded-3xl shadow-2xl max-w-md w-full border-2 border-blue-200 relative overflow-hidden">
             {/* 배경 장식 */}
             <div className="absolute top-0 left-0 w-full h-full opacity-10">
               <div className="absolute top-4 left-4 w-8 h-8 bg-blue-400 rounded-full animate-pulse"></div>
@@ -775,80 +800,92 @@ export default function SurveyQuestion({
             </div>
 
             {/* 말풍선과 캐릭터 */}
-            <div className="relative mb-8">
+            <div className="relative mb-6">
               <div className="flex items-center justify-between">
-                <div className="bg-white rounded-2xl px-8 py-6 shadow-lg relative">
-                  <div className="absolute -bottom-2 left-10 w-4 h-4 bg-white transform rotate-45"></div>
-                  <div className="text-gray-700 font-bold text-xl">
+                <div className="bg-white rounded-2xl px-6 py-4 shadow-lg relative">
+                  <div className="absolute -bottom-2 left-8 w-4 h-4 bg-white transform rotate-45"></div>
+                  <div className="text-gray-700 font-medium">
                     <p>정말 <span className="text-blue-600 font-bold">중단</span>하실 건가요?</p>
-                    <p className="text-lg mt-2 text-gray-600">나가시면 처음부터 다시 응답해야 합니다</p>
+                    <p className="text-sm mt-1 text-gray-600">나가시면 처음부터 다시 응답해야 합니다</p>
                   </div>
                 </div>
-                <div className="w-20 h-20 bg-gradient-to-br from-orange-300 to-red-400 rounded-full flex items-center justify-center shadow-lg relative">
-                  <div className="w-16 h-16 bg-gradient-to-br from-orange-200 to-red-300 rounded-full flex items-center justify-center">
-                    <span className="text-3xl">🍄</span>
+                <div className="w-16 h-16 bg-gradient-to-br from-orange-300 to-red-400 rounded-full flex items-center justify-center shadow-lg relative">
+                  <div className="w-12 h-12 bg-gradient-to-br from-orange-200 to-red-300 rounded-full flex items-center justify-center">
+                    <span className="text-2xl">🍄</span>
                   </div>
                   {/* 반짝이는 효과 */}
-                  <div className="absolute -top-1 -right-1 w-4 h-4 bg-yellow-300 rounded-full animate-pulse"></div>
-                  <div className="absolute -bottom-1 -left-1 w-3 h-3 bg-yellow-300 rounded-full animate-pulse delay-300"></div>
+                  <div className="absolute -top-1 -right-1 w-3 h-3 bg-yellow-300 rounded-full animate-pulse"></div>
+                  <div className="absolute -bottom-1 -left-1 w-2 h-2 bg-yellow-300 rounded-full animate-pulse delay-300"></div>
                 </div>
               </div>
             </div>
 
             {/* 정보 패널들 */}
-            <div className="space-y-6 mb-8">
+            <div className="space-y-4 mb-6">
               {/* 상단 패널 - 진행 상황 */}
-              <div className="bg-gradient-to-r from-blue-400 to-blue-500 rounded-2xl p-6 text-white shadow-lg">
+              <div className="bg-gradient-to-r from-blue-400 to-blue-500 rounded-xl p-4 text-white shadow-lg">
                 <div className="flex justify-between items-center">
                   <div className="text-center">
-                    <p className="text-lg opacity-80 mb-2">진행률</p>
-                    <p className="text-3xl font-bold">{Math.round(progress)}%</p>
+                    <p className="text-xs opacity-80 mb-1">진행률</p>
+                    <p className="text-2xl font-bold">{Math.round(progress)}%</p>
                   </div>
                   <div className="text-center">
-                    <p className="text-lg opacity-80 mb-2">질문</p>
-                    <p className="text-3xl font-bold">{questionIndex + 1}/{surveyQuestions.length}</p>
+                    <p className="text-xs opacity-80 mb-1">질문</p>
+                    <p className="text-2xl font-bold">{questionIndex + 1}/{surveyQuestions.length}</p>
                   </div>
                 </div>
               </div>
 
               {/* 하단 패널 - 경고 메시지 */}
-              <div className="bg-gradient-to-r from-orange-400 to-red-500 rounded-2xl p-6 text-white shadow-lg">
-                <div className="flex items-center gap-4 mb-4">
-                  <div className="w-8 h-8 bg-yellow-300 rounded-full flex items-center justify-center">
-                    <span className="text-yellow-800 text-lg font-bold">!</span>
+              <div className="bg-gradient-to-r from-orange-400 to-red-500 rounded-xl p-4 text-white shadow-lg">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-6 h-6 bg-yellow-300 rounded-full flex items-center justify-center">
+                    <span className="text-yellow-800 text-sm font-bold">!</span>
                   </div>
-                  <p className="font-bold text-lg">
+                  <p className="font-medium">
                     아직 <span className="text-yellow-300 font-bold">완료하지 않은</span> 질문이 있어요!
                   </p>
                 </div>
-                <div className="space-y-3 text-3xl opacity-90">
-<p>나가시면 처음부터 다시 시작해야합니다</p>
-<p>정말로 중단하실 건가요?</p>
+                <div className="space-y-2 text-sm opacity-90">
+                  {/* 현재 질문이 완료되지 않은 경우 */}
+                  {questionIndex < surveyQuestions.length && (
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 bg-yellow-300 rounded-full"></div>
+                      <p>• {surveyQuestions[questionIndex].title}</p>
+                    </div>
+                  )}
+                  {/* 남은 질문들 */}
+                  {surveyQuestions.slice(questionIndex + 1).map((question, index) => (
+                    <div key={question.id} className="flex items-center gap-2">
+                      <div className="w-2 h-2 bg-yellow-300 rounded-full"></div>
+                      <p>• {question.title}</p>
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>
 
-                         {/* 액션 버튼들 */}
-             <div className="flex gap-6 relative z-10">
-               <button
-                 onClick={() => {
-                   console.log('예 버튼 클릭됨')
-                   handleConfirmExit()
-                 }}
-                 className="flex-1 py-6 px-12 rounded-2xl bg-gradient-to-r from-gray-400 to-gray-500 text-white font-bold shadow-lg hover:from-gray-500 hover:to-gray-600 transition-all duration-200 transform hover:scale-105 active:scale-95 cursor-pointer text-2xl"
-               >
-                 예
-               </button>
-               <button
-                 onClick={() => {
-                   console.log('아니오 버튼 클릭됨')
-                   handleCancelExit()
-                 }}
-                 className="flex-1 py-6 px-12 rounded-2xl bg-gradient-to-r from-green-400 to-green-500 text-white font-bold shadow-lg hover:from-green-500 hover:to-green-600 transition-all duration-200 transform hover:scale-105 active:scale-95 cursor-pointer text-2xl"
-               >
-                 아니오
-               </button>
-             </div>
+            {/* 액션 버튼들 */}
+            <div className="flex gap-4 relative z-10">
+              <button
+                onClick={() => {
+                  console.log('예 버튼 클릭됨')
+                  handleConfirmExit()
+                }}
+                className="flex-1 py-3 px-6 rounded-xl bg-gradient-to-r from-gray-400 to-gray-500 text-white font-medium shadow-lg hover:from-gray-500 hover:to-gray-600 transition-all duration-200 transform hover:scale-105 active:scale-95 cursor-pointer"
+              >
+                예
+              </button>
+              <button
+                onClick={() => {
+                  console.log('아니오 버튼 클릭됨')
+                  handleCancelExit()
+                }}
+                className="flex-1 py-3 px-6 rounded-xl bg-gradient-to-r from-green-400 to-green-500 text-white font-medium shadow-lg hover:from-green-500 hover:to-green-600 transition-all duration-200 transform hover:scale-105 active:scale-95 cursor-pointer"
+              >
+                아니오
+              </button>
+            </div>
 
             {/* 추가 장식 요소 */}
             <div className="absolute top-2 right-2 w-2 h-2 bg-blue-300 rounded-full animate-ping"></div>
@@ -857,30 +894,30 @@ export default function SurveyQuestion({
         </div>
       )}
 
-             {/* 응답 없음 경고 모달 */}
-       {showNoResponseWarning && (
-         <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
-           <div className="bg-white p-12 rounded-2xl shadow-2xl max-w-2xl w-full border-4 border-orange-300">
-             <div className="flex justify-center mb-6">
-               <AlertTriangle className="w-20 h-20 text-orange-600" />
-             </div>
-             <h3 className="text-3xl font-bold text-gray-900 mb-4 text-center">응답이 필요합니다</h3>
-             <p className="text-gray-700 mb-6 text-xl text-center leading-relaxed">
-               다음 질문으로 넘어가려면 해당 질문에 대한 응답을 완료해주세요.
-               <br />
-               녹음 버튼을 눌러 답변을 녹화해주세요.
-             </p>
-                          <div className="flex justify-center gap-4">
-               <button
-                 onClick={handleCloseNoResponseWarning}
-                 className="px-12 py-6 rounded-2xl bg-blue-600 text-white hover:bg-blue-700 text-2xl font-bold border-3 border-blue-500"
-               >
-                 확인
-               </button>
-             </div>
-           </div>
-         </div>
-       )}
+      {/* 응답 없음 경고 모달 */}
+      {showNoResponseWarning && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-8 rounded-lg shadow-xl max-w-md w-full">
+            <div className="flex justify-center mb-4">
+              <AlertTriangle className="w-12 h-12 text-orange-500" />
+            </div>
+            <h3 className="text-lg font-bold text-gray-900 mb-2">응답이 필요합니다</h3>
+            <p className="text-gray-700 mb-4">
+              다음 질문으로 넘어가려면 해당 질문에 대한 응답을 완료해주세요.
+              <br />
+              녹음 버튼을 눌러 답변을 녹화해주세요.
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={handleCloseNoResponseWarning}
+                className="px-4 py-2 rounded-lg bg-blue-500 text-white hover:bg-blue-600"
+              >
+                확인
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
 
     </div>

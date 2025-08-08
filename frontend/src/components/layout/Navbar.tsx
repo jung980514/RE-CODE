@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import styles from './Navbar.module.css';
@@ -16,17 +16,27 @@ const Navbar = () => {
   const [userName, setUserName] = useState('');
   const [userType, setUserType] = useState<string | null>(null);
   const router = useRouter();
+  const pathname = usePathname();
 
-  useEffect(() => {
-    // 컴포넌트가 마운트될 때 localStorage를 확인하여 로그인 상태와 사용자 이름을 설정합니다.
+  // 로그인 상태를 확인하는 함수
+  const checkAuthStatus = () => {
     const type = localStorage.getItem('userType');
     const name = localStorage.getItem('name');
     if (type && name) {
       setIsLoggedIn(true);
       setUserName(name);
       setUserType(type);
+    } else {
+      setIsLoggedIn(false);
+      setUserName('');
+      setUserType(null);
     }
-  }, []);
+  };
+
+  useEffect(() => {
+    // 컴포넌트가 마운트될 때와 pathname이 변경될 때 로그인 상태 확인
+    checkAuthStatus();
+  }, [pathname]);
 
   const handleLogout = async () => {
     try {
@@ -41,25 +51,18 @@ const Navbar = () => {
       // API 요청 성공 여부와 관계없이 클라이언트 측 상태를 업데이트합니다.
       localStorage.removeItem('userType');
       localStorage.removeItem('name');
-      // 필요하다면 다른 사용자 정보도 함께 삭제합니다.
-      setIsLoggedIn(false);
-      setUserType(null);
-      setUserName('');
+      // localStorage 정리 후 상태 재확인
+      checkAuthStatus();
       router.replace('/'); // 로그아웃 후 메인으로 이동
     }
   };
 
   const handleLoginSuccess = () => {
-    setIsLoggedIn(true);
+    // localStorage 업데이트 후 상태 재확인
+    setTimeout(() => {
+      checkAuthStatus();
+    }, 100); // localStorage 업데이트를 위한 약간의 지연
     setIsLoginModalOpen(false);
-    const name = localStorage.getItem('name');
-    const type = localStorage.getItem('userType');
-    if (name) {
-      setUserName(name);
-    }
-    if (type) {
-      setUserType(type);
-    }
   };
 
   // 로고 링크 동적 처리
