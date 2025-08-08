@@ -39,12 +39,36 @@ export default function GuardianLinkPage() {
     router.back();
   };
 
-  // 토큰 생성
-  const generateToken = () => {
-    const token = Math.random().toString(36).substring(2, 8).toUpperCase();
-    setGeneratedToken(token);
-    setTokenExpiry(600); // 10분
-    setIsTokenGenerated(true);
+  // 토큰 생성 (실제 API 호출)
+  const generateToken = async () => {
+    try {
+      const response = await fetch('https://recode-my-life.site/api/link/', {
+        method: 'POST',
+        credentials: 'include',
+        cache: 'no-store',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to generate link token');
+      }
+
+      const result = await response.json();
+      const token: string | undefined = result?.data?.token;
+      const expiresIn: number | undefined = result?.data?.expiresIn;
+
+      if (!token || !expiresIn) {
+        throw new Error('Invalid response shape');
+      }
+
+      setGeneratedToken(token);
+      setTokenExpiry(expiresIn);
+      setIsTokenGenerated(true);
+    } catch (error) {
+      alert('토큰 생성에 실패했습니다. 다시 시도해 주세요.');
+      setIsTokenGenerated(false);
+      setGeneratedToken('');
+      setTokenExpiry(0);
+    }
   };
 
   // 토큰 복사
