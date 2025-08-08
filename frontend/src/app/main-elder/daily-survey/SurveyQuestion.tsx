@@ -550,36 +550,44 @@ export default function SurveyQuestion({
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#F8FAFC' }}>
       {/* Header Section */}
-      <div className="pt-8 pb-4 px-6" style={{ backgroundColor: '#F8FAFC' }}>
+      <div className="pt-10 pb-6 px-6" style={{ backgroundColor: '#F8FAFC' }}>
         <div className="max-w-6xl mx-auto">
           <div className="flex items-center justify-between mb-6">
             <button
               onClick={handleBackClick}
-              className="flex items-center gap-2 text-gray-700 hover:text-gray-900 transition-colors"
+              aria-label="돌아가기"
+              className="flex items-center gap-3 text-gray-800 hover:text-gray-900 transition-colors text-lg focus:outline-none focus-visible:ring-4 focus-visible:ring-blue-300 rounded-lg px-2 py-1"
             >
-              <ArrowLeft className="w-5 h-5" />
-              <span className="font-medium">돌아가기</span>
+              <ArrowLeft className="w-6 h-6" aria-hidden="true" />
+              <span className="font-semibold">돌아가기</span>
             </button>
             
             <div className="text-center">
-              <h1 className="text-2xl font-bold text-gray-900 mb-1">
+              <h1 className="text-3xl lg:text-4xl font-extrabold text-gray-900 mb-2 tracking-tight">
                 일일 설문조사
               </h1>
-              <p className="text-gray-600">
-                개인화 질문 {questionIndex + 1}/{surveyQuestions.length}
+              <p className="text-gray-700 text-lg font-medium">
+                개인화 질문 <span className="font-bold text-gray-900">{questionIndex + 1}</span> / {surveyQuestions.length}
               </p>
             </div>
             
             <div className="text-right">
-              <p className="text-gray-600 text-sm">진행률</p>
-              <p className="text-2xl font-bold text-blue-600">{Math.round(progress)}%</p>
+              <p className="text-gray-700 text-base">진행률</p>
+              <p className="text-3xl font-extrabold text-blue-700">{Math.round(progress)}%</p>
             </div>
           </div>
           
           {/* Progress Bar */}
-          <div className="w-full bg-gray-200 rounded-full h-1">
-            <div 
-              className="bg-blue-600 h-1 rounded-full transition-all duration-300"
+          <div 
+            role="progressbar" 
+            aria-label="설문 진행률" 
+            aria-valuenow={Math.round(progress)} 
+            aria-valuemin={0} 
+            aria-valuemax={100}
+            className="w-full bg-gray-300 rounded-full h-3"
+          >
+            <div
+              className="bg-blue-700 h-3 rounded-full transition-all duration-300"
               style={{ width: `${progress}%` }}
             />
           </div>
@@ -603,48 +611,44 @@ export default function SurveyQuestion({
               </div>
 
               {/* Question Title */}
-              <div className="mb-4">
-                <h2 className="text-2xl font-bold text-gray-900">
+              <div className="mb-5">
+                <h2 className="text-3xl font-extrabold text-gray-900 leading-snug">
                   {currentQuestion.title}
                 </h2>
               </div>
 
               {/* Question Description */}
-              <p className="text-gray-600 mb-8">
+              <p className="text-gray-800 mb-8 text-lg leading-relaxed">
                 {currentQuestion.description}
               </p>
 
               {/* Recording Area */}
-              <div className="border border-gray-200 rounded-lg p-6 mb-6 bg-white">
+              <div className="border border-gray-300 rounded-2xl p-7 mb-8 bg-white">
                 {/* 녹음 중 상태 */}
                 {isRecording && (
-                  <div className="mb-6">
-                    <div className="bg-red-50 border border-red-200 rounded-lg p-6">
-                      <div className="flex items-center justify-between mb-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-6 h-6 bg-red-500 rounded-full flex items-center justify-center">
-                            <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
-                          </div>
-                          <div>
-                            <p className="font-medium text-red-800">녹음 중입니다</p>
-                            <p className="text-sm text-red-600">답변을 마치시면 정지 버튼을 눌러주세요</p>
-                          </div>
+                  <div className="mb-6" role="status" aria-live="polite">
+                    <div className="bg-red-50 border border-red-300 rounded-xl p-6">
+                      <div className="flex items-center gap-4">
+                        <div className="w-7 h-7 bg-red-600 rounded-full flex items-center justify-center">
+                          <div className="w-2.5 h-2.5 bg-white rounded-full animate-pulse"></div>
+                        </div>
+                        <div>
+                          <p className="font-bold text-red-800 text-xl">녹음 중입니다</p>
+                          <p className="text-base text-red-700">답변을 마치시면 정지 버튼을 눌러주세요</p>
                         </div>
                       </div>
-                      
-
                     </div>
                   </div>
                 )}
 
                 {/* 녹화 완료 안내문 (2초간 표시) */}
                 {showRecordingComplete && (
-                  <div className="mb-6">
-                    <div className="bg-green-50 border border-green-200 rounded-lg p-6">
-                      <div className="flex items-center justify-center gap-3">
-                        <CheckCircle className="w-6 h-6 text-green-600" />
+                  <div className="mb-6" role="status" aria-live="polite">
+                    <div className="bg-green-50 border border-green-300 rounded-xl p-6">
+                      <div className="flex items-center justify-center gap-4">
+                        <CheckCircle className="w-7 h-7 text-green-700" aria-hidden="true" />
                         <div className="text-center">
-                          <p className="font-medium text-green-800">녹화가 완료되었습니다</p>
+                          <p className="font-bold text-green-800 text-xl">녹화가 완료되었습니다</p>
                         </div>
                       </div>
                     </div>
@@ -654,22 +658,23 @@ export default function SurveyQuestion({
                 {/* 녹음된 미디어 재생 */}
                 {recordedMedia && !isRecording && (
                   <div className="mb-8">
-                    <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
+                    <div className="bg-gray-50 border border-gray-300 rounded-xl p-6">
                       <div className="flex items-center justify-center">
-                        <video controls src={recordedMedia} className="w-full max-w-md rounded-lg" />
+                        <video controls src={recordedMedia} className="w-full max-w-xl rounded-xl" aria-label="녹화된 답변 재생" />
                       </div>
                     </div>
                   </div>
                 )}
 
                 {/* 컨트롤 버튼들 */}
-                <div className="flex items-center justify-center gap-4">
+                <div className="flex items-center justify-center gap-6">
                   <button
                     onClick={replayQuestion}
-                    className="flex items-center gap-2 px-4 py-2 border border-blue-300 rounded-lg text-blue-600 hover:bg-blue-50 bg-transparent transition-colors"
+                    aria-label="질문 다시 재생"
+                    className="flex items-center gap-3 px-6 py-3 border-2 border-blue-400 rounded-xl text-blue-700 hover:bg-blue-50 bg-white transition-colors text-lg font-semibold focus:outline-none focus-visible:ring-4 focus-visible:ring-blue-300"
                   >
-                    <RotateCcw className="w-4 h-4" />
-                    다시재생
+                    <RotateCcw className="w-5 h-5" aria-hidden="true" />
+                    다시 재생
                   </button>
 
                   <button
@@ -679,27 +684,29 @@ export default function SurveyQuestion({
                       startRecording(false)
                     }}
                     disabled={isTTSPlaying}
-                    className={`flex items-center gap-2 px-6 py-2 rounded-lg font-medium transition-colors ${
+                    aria-label={isRecording ? '녹음 중지' : '녹음 시작'}
+                    aria-pressed={isRecording}
+                    className={`flex items-center gap-3 px-8 py-4 rounded-2xl font-bold text-lg transition-colors focus:outline-none focus-visible:ring-4 ${
                       isRecording
-                        ? "bg-red-500 hover:bg-red-600 text-white"
+                        ? "bg-red-600 hover:bg-red-700 text-white focus-visible:ring-red-300"
                         : isTTSPlaying
                         ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                        : "bg-green-500 hover:bg-green-600 text-white"
+                        : "bg-green-600 hover:bg-green-700 text-white focus-visible:ring-green-300"
                     }`}
                   >
                     {isRecording ? (
                       <>
-                        <MicOff className="w-5 h-5" />
+                        <MicOff className="w-6 h-6" aria-hidden="true" />
                         녹음 중지
                       </>
                     ) : isTTSPlaying ? (
                       <>
-                        <Mic className="w-5 h-5" />
+                        <Mic className="w-6 h-6" aria-hidden="true" />
                         답변하기
                       </>
                     ) : (
                       <>
-                        <Mic className="w-5 h-5" />
+                        <Mic className="w-6 h-6" aria-hidden="true" />
                         답변하기
                       </>
                     )}
@@ -708,14 +715,15 @@ export default function SurveyQuestion({
                   <button
                     onClick={handleNextQuestion}
                     disabled={!recordedMedia && !isRecording}
-                    className={`flex items-center gap-2 px-6 py-2 rounded-lg font-medium transition-colors ${
+                    aria-label={isLastQuestion ? '설문 완료' : '다음 질문'}
+                    className={`flex items-center gap-3 px-8 py-4 rounded-2xl font-bold text-lg transition-colors focus:outline-none focus-visible:ring-4 ${
                       recordedMedia || isRecording
-                        ? "bg-blue-500 hover:bg-blue-600 text-white"
+                        ? "bg-blue-700 hover:bg-blue-800 text-white focus-visible:ring-blue-300"
                         : "bg-gray-300 text-gray-500 cursor-not-allowed"
                     }`}
                   >
                     {isLastQuestion ? '설문 완료' : '다음 질문'}
-                    <ArrowRight className="w-4 h-4" />
+                    <ArrowRight className="w-5 h-5" aria-hidden="true" />
                   </button>
                 </div>
               </div>
@@ -724,7 +732,7 @@ export default function SurveyQuestion({
 
           {/* Right Column - Webcam View */}
           <div className="lg:col-span-1">
-            <div className="bg-white rounded-xl shadow-lg p-6">
+            <div className="bg-white rounded-2xl shadow-lg p-6" aria-label="웹캠 미리보기">
               <WebcamView
                 isRecording={isRecording}
                 onStreamReady={setWebcamStream}
@@ -738,15 +746,16 @@ export default function SurveyQuestion({
       <div className="fixed bottom-6 left-6 right-6">
         <div className="max-w-6xl mx-auto flex items-center justify-end">
           {/* Page Navigation */}
-          <div className="flex gap-2">
+          <div className="flex gap-3">
             {[1, 2, 3].map((page) => (
               <button
                 key={page}
-                className={`w-8 h-8 rounded-full text-sm font-medium transition-colors ${
+                className={`w-10 h-10 rounded-full text-base font-bold transition-colors focus:outline-none focus-visible:ring-4 focus-visible:ring-blue-300 ${
                   page === questionIndex + 1
-                    ? "bg-blue-600 text-white"
-                    : "bg-gray-200 text-gray-600"
+                    ? "bg-blue-700 text-white"
+                    : "bg-gray-200 text-gray-700"
                 }`}
+                aria-current={page === questionIndex + 1 ? 'page' : undefined}
               >
                 {page}
               </button>
