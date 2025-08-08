@@ -32,6 +32,7 @@ public class SurveyService {
 
   /**
    * 일일 설문 질문 조회
+   *
    * @return
    */
   public List<String> getTodaySurveyQuestions() {
@@ -56,10 +57,10 @@ public class SurveyService {
 
       // 2) 결과 엔티티 생성 및 저장
       SurveyAnswer answer = SurveyAnswer.builder()
-          .questionId(questionId)
-          .userId(userId)
-          .answer(answerText) // 실제 유저의 답변 텍스트
-          .build();
+              .questionId(questionId)
+              .userId(userId)
+              .answer(answerText) // 실제 유저의 답변 텍스트
+              .build();
 
       genericPersistenceService.save(answer);
 
@@ -67,7 +68,7 @@ public class SurveyService {
 
     } catch (Exception e) {
       throw new RuntimeException(
-          "SurveyAnswer 처리 중 오류 (questionId=" + questionId + ")", e);
+              "SurveyAnswer 처리 중 오류 (questionId=" + questionId + ")", e);
     }
   }
 
@@ -83,11 +84,13 @@ public class SurveyService {
     return dailyServeyCheckRepository.existsByUserIdAndCreatedAtBetween(
             userId, startOfDay, endOfDay
     );
-   * 일일 설문 답변 조회(당일)
-   * @param userId
-   * @return
-   */
-  public List<SurveyQAResponse> getTodayPersonalQA(Long userId) {
+  }
+    /**
+     * 일일 설문 답변 조회(당일)
+     * @param userId
+     * @return
+     */
+  public List<SurveyQAResponse> getTodayPersonalQA (Long userId){
     LocalDateTime start = LocalDate.now().atStartOfDay();         // 오늘 00:00
     LocalDateTime end = start.plusDays(1);                        // 내일 00:00
 
