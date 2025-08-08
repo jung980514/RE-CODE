@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { Eye, EyeOff, UserPlus } from 'lucide-react';
 import { VirtualKeyboard } from '@/components/common/VirtualKeyboard';
+import { KakaoLoginButton } from '@/components/auth/kakaoLogin';
 import SignupModal from './SignupModal';
 import FindAccountModal from './FindAccountModal';
 import styles from './LoginModal.module.css';
@@ -83,6 +84,8 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLoginSuccess
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    
     setIsLoading(true);
     setError(null);
     try {
@@ -107,9 +110,28 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLoginSuccess
     }
   };
 
-  const handleKakaoLogin = () => {
-    // TODO: Implement Kakao login
-    console.log('Kakao login clicked');
+  // 카카오 로그인 성공 핸들러
+  const handleKakaoLoginSuccess = (userType: number) => {
+    onClose();
+    
+    // 사용자 타입에 따라 리다이렉트
+    if (userType === 0) {
+      router.push('/main-elder');
+    } else if (userType === 1) {
+      router.push('/main-guardian');
+    } else if (userType === 2) {
+      // 최초 카카오 로그인 - 역할 선택 및 설문조사 페이지로 이동
+      router.push('/auth/kakao/setup');
+    } else {
+      router.push('/');
+    }
+    
+    onLoginSuccess();
+  };
+
+  // 카카오 로그인 에러 핸들러
+  const handleKakaoLoginError = (error: string) => {
+    setError(error);
   };
 
   const handleSignupClick = () => {
@@ -229,6 +251,7 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLoginSuccess
               onFocus={() => setActiveInput('email')}
               className={styles.input}
               style={error ? { borderColor: '#ff4d4f' } : {}}
+              disabled={isLoading}
             />
           </div>
           <div className={styles.inputGroup}>
@@ -244,6 +267,7 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLoginSuccess
                 onFocus={() => setActiveInput('password')}
                 className={styles.input}
                 style={error ? { borderColor: '#ff4d4f' } : {}}
+                disabled={isLoading}
               />
               <button
                 type="button"
@@ -266,6 +290,7 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLoginSuccess
                 checked={formData.rememberMe}
                 onChange={(e) => setFormData({ ...formData, rememberMe: e.target.checked })}
                 className={styles.checkbox}
+                disabled={isLoading}
               />
               로그인 상태 유지
             </label>
@@ -273,25 +298,20 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLoginSuccess
               type="button" 
               className={styles.findAccountButton}
               onClick={handleFindAccountClick}
+              disabled={isLoading}
             >
               아이디/비밀번호 찾기
             </button>
           </div>
           {error && <div className={styles.errorMessage}>{error}</div>}
-          <button 
-            type="button" 
-            className={styles.kakaoButton}
-            onClick={handleKakaoLogin}
-          >
-            <Image
-              src="/icons/kakao.png"
-              alt="Kakao"
-              width={29}
-              height={29}
-              className={styles.kakaoImage}
-            />
-            카카오 로그인
-          </button>
+          
+          <KakaoLoginButton
+            onSuccess={handleKakaoLoginSuccess}
+            onError={handleKakaoLoginError}
+            disabled={isLoading}
+            usePopup={true}
+          />
+          
           <button
             type="submit"
             className={styles.loginButton}
@@ -307,7 +327,7 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLoginSuccess
           <div className={styles.divider}>
             <span>또는</span>
           </div>
-          <button type="button" className={styles.signupButton} onClick={handleSignupClick}>
+          <button type="button" className={styles.signupButton} onClick={handleSignupClick} disabled={isLoading}>
             <UserPlus className={styles.buttonIcon} />
             회원가입
           </button>
