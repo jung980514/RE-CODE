@@ -10,53 +10,41 @@ import { useGoogleTTS } from "@/api/googleTTS"
 import { WebcamView } from "@/components/common/WebcamView"
 import { setupTTSLeaveDetection, forceStopAllAudio, muteAllAudio } from "@/utils/ttsCleanup"
 
-// 음성 및 영상 녹화 훅 (recall-training 방식)
-function useVoiceRecording() {
+// 음성 및 영상 녹화 훅 (프리뷰 비디오 스트림 공유)
+function useVoiceRecording(videoStream: MediaStream | null) {
   const [isRecording, setIsRecording] = useState(false)
   const [recordedMedia, setRecordedMedia] = useState<string | null>(null)
   const [isAutoRecording, setIsAutoRecording] = useState(false)
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const audioContextRef = useRef<AudioContext | null>(null)
   const combinedStreamRef = useRef<MediaStream | null>(null)
-  // 우리가 내부에서 생성한 로컬 오디오/비디오 스트림만 정리하기 위해 별도 보관
-  const ownedAudioStreamRef = useRef<MediaStream | null>(null)
-  const ownedVideoStreamRef = useRef<MediaStream | null>(null)
 
-  const startRecording = async (isAuto = false, externalVideoStream?: MediaStream | null) => {
+  const startRecording = async (isAuto = false) => {
     try {
       // 기존 스트림 정리
       if (combinedStreamRef.current) {
-        // 기존 결합 스트림은 더 이상 사용하지 않음
-        combinedStreamRef.current = null
+        combinedStreamRef.current.getTracks().forEach((track) => track.stop())
       }
-
-      // 오디오 스트림은 내부에서 한 번만 생성
+      
+      // 오디오 트랙은 새로 요청
       const audioStream = await navigator.mediaDevices.getUserMedia({ audio: true })
-      ownedAudioStreamRef.current = audioStream
-
-      // 비디오 스트림은 외부(웹캠 미리보기)에서 전달받은 것을 우선 사용
-      let videoStreamToUse: MediaStream
-      if (externalVideoStream && externalVideoStream.getVideoTracks().length > 0) {
-        videoStreamToUse = externalVideoStream
-        ownedVideoStreamRef.current = null // 외부 스트림은 우리가 소유하지 않음
+      // 비디오 트랙은 가능한 경우 프리뷰(webcam) 스트림을 재사용
+      let videoTracks: MediaStreamTrack[] = []
+      if (videoStream && videoStream.getVideoTracks().length > 0) {
+        videoTracks = videoStream.getVideoTracks()
       } else {
-        // 외부 스트림이 아직 없으면 내부에서 생성 (가능한 한 지양되나, 안정성 위해 폴백)
-        const newVideoStream = await navigator.mediaDevices.getUserMedia({ 
-          video: { 
+        const fallbackVideo = await navigator.mediaDevices.getUserMedia({
+          video: {
             width: { ideal: 1280 },
             height: { ideal: 720 },
             facingMode: 'user'
           }
         })
-        ownedVideoStreamRef.current = newVideoStream
-        videoStreamToUse = newVideoStream
+        videoTracks = fallbackVideo.getVideoTracks()
       }
-
-      const tracks = [
-        ...audioStream.getAudioTracks(),
-        ...videoStreamToUse.getVideoTracks(),
-      ]
-
+      
+      const tracks = [...audioStream.getAudioTracks(), ...videoTracks]
+      
       const combinedStream = new MediaStream(tracks)
       combinedStreamRef.current = combinedStream
 
@@ -85,14 +73,9 @@ function useVoiceRecording() {
       setIsRecording(false)
       setIsAutoRecording(false)
 
-      // 우리가 생성한 스트림만 정리 (외부에서 전달된 비디오 스트림은 유지)
-      if (ownedAudioStreamRef.current) {
-        ownedAudioStreamRef.current.getTracks().forEach((track) => track.stop())
-        ownedAudioStreamRef.current = null
-      }
-      if (ownedVideoStreamRef.current) {
-        ownedVideoStreamRef.current.getTracks().forEach((track) => track.stop())
-        ownedVideoStreamRef.current = null
+      // 스트림 정리
+      if (combinedStreamRef.current) {
+        combinedStreamRef.current.getTracks().forEach((track) => track.stop())
       }
 
       if (audioContextRef.current) {
@@ -107,14 +90,9 @@ function useVoiceRecording() {
       mediaRecorderRef.current.stop()
     }
     
-    // 우리가 생성한 스트림만 정리
-    if (ownedAudioStreamRef.current) {
-      ownedAudioStreamRef.current.getTracks().forEach((track) => track.stop())
-      ownedAudioStreamRef.current = null
-    }
-    if (ownedVideoStreamRef.current) {
-      ownedVideoStreamRef.current.getTracks().forEach((track) => track.stop())
-      ownedVideoStreamRef.current = null
+    // 스트림 정리
+    if (combinedStreamRef.current) {
+      combinedStreamRef.current.getTracks().forEach((track) => track.stop())
     }
 
     if (audioContextRef.current) {
@@ -180,7 +158,7 @@ export default function SurveyQuestion({
   } = useGoogleTTS()
   
   // 녹화 훅 사용
-  const { isRecording, recordedMedia, isAutoRecording, startRecording, stopRecording, resetRecording } = useVoiceRecording()
+  const { isRecording, recordedMedia, isAutoRecording, startRecording, stopRecording, resetRecording } = useVoiceRecording(webcamStream)
 
   const currentQuestion = surveyQuestions[questionIndex]
   const progress = ((questionIndex + 1) / surveyQuestions.length) * 100
@@ -711,7 +689,7 @@ export default function SurveyQuestion({
                     onClick={isRecording ? stopRecording : () => {
                       // 수동 녹음 버튼 클릭 시 TTS 즉시 중지
                       ttsStop()
-                      startRecording(false, webcamStream)
+                      startRecording(false)
                     }}
                     disabled={isTTSPlaying}
                     aria-label={isRecording ? '녹음 중지' : '녹음 시작'}
@@ -766,6 +744,7 @@ export default function SurveyQuestion({
               <WebcamView
                 isRecording={isRecording}
                 onStreamReady={setWebcamStream}
+                stream={webcamStream}
               />
             </div>
           </div>
