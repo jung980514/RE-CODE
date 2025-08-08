@@ -1,5 +1,34 @@
 pipeline {
     agent any
+    // 1) GUI에서 입력받을 파라미터 정의
+    parameters {
+        string(name: 'DB_IP',             defaultValue: '', description: 'DB 서버 IP')
+        string(name: 'DB_PASSWORD',       defaultValue: '', description: 'DB 비밀번호')
+        string(name: 'REDIS_PASSWORD',    defaultValue: '', description: 'Redis 비밀번호')
+        string(name: 'AWS_ACCESS_KEY',    defaultValue: '', description: 'AWS Access Key')
+        string(name: 'AWS_SECRET_KEY',    defaultValue: '', description: 'AWS Secret Key')
+        string(name: 'CLOVA_DOMAIN_CODE', defaultValue: '', description: 'Clova Domain Code')
+        string(name: 'CLOVA_DOMAIN_ID',   defaultValue: '', description: 'Clova Domain ID')
+        string(name: 'CLOVA_SECRET_KEY',  defaultValue: '', description: 'Clova Secret Key')
+        string(name: 'GMS_API_KEY',       defaultValue: '', description: 'GMS API Key')
+        string(name: 'JWT_SECRET',        defaultValue: '', description: 'JWT Secret')
+        string(name: 'KAKAO_CLIENT_ID',   defaultValue: '', description: 'Kakao Client ID')
+    }
+
+    // 2) 파라미터 → 환경변수 매핑
+    environment {
+        DB_IP             = "${params.DB_IP}"
+        DB_PASSWORD       = "${params.DB_PASSWORD}"
+        REDIS_PASSWORD    = "${params.REDIS_PASSWORD}"
+        AWS_ACCESS_KEY    = "${params.AWS_ACCESS_KEY}"
+        AWS_SECRET_KEY    = "${params.AWS_SECRET_KEY}"
+        CLOVA_DOMAIN_CODE = "${params.CLOVA_DOMAIN_CODE}"
+        CLOVA_DOMAIN_ID   = "${params.CLOVA_DOMAIN_ID}"
+        CLOVA_SECRET_KEY  = "${params.CLOVA_SECRET_KEY}"
+        GMS_API_KEY       = "${params.GMS_API_KEY}"
+        JWT_SECRET        = "${params.JWT_SECRET}"
+        KAKAO_CLIENT_ID   = "${params.KAKAO_CLIENT_ID}"
+    }
 
     stages {
         stage('Cleanup') {
