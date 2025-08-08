@@ -1,23 +1,55 @@
 "use client";
 
-import React, { useState } from "react";
-import { dummyLinkedOldPeople } from '../../../../dummy-data/DummyElderLinks';
+import React, { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { Link, Users, Send, Eye, X } from "lucide-react";
 
 interface LinkedElder {
   id: number;
   name: string;
-  birthDate: string;
+  email: string;
   phone: string;
-  linkDate: string;
-  isLinked: boolean;
 }
-import { useRouter } from "next/navigation";
-import { Link, Users, Send, Eye, X } from "lucide-react";
 
 export default function GuardianLinkPage() {
   const router = useRouter();
   const [token, setToken] = useState("");
-  const [linkedElders, setLinkedElders] = useState<LinkedElder[]>([...dummyLinkedOldPeople]);
+  const [linkedElders, setLinkedElders] = useState<LinkedElder[]>([]);
+  const [isLoadingLinked, setIsLoadingLinked] = useState<boolean>(false);
+  const [linkedError, setLinkedError] = useState<string | null>(null);
+  const [unlinkingId, setUnlinkingId] = useState<number | null>(null);
+
+  useEffect(() => {
+    const fetchLinkedElders = async () => {
+      try {
+        setIsLoadingLinked(true);
+        setLinkedError(null);
+        const response = await fetch("https://recode-my-life.site/api/link/guardian/list", {
+          method: "GET",
+          credentials: "include",
+        });
+        if (!response.ok) {
+          throw new Error("연동된 노인 목록을 가져오지 못했습니다.");
+        }
+        const result = await response.json();
+        const list: Array<{ userId: number; name: string; email: string; phone: string }> =
+          Array.isArray(result?.data) ? result.data : [];
+        const mapped: LinkedElder[] = list.map((item) => ({
+          id: item.userId,
+          name: item.name,
+          email: item.email,
+          phone: item.phone,
+        }));
+        setLinkedElders(mapped);
+      } catch (error) {
+        console.error(error);
+        setLinkedError("연동된 노인 목록을 불러오는 중 오류가 발생했습니다.");
+      } finally {
+        setIsLoadingLinked(false);
+      }
+    };
+    fetchLinkedElders();
+  }, []);
 
   const handleTokenSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,16 +83,35 @@ export default function GuardianLinkPage() {
     }
   };
 
-  const handleUnlink = (id: number) => {
-    if (confirm('정말로 이 어르신과의 연동을 해제하시겠습니까?')) {
-      setLinkedElders(linkedElders.filter(elder => elder.id !== id));
+  const handleUnlink = async (id: number) => {
+    const proceed = confirm('정말로 이 어르신과의 연동을 해제하시겠습니까?');
+    if (!proceed) return;
+    try {
+      setUnlinkingId(id);
+      const response = await fetch('https://recode-my-life.site/api/link/unlink', {
+        method: 'DELETE',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ targetUserId: id }),
+      });
+      if (!response.ok) {
+        let message = '연동 해제에 실패했습니다.';
+        try {
+          const err = await response.json();
+          message = err?.message || message;
+        } catch (_) {}
+        throw new Error(message);
+      }
+      setLinkedElders(prev => prev.filter(elder => elder.id !== id));
       alert('연동이 해제되었습니다.');
+    } catch (error) {
+      console.error(error);
+      alert(error instanceof Error ? error.message : '연동 해제 중 오류가 발생했습니다.');
+    } finally {
+      setUnlinkingId(null);
     }
-  };
-
-  const handleViewDetails = (elder: LinkedElder) => {
-    alert(`${elder.name}의 상세 정보를 확인합니다.`);
-    // 여기에 상세보기 모달이나 페이지 이동 로직 추가
   };
 
   return (
@@ -121,7 +172,11 @@ export default function GuardianLinkPage() {
             연동 완료된 노인분들의 정보를 확인하고 관리할 수 있습니다
           </p>
           
-          {linkedElders.length === 0 ? (
+          {isLoadingLinked ? (
+            <div className="text-center py-8 text-gray-500">불러오는 중...</div>
+          ) : linkedError ? (
+            <div className="text-center py-8 text-red-600">{linkedError}</div>
+          ) : linkedElders.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
               <Users size={48} className="mx-auto mb-4 text-gray-300" />
               <p>연동된 어르신이 없습니다.</p>
@@ -141,31 +196,22 @@ export default function GuardianLinkPage() {
                       <div>
                         <div className="flex items-center space-x-2 mb-1">
                           <h4 className="font-semibold text-gray-800">{elder.name}</h4>
-                          <span className="bg-green-100 text-green-700 px-2 py-1 rounded text-xs">
-                            연동됨
-                          </span>
+                          <span className="bg-green-100 text-green-700 px-2 py-1 rounded text-xs">연동됨</span>
                         </div>
                         <div className="space-y-1 text-sm text-gray-600">
-                          <div>생년월일: {elder.birthDate}</div>
+                          <div>이메일: {elder.email}</div>
                           <div>연락처: {elder.phone}</div>
-                          <div>연동일: {elder.linkDate}</div>
                         </div>
                       </div>
                     </div>
                     <div className="flex space-x-2">
                       <button
-                        onClick={() => handleViewDetails(elder)}
-                        className="flex items-center space-x-1 bg-blue-600 text-white px-3 py-2 rounded hover:bg-blue-700"
-                      >
-                        <Eye size={14} />
-                        <span className="text-sm">상세보기</span>
-                      </button>
-                      <button
                         onClick={() => handleUnlink(elder.id)}
-                        className="flex items-center space-x-1 bg-red-600 text-white px-3 py-2 rounded hover:bg-red-700"
+                        disabled={unlinkingId === elder.id}
+                        className={`flex items-center space-x-1 px-3 py-2 rounded text-white ${unlinkingId === elder.id ? 'bg-red-400 cursor-not-allowed' : 'bg-red-600 hover:bg-red-700'}`}
                       >
                         <X size={14} />
-                        <span className="text-sm">연동해제</span>
+                        <span className="text-sm">{unlinkingId === elder.id ? '처리중...' : '연동해제'}</span>
                       </button>
                     </div>
                   </div>
