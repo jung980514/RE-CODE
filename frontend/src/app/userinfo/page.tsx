@@ -28,7 +28,7 @@ export default function UserInfoPage() {
   useEffect(() => {
     const fetchUserInfo = async () => {
       try {
-        const response = await fetch('http://localhost:8088/api/user/', {
+        const response = await fetch('https://recode-my-life.site/api/user/', {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
