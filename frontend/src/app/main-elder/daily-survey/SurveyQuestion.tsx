@@ -18,25 +18,45 @@ function useVoiceRecording() {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const audioContextRef = useRef<AudioContext | null>(null)
   const combinedStreamRef = useRef<MediaStream | null>(null)
+  // 우리가 내부에서 생성한 로컬 오디오/비디오 스트림만 정리하기 위해 별도 보관
+  const ownedAudioStreamRef = useRef<MediaStream | null>(null)
+  const ownedVideoStreamRef = useRef<MediaStream | null>(null)
 
-  const startRecording = async (isAuto = false) => {
+  const startRecording = async (isAuto = false, externalVideoStream?: MediaStream | null) => {
     try {
       // 기존 스트림 정리
       if (combinedStreamRef.current) {
-        combinedStreamRef.current.getTracks().forEach((track) => track.stop())
+        // 기존 결합 스트림은 더 이상 사용하지 않음
+        combinedStreamRef.current = null
       }
-      
+
+      // 오디오 스트림은 내부에서 한 번만 생성
       const audioStream = await navigator.mediaDevices.getUserMedia({ audio: true })
-      const newVideoStream = await navigator.mediaDevices.getUserMedia({ 
-        video: { 
-          width: { ideal: 1280 },
-          height: { ideal: 720 },
-          facingMode: 'user'
-        }
-      })
-      
-      const tracks = [...audioStream.getAudioTracks(), ...newVideoStream.getVideoTracks()]
-      
+      ownedAudioStreamRef.current = audioStream
+
+      // 비디오 스트림은 외부(웹캠 미리보기)에서 전달받은 것을 우선 사용
+      let videoStreamToUse: MediaStream
+      if (externalVideoStream && externalVideoStream.getVideoTracks().length > 0) {
+        videoStreamToUse = externalVideoStream
+        ownedVideoStreamRef.current = null // 외부 스트림은 우리가 소유하지 않음
+      } else {
+        // 외부 스트림이 아직 없으면 내부에서 생성 (가능한 한 지양되나, 안정성 위해 폴백)
+        const newVideoStream = await navigator.mediaDevices.getUserMedia({ 
+          video: { 
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+            facingMode: 'user'
+          }
+        })
+        ownedVideoStreamRef.current = newVideoStream
+        videoStreamToUse = newVideoStream
+      }
+
+      const tracks = [
+        ...audioStream.getAudioTracks(),
+        ...videoStreamToUse.getVideoTracks(),
+      ]
+
       const combinedStream = new MediaStream(tracks)
       combinedStreamRef.current = combinedStream
 
@@ -65,9 +85,14 @@ function useVoiceRecording() {
       setIsRecording(false)
       setIsAutoRecording(false)
 
-      // 스트림 정리
-      if (combinedStreamRef.current) {
-        combinedStreamRef.current.getTracks().forEach((track) => track.stop())
+      // 우리가 생성한 스트림만 정리 (외부에서 전달된 비디오 스트림은 유지)
+      if (ownedAudioStreamRef.current) {
+        ownedAudioStreamRef.current.getTracks().forEach((track) => track.stop())
+        ownedAudioStreamRef.current = null
+      }
+      if (ownedVideoStreamRef.current) {
+        ownedVideoStreamRef.current.getTracks().forEach((track) => track.stop())
+        ownedVideoStreamRef.current = null
       }
 
       if (audioContextRef.current) {
@@ -82,9 +107,14 @@ function useVoiceRecording() {
       mediaRecorderRef.current.stop()
     }
     
-    // 스트림 정리
-    if (combinedStreamRef.current) {
-      combinedStreamRef.current.getTracks().forEach((track) => track.stop())
+    // 우리가 생성한 스트림만 정리
+    if (ownedAudioStreamRef.current) {
+      ownedAudioStreamRef.current.getTracks().forEach((track) => track.stop())
+      ownedAudioStreamRef.current = null
+    }
+    if (ownedVideoStreamRef.current) {
+      ownedVideoStreamRef.current.getTracks().forEach((track) => track.stop())
+      ownedVideoStreamRef.current = null
     }
 
     if (audioContextRef.current) {
@@ -624,13 +654,6 @@ export default function SurveyQuestion({
 
               {/* Recording Area */}
               <div className="border border-gray-300 rounded-2xl p-7 mb-8 bg-white">
-                {/* 웹캠 미리보기 */}
-                <div className="mb-6" aria-label="웹캠 미리보기">
-                  <WebcamView
-                    isRecording={isRecording}
-                    onStreamReady={setWebcamStream}
-                  />
-                </div>
                 {/* 녹음 중 상태 */}
                 {isRecording && (
                   <div className="mb-6" role="status" aria-live="polite">
@@ -688,7 +711,7 @@ export default function SurveyQuestion({
                     onClick={isRecording ? stopRecording : () => {
                       // 수동 녹음 버튼 클릭 시 TTS 즉시 중지
                       ttsStop()
-                      startRecording(false)
+                      startRecording(false, webcamStream)
                     }}
                     disabled={isTTSPlaying}
                     aria-label={isRecording ? '녹음 중지' : '녹음 시작'}
@@ -737,7 +760,15 @@ export default function SurveyQuestion({
             </div>
           </div>
 
-          {/* Right Column - (웹캠 미리보기는 녹화 영역으로 이동) */}
+          {/* Right Column - Webcam View */}
+          <div className="lg:col-span-1">
+            <div className="bg-white rounded-2xl shadow-lg p-6" aria-label="웹캠 미리보기">
+              <WebcamView
+                isRecording={isRecording}
+                onStreamReady={setWebcamStream}
+              />
+            </div>
+          </div>
         </div>
       </div>
 
