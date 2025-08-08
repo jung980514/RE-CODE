@@ -23,6 +23,7 @@ export default function GuardianLinkPage() {
 
   // 대기중 연동 요청 목록
   const [pendingRequests, setPendingRequests] = useState<LinkRequestItem[]>([]);
+  const [processingIds, setProcessingIds] = useState<number[]>([]);
   const [linkedGuardians, setLinkedGuardians] = useState([...dummyLinkedGuardians]);
 
   // 토큰 만료 시간 카운트다운
@@ -123,18 +124,45 @@ export default function GuardianLinkPage() {
     fetchPendingRequests();
   }, []);
 
-  // 연동 요청 승인 (UI 제거만 수행)
-  const approveRequest = (guardianId: number) => {
-    alert('연동 요청이 승인되었습니다.');
-    setPendingRequests((prev: LinkRequestItem[]) => prev.filter((r: LinkRequestItem) => r.guardianId !== guardianId));
+  const respondLinkRequest = async (guardianId: number, approve: boolean) => {
+    try {
+      setProcessingIds((prev: number[]) => (prev.includes(guardianId) ? prev : [...prev, guardianId]));
+
+      const response = await fetch('https://recode-my-life.site/api/link/res', {
+        method: 'POST',
+        credentials: 'include',
+        cache: 'no-store',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ guardianId, approve }),
+      });
+
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        const errorMessage = result?.message ?? '요청 처리에 실패했습니다.';
+        throw new Error(errorMessage);
+      }
+
+      const message = result?.message ?? (approve ? '연동 요청이 승인되었습니다.' : '연동 요청이 거절되었습니다.');
+      alert(message);
+      setPendingRequests((prev: LinkRequestItem[]) => prev.filter((r: LinkRequestItem) => r.guardianId !== guardianId));
+    } catch (error: unknown) {
+      const fallback = approve ? '승인에 실패했습니다. 다시 시도해 주세요.' : '거절에 실패했습니다. 다시 시도해 주세요.';
+      const msg = error instanceof Error ? error.message : fallback;
+      alert(msg);
+    } finally {
+      setProcessingIds((prev: number[]) => prev.filter((id: number) => id !== guardianId));
+    }
   };
 
-  // 연동 요청 거절 (UI 제거만 수행)
+  // 연동 요청 승인
+  const approveRequest = (guardianId: number) => {
+    respondLinkRequest(guardianId, true);
+  };
+
+  // 연동 요청 거절
   const rejectRequest = (guardianId: number) => {
-    if (confirm('정말로 이 연동 요청을 거절하시겠습니까?')) {
-      alert('연동 요청이 거절되었습니다.');
-      setPendingRequests((prev: LinkRequestItem[]) => prev.filter((r: LinkRequestItem) => r.guardianId !== guardianId));
-    }
+    if (!confirm('정말로 이 연동 요청을 거절하시겠습니까?')) return;
+    respondLinkRequest(guardianId, false);
   };
 
   // 보호자 연동 해제
@@ -223,14 +251,16 @@ export default function GuardianLinkPage() {
                      <div className="flex space-x-2">
                        <button
                          onClick={() => approveRequest(req.guardianId)}
-                         className="flex items-center space-x-1 bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+                         disabled={processingIds.includes(req.guardianId)}
+                         className={`flex items-center space-x-1 bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 ${processingIds.includes(req.guardianId) ? 'opacity-50 cursor-not-allowed' : ''}`}
                        >
                          <Check size={16} />
                          <span>승인</span>
                        </button>
                        <button
                          onClick={() => rejectRequest(req.guardianId)}
-                         className="flex items-center space-x-1 bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
+                         disabled={processingIds.includes(req.guardianId)}
+                         className={`flex items-center space-x-1 bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 ${processingIds.includes(req.guardianId) ? 'opacity-50 cursor-not-allowed' : ''}`}
                        >
                          <X size={16} />
                          <span>거절</span>
