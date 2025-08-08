@@ -14,6 +14,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -24,7 +25,11 @@ import org.springframework.security.oauth2.client.web.OAuth2LoginAuthenticationF
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.authentication.logout.LogoutFilter;
+import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import java.util.List;
 
 /**
  * SecurityConfig
@@ -71,10 +76,10 @@ public class SecurityConfig {
    */
   @Bean
   public SecurityFilterChain filterChain(HttpSecurity http,
-      AuthenticationManager authenticationManager,
-      JWTUtils jwtUtil,
-      CorsConfigurationSource corsConfigurationSource,
-      RefreshTokenService refreshTokenService) throws Exception {
+                                         AuthenticationManager authenticationManager,
+                                         JWTUtils jwtUtil,
+                                         CorsConfigurationSource corsConfigurationSource,
+                                         RefreshTokenService refreshTokenService) throws Exception {
 
     JWTLoginFilter jwtLoginFilter = new JWTLoginFilter(authenticationManager, jwtUtil,
         refreshTokenService);
@@ -86,38 +91,74 @@ public class SecurityConfig {
     http.httpBasic(basic -> basic.disable());
 
     // JWT 커스텀 필터 등록
-    http
-        .addFilterBefore(jwtLoginFilter, UsernamePasswordAuthenticationFilter.class)
-        .addFilterAfter(new JWTAccessFilter(jwtUtil, filterResponseUtils),
-            OAuth2LoginAuthenticationFilter.class)
-        .addFilterAfter(new JWTRefreshFilter(refreshTokenRepository, filterResponseUtils),
-            OAuth2LoginAuthenticationFilter.class)
-        .addFilterBefore(new JWTLogoutFilter(refreshTokenRepository, filterResponseUtils),
-            LogoutFilter.class);
-
-    // OAuth2 로그인 설정
-    http
-        .oauth2Login(oauth2 -> oauth2
-            .loginPage("/api/user/login/page") // 커스텀 로그인 페이지 URL
-            .userInfoEndpoint(endpoint -> endpoint.userService(oAuth2UserService)) // 사용자 정보 조회 서비스
-            .successHandler(oAuth2SuccessHandler) // 로그인 성공 시 핸들러
-        );
+//    http
+//        .addFilterBefore(jwtLoginFilter, UsernamePasswordAuthenticationFilter.class)
+//        .addFilterAfter(new JWTAccessFilter(jwtUtil, filterResponseUtils),
+//            OAuth2LoginAuthenticationFilter.class)
+//        .addFilterAfter(new JWTRefreshFilter(refreshTokenRepository, filterResponseUtils),
+//            OAuth2LoginAuthenticationFilter.class)
+//        .addFilterBefore(new JWTLogoutFilter(refreshTokenRepository, filterResponseUtils),
+//            LogoutFilter.class);
+//
+//    // OAuth2 로그인 설정
+//    http
+//        .oauth2Login(oauth2 -> oauth2
+//            .loginPage("/api/user/login/page") // 커스텀 로그인 페이지 URL
+//            .userInfoEndpoint(endpoint -> endpoint.userService(oAuth2UserService)) // 사용자 정보 조회 서비스
+//            .successHandler(oAuth2SuccessHandler) // 로그인 성공 시 핸들러
+//        );
 
     // 인가 정책 설정
     http
-        .authorizeHttpRequests(auth -> auth
-            .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html", "/webjars/**")
-            .permitAll()
-            .requestMatchers("/**", "/api/user/login/page", "api/user/login", "/api/user/register",
-                "/api/reissue", "/login/oauth2/code/**", "/index.html").permitAll() // 공개 URL
-            .anyRequest().authenticated() // 나머지는 인증 필요
-        );
+            // CORS 설정 (Customizer 람다만 사용) :contentReference[oaicite:0]{index=0}
+            .cors(cors -> cors.configurationSource(corsConfigurationSource))
+            // CSRF 비활성화
+            .csrf(csrf -> csrf.disable())
+            // 세션 사용 안 함
+            .sessionManagement(sm -> sm
+                    .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+            )
+            // 기본 로그인·폼·기본 인증 비활성화
+            .formLogin(Customizer.withDefaults())
+            .httpBasic(Customizer.withDefaults())
 
-    // 세션 사용 안 함 - JWT 기반
-    http
-        .sessionManagement(session -> session
-            .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-        );
+            // 커스텀 JWT 필터 등록
+            .addFilterBefore(jwtLoginFilter, UsernamePasswordAuthenticationFilter.class)
+            .addFilterAfter(new JWTAccessFilter(jwtUtil, filterResponseUtils),
+                    OAuth2LoginAuthenticationFilter.class)
+            .addFilterAfter(new JWTRefreshFilter(refreshTokenRepository, filterResponseUtils),
+                    OAuth2LoginAuthenticationFilter.class)
+            .addFilterBefore(new JWTLogoutFilter(refreshTokenRepository, filterResponseUtils),
+                    LogoutFilter.class)
+
+            // OAuth2 로그인 설정
+            .oauth2Login(oauth2 -> oauth2
+                    .loginPage("/api/user/login/page")
+                    .userInfoEndpoint(endpoint -> endpoint.userService(oAuth2UserService))
+                    .successHandler(oAuth2SuccessHandler)
+            )
+
+            // 인가 정책
+            .authorizeHttpRequests(auth -> auth
+                    // Swagger UI & OpenAPI Docs
+                    .requestMatchers(
+                            "/v3/api-docs/**",
+                            "/swagger-ui/**",
+                            "/swagger-ui.html",
+                            "/webjars/**"
+                    ).permitAll()
+                    // 인증 없이 열어둘 API
+                    .requestMatchers(
+                            "/api/user/login/page",
+                            "/api/user/login",
+                            "/api/user/register",
+                            "/api/reissue",
+                            "/login/oauth2/code/**",
+                            "/index.html"
+                    ).permitAll()
+                    // 나머지 요청은 인증 필요
+                    .anyRequest().authenticated()
+            );
 
     return http.build();
   }
@@ -149,6 +190,19 @@ public class SecurityConfig {
 
     // H2 웹 콘솔은 개발 편의용으로 보안 필터에서 제외
 //                .requestMatchers(toH2Console());
+  }
+
+  @Bean
+  CorsConfigurationSource corsConfigurationSource() {
+    CorsConfiguration config = new CorsConfiguration();
+    config.setAllowedOriginPatterns(List.of("*"));  // 또는 특정 도메인만
+    config.setAllowedMethods(List.of("GET","POST","PUT","DELETE","OPTIONS"));
+    config.setAllowCredentials(true);
+    config.addAllowedHeader("*");
+
+    UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+    source.registerCorsConfiguration("/**", config);
+    return source;
   }
 
 }
