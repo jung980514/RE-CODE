@@ -37,6 +37,8 @@ pipeline {
                 script {
                     // 여기에 나열된 모든 크리덴셜을 바인딩
                     withCredentials([
+                        string(credentialsId: 'REDIS_PASSWORD',     variable: 'REDIS_PASSWORD'),
+                        string(credentialsId: 'REDIS_HOST',     variable: 'REDIS_HOST'),
                         string(credentialsId: 'AWS_ACCESS_KEY',     variable: 'AWS_ACCESS_KEY'),
                         string(credentialsId: 'AWS_SECRET_KEY',     variable: 'AWS_SECRET_KEY'),
                         string(credentialsId: 'CLOVA_DOMAIN_CODE',  variable: 'CLOVA_DOMAIN_CODE'),

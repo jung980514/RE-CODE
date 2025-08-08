@@ -50,7 +50,7 @@ public class WebConfig implements WebMvcConfigurer{
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(Arrays.asList("https://recode-my-life.site/")); //로컬 테스트
+        configuration.setAllowedOrigins(Arrays.asList("https://recode-my-life.site", "http://localhost:3000")); //로컬 테스트
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList("*"));
         configuration.setAllowCredentials(true); // 🔥 필수 설정
