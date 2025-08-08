@@ -7,13 +7,16 @@ interface WebcamViewProps {
   isRecording?: boolean
   onStreamReady?: (stream: MediaStream) => void
   videoRef?: React.RefObject<HTMLVideoElement | null>
+  // 외부에서 제공된 스트림을 미리보기로 사용 (제공 시 내부 getUserMedia를 호출하지 않음)
+  stream?: MediaStream | null
 }
 const username2 = typeof window !== 'undefined' ? localStorage.getItem('name') : null
 export function WebcamView({ 
   userName = username2 || "김싸피", 
   isRecording = false, 
   onStreamReady,
-  videoRef: externalVideoRef
+  videoRef: externalVideoRef,
+  stream
 }: WebcamViewProps) {
   const [isWebcamActive, setIsWebcamActive] = useState(false)
   const internalVideoRef = useRef<HTMLVideoElement>(null)
@@ -50,10 +53,23 @@ export function WebcamView({
   }
 
   useEffect(() => {
-    let stream: MediaStream | null = null
+    // 외부 스트림이 주어지면 그것을 사용
+    if (stream && finalVideoRef.current) {
+      finalVideoRef.current.srcObject = stream
+      setIsWebcamActive(true)
+      return () => {
+        // 외부 스트림은 소유자가 관리하므로 이곳에서 중지하지 않음
+        if (finalVideoRef.current) {
+          finalVideoRef.current.srcObject = null
+        }
+      }
+    }
+
+    // 외부 스트림이 없을 때만 내부에서 비디오 전용 스트림 획득
+    let localStream: MediaStream | null = null
     const init = async () => {
       try {
-        stream = await navigator.mediaDevices.getUserMedia({ 
+        localStream = await navigator.mediaDevices.getUserMedia({ 
           video: { 
             width: { ideal: 640 },
             height: { ideal: 480 },
@@ -62,12 +78,12 @@ export function WebcamView({
           audio: false 
         })
         if (onStreamReady) {
-          onStreamReady(stream)
+          onStreamReady(localStream)
         }
         setIsWebcamActive(true)
         
         if (finalVideoRef.current) {
-          finalVideoRef.current.srcObject = stream
+          finalVideoRef.current.srcObject = localStream
         }
       } catch (error) {
         console.error("웹캠 접근 오류:", error)
@@ -75,9 +91,12 @@ export function WebcamView({
     }
     init()
     return () => {
-      stopWebcam(stream)
+      stopWebcam(localStream)
+      if (finalVideoRef.current) {
+        finalVideoRef.current.srcObject = null
+      }
     }
-  }, [onStreamReady])
+  }, [onStreamReady, stream])
 
   return (
     <div className="text-center">
