@@ -1,9 +1,8 @@
 "use client"
 
 import React, { useState, useEffect } from 'react';
-import { dummyLinkedGuardians } from '../../../../dummy-data/DummyGuardianLinks';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Key, Clock, Copy, Check, X } from 'lucide-react';
+import { Key, Clock, Copy, Check, X } from 'lucide-react';
 
 export default function GuardianLinkPage() {
   const router = useRouter();
@@ -24,7 +23,12 @@ export default function GuardianLinkPage() {
   // 대기중 연동 요청 목록
   const [pendingRequests, setPendingRequests] = useState<LinkRequestItem[]>([]);
   const [processingIds, setProcessingIds] = useState<number[]>([]);
-  const [linkedGuardians, setLinkedGuardians] = useState([...dummyLinkedGuardians]);
+  type LinkedGuardian = {
+    guardianId: number;
+    name: string;
+    phoneNumber: string;
+  };
+  const [linkedGuardians, setLinkedGuardians] = useState<LinkedGuardian[]>([]);
 
   // 토큰 만료 시간 카운트다운
   useEffect(() => {
@@ -120,8 +124,36 @@ export default function GuardianLinkPage() {
     }
   };
 
+  // 연동된 보호자 목록 불러오기
+  const fetchLinkedGuardians = async () => {
+    try {
+      const response = await fetch('https://recode-my-life.site/api/link/elder/list', {
+        method: 'GET',
+        credentials: 'include',
+        cache: 'no-store',
+      });
+
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        const errorMessage = result?.message ?? '연동된 보호자 목록 조회에 실패했습니다.';
+        throw new Error(errorMessage);
+      }
+
+      const items: LinkedGuardian[] | undefined = result?.data;
+      if (!Array.isArray(items)) {
+        setLinkedGuardians([]);
+        return;
+      }
+
+      setLinkedGuardians(items);
+    } catch (error) {
+      setLinkedGuardians([]);
+    }
+  };
+
   useEffect(() => {
     fetchPendingRequests();
+    fetchLinkedGuardians();
   }, []);
 
   const respondLinkRequest = async (guardianId: number, approve: boolean) => {
@@ -156,23 +188,15 @@ export default function GuardianLinkPage() {
 
   // 연동 요청 승인
   const approveRequest = (guardianId: number) => {
-    respondLinkRequest(guardianId, true);
+    respondLinkRequest(guardianId, true).then(() => {
+      fetchLinkedGuardians();
+    });
   };
 
   // 연동 요청 거절
   const rejectRequest = (guardianId: number) => {
     if (!confirm('정말로 이 연동 요청을 거절하시겠습니까?')) return;
     respondLinkRequest(guardianId, false);
-  };
-
-  // 보호자 연동 해제
-  type LinkedGuardian = typeof dummyLinkedGuardians[number];
-
-  const unlinkGuardian = (id: number) => {
-    if (confirm('정말로 이 보호자와의 연동을 해제하시겠습니까?')) {
-      setLinkedGuardians(linkedGuardians.filter((g: LinkedGuardian) => g.id !== id));
-      alert('보호자 연동이 해제되었습니다.');
-    }
   };
 
   // 시간 포맷팅
@@ -288,31 +312,23 @@ export default function GuardianLinkPage() {
           ) : (
             <div className="space-y-4">
               {linkedGuardians.map((guardian: LinkedGuardian) => (
-                <div key={guardian.id} className="bg-white border border-gray-200 rounded-lg p-4">
+                <div key={guardian.guardianId} className="bg-white border border-gray-200 rounded-lg p-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-4">
                       <div className="w-12 h-12 bg-gray-300 rounded-full flex items-center justify-center">
                         <span className="text-gray-600 font-semibold">
-                          {guardian.name.charAt(0)}
+                          {guardian.name?.charAt(0) ?? ''}
                         </span>
                       </div>
                       <div>
                         <div className="font-semibold text-gray-800">{guardian.name}</div>
-                        <div className="text-sm text-gray-500">{guardian.phone}</div>
-                        <div className="text-sm text-gray-500">연동일: {guardian.linkDate}</div>
+                        <div className="text-sm text-gray-500">{guardian.phoneNumber}</div>
                       </div>
                     </div>
                     <div className="flex items-center space-x-3">
                       <span className="bg-green-100 text-green-700 px-3 py-1 rounded text-sm">
                         연동됨
                       </span>
-                      <button
-                        onClick={() => unlinkGuardian(guardian.id)}
-                        className="flex items-center space-x-1 text-red-600 hover:text-red-700"
-                      >
-                        <X size={16} />
-                        <span className="text-sm">해제</span>
-                      </button>
                     </div>
                   </div>
                 </div>
