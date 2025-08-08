@@ -53,7 +53,7 @@ public class WebConfig implements WebMvcConfigurer{
         configuration.setAllowedOrigins(Arrays.asList("*")); //로컬 테스트 https://recode-my-life.site", "http://localhost:3000
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList("*"));
-        configuration.setAllowCredentials(true); // 🔥 필수 설정
+        configuration.setAllowCredentials(false); // 🔥 true/false
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/api/**", configuration);
