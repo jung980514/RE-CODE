@@ -132,11 +132,11 @@ export default function SurveyQuestion({
   useEffect(() => {
     console.log('showWarningModal changed to:', showWarningModal)
   }, [showWarningModal])
-  const [isTTSFinished, setIsTTSFinished] = useState(false)
+  
   const [webcamStream, setWebcamStream] = useState<MediaStream | null>(null)
   const [showNoResponseWarning, setShowNoResponseWarning] = useState(false)
   const [showRecordingComplete, setShowRecordingComplete] = useState(false)
-  const [preparationMessagePlayed, setPreparationMessagePlayed] = useState(false)
+  
   
   const router = useRouter()
   const pathname = usePathname()
@@ -399,17 +399,7 @@ export default function SurveyQuestion({
     }
   }, [ttsSpeak])
 
-  const speakPreparationMessage = useCallback(async () => {
-    const preparationText = "준비가 완료되시면 수동 녹음 버튼을 눌러주세요"
-    const result = await ttsSpeak({
-      text: preparationText,
-      language: 'ko-KR'
-    })
-
-    if (!result.success) {
-      console.error('TTS 오류:', result.error)
-    }
-  }, [ttsSpeak])
+  
 
   const stopTTS = useCallback(() => {
     ttsStop()
@@ -417,29 +407,9 @@ export default function SurveyQuestion({
 
 
 
-  // TTS 완료 감지 및 준비 메시지 후 녹화 안내
-  useEffect(() => {
-    if (!isTTSPlaying && isTTSFinished && !preparationMessagePlayed) {
-      // TTS가 완료되면 준비 메시지를 읽고 녹화 안내 (1번만)
-      const timer = setTimeout(async () => {
-        await speakPreparationMessage()
-        setPreparationMessagePlayed(true)
-        setIsTTSFinished(false)
-      }, 1000)
-      
-      return () => clearTimeout(timer)
-    }
-  }, [isTTSPlaying, isTTSFinished, preparationMessagePlayed, speakPreparationMessage])
+  
 
-  // TTS 재생 상태 감지
-  useEffect(() => {
-    if (isTTSPlaying) {
-      setIsTTSFinished(false)
-    } else if (!isTTSPlaying && !isTTSFinished) {
-      // TTS가 재생 중이 아니고 아직 완료되지 않았다면 완료로 간주
-      setIsTTSFinished(true)
-    }
-  }, [isTTSPlaying])
+  
 
   useEffect(() => {
     // 컴포넌트 마운트 시 이전 TTS 정리
@@ -706,8 +676,6 @@ export default function SurveyQuestion({
                     onClick={isRecording ? stopRecording : () => {
                       // 수동 녹음 버튼 클릭 시 TTS 즉시 중지
                       ttsStop()
-                      // 준비 메시지 재생 상태를 true로 설정하여 중복 재생 방지
-                      setPreparationMessagePlayed(true)
                       startRecording(false)
                     }}
                     disabled={isTTSPlaying}
@@ -727,12 +695,12 @@ export default function SurveyQuestion({
                     ) : isTTSPlaying ? (
                       <>
                         <Mic className="w-5 h-5" />
-                        말이 끝나면 수동 녹음 버튼이 활성화 됩니다
+                        답변하기
                       </>
                     ) : (
                       <>
                         <Mic className="w-5 h-5" />
-                        수동 녹음
+                        답변하기
                       </>
                     )}
                   </button>
