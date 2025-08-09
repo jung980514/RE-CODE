@@ -53,9 +53,12 @@ function useVoiceRecording(videoStream: MediaStream | null) {
       chunksRef.current = []
       
       const audioStream = await navigator.mediaDevices.getUserMedia({ audio: true })
-      const newVideoStream = await navigator.mediaDevices.getUserMedia({ video: true })
+      // 미리보기 비디오 스트림이 있다면 그 트랙을 clone해서 사용, 없으면 새로 요청
+      const clonedVideoTracks = videoStream
+        ? videoStream.getVideoTracks().map((t) => t.clone())
+        : (await navigator.mediaDevices.getUserMedia({ video: true })).getVideoTracks()
       
-      const tracks = [...audioStream.getAudioTracks(), ...newVideoStream.getVideoTracks()]
+      const tracks = [...audioStream.getAudioTracks(), ...clonedVideoTracks]
       
       const combinedStream = new MediaStream(tracks)
       combinedStreamRef.current = combinedStream
@@ -864,6 +867,7 @@ export function VoiceMemoryTrainingSession({ onBack }: VoiceSessionProps) {
                     isRecording={isRecording}
                     onStreamReady={setWebcamStream}
                     videoRef={videoRef}
+                    autoStart={false}
                   />
                   
                   {/* 감정 분석 결과 */}
