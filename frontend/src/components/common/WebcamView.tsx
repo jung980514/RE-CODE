@@ -7,13 +7,15 @@ interface WebcamViewProps {
   isRecording?: boolean
   onStreamReady?: (stream: MediaStream) => void
   videoRef?: React.RefObject<HTMLVideoElement | null>
+  autoStart?: boolean
 }
 const username2 = typeof window !== 'undefined' ? localStorage.getItem('name') : null
 export function WebcamView({ 
   userName = username2 || "김싸피", 
   isRecording = false, 
   onStreamReady,
-  videoRef: externalVideoRef
+  videoRef: externalVideoRef,
+  autoStart = true,
 }: WebcamViewProps) {
   const [isWebcamActive, setIsWebcamActive] = useState(false)
   const [autoplayBlocked, setAutoplayBlocked] = useState(false)
@@ -198,7 +200,9 @@ export function WebcamView({
         console.error("웹캠 접근 오류:", error)
       }
     }
-    init()
+    if (autoStart) {
+      init()
+    }
     return () => {
       // 재생 중지 및 srcObject 해제
       if (finalVideoRef.current) {
@@ -213,7 +217,7 @@ export function WebcamView({
       currentStreamRef.current = null
       setHasFrames(false)
     }
-  }, [onStreamReady])
+  }, [onStreamReady, autoStart])
 
   // 가시성 회복 시 재생 재시도 (모바일 사파리 등)
   useEffect(() => {
@@ -241,11 +245,21 @@ export function WebcamView({
       <div className="relative bg-gray-900 aspect-square rounded-xl overflow-hidden mb-6">
         {!isWebcamActive ? (
           <div className="absolute inset-0 flex items-center justify-center">
-            <div className="text-white text-center">
-              <div className="w-16 h-16 bg-gray-600 rounded-full flex items-center justify-center mx-auto mb-3">
+            <div className="text-white text-center space-y-3">
+              <div className="w-16 h-16 bg-gray-600 rounded-full flex items-center justify-center mx-auto">
                 <span className="text-2xl"><Camera /></span>
               </div>
-              <p className="text-sm">카메라를 불러오는 중...</p>
+              {autoStart ? (
+                <p className="text-sm">카메라를 불러오는 중...</p>
+              ) : (
+                <button
+                  type="button"
+                  onClick={startWebcam}
+                  className="px-4 py-2 text-sm bg-white/90 text-gray-900 rounded shadow"
+                >
+                  카메라 시작
+                </button>
+              )}
             </div>
           </div>
         ) : (
