@@ -24,6 +24,11 @@ export function WebcamView({
   // 캔버스 미러링은 호환성 이슈가 있어 비활성화
   const framePollRef = useRef<number | null>(null)
 
+  type ExtendedVideoEl = HTMLVideoElement & {
+    srcObject?: MediaStream | null
+    requestVideoFrameCallback?: (cb: (now: number, metadata: object) => void) => number
+  }
+
   const attachAndPlay = async (stream: MediaStream) => {
     if (!finalVideoRef.current) return
     // 트랙 활성화 보장
@@ -36,13 +41,10 @@ export function WebcamView({
     finalVideoRef.current.setAttribute('webkit-playsinline', '')
     // DOM 페인트 이후 연결 시도
     await new Promise(requestAnimationFrame)
-    // srcObject 우선, 미지원 브라우저는 createObjectURL 폴백
-    const videoElAny = finalVideoRef.current as any
-    if ('srcObject' in videoElAny) {
-      videoElAny.srcObject = stream
-    } else {
-      // @ts-ignore - 구형 브라우저 폴백
-      finalVideoRef.current.src = URL.createObjectURL(stream)
+    // srcObject 연결 (대부분 브라우저 지원)
+    const videoEl = finalVideoRef.current as ExtendedVideoEl
+    if ('srcObject' in videoEl) {
+      videoEl.srcObject = stream
     }
     currentStreamRef.current = stream
     // 강제 로드 시도
@@ -51,7 +53,7 @@ export function WebcamView({
       await finalVideoRef.current.play()
       setAutoplayBlocked(false)
       // 프레임 감지: 다양한 이벤트 및 폴백 사용
-      const videoEl = finalVideoRef.current
+      const videoEl = finalVideoRef.current as ExtendedVideoEl
       const onPlaying = () => setHasFrames(true)
       const onCanPlay = () => setHasFrames(true)
       const onLoadedMeta = () => {
@@ -73,22 +75,18 @@ export function WebcamView({
       const vt = stream.getVideoTracks()[0]
       if (vt) {
         const handleUnmute = () => setHasFrames(true)
-        // 일부 브라우저는 addEventListener 지원, 없으면 onunmute 폴백
+        // EventTarget 표준 addEventListener 사용
         try {
-          // @ts-ignore - 일부 브라우저 타입 정의 미비
-          vt.addEventListener?.('unmute', handleUnmute, { once: true })
+          vt.addEventListener('unmute', () => handleUnmute(), { once: true } as AddEventListenerOptions)
         } catch {}
-        // @ts-ignore - 폴백 핸들러
-        if (!('addEventListener' in vt)) {
-          // @ts-ignore - 폴백 속성
-          vt.onunmute = handleUnmute
-        }
+        // 폴백: onunmute 핸들러
+        try {
+          vt.onunmute = () => handleUnmute()
+        } catch {}
       }
       // requestVideoFrameCallback 사용 가능 시 즉시 프레임 감지
-      // @ts-ignore - 실험적 API 체크
-      if (typeof (videoEl as any).requestVideoFrameCallback === 'function') {
-        // @ts-ignore - 실험적 API 호출
-        (videoEl as any).requestVideoFrameCallback(() => setHasFrames(true))
+      if (typeof videoEl.requestVideoFrameCallback === 'function') {
+        videoEl.requestVideoFrameCallback(() => setHasFrames(true))
       }
       // 주기 폴링 (최대 3초): videoWidth/readyState 확인
       if (framePollRef.current) {
