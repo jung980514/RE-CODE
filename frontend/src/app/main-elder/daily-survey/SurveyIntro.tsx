@@ -1,10 +1,11 @@
 "use client"
 
 import { SurveyIntroProps } from "./types"
-import { surveyQuestions, surveyInfo } from "./surveyData"
+import { surveyInfo, useDailySurveyQuestions } from "./surveyData"
 import { MessageSquare, Mic, Clock, User, Brain, Heart } from "lucide-react"
 
 export default function SurveyIntro({ onStartSurvey }: SurveyIntroProps) {
+  const { questions, isLoading, error } = useDailySurveyQuestions()
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#F8FAFC' }}>
       <div className="max-w-4xl mx-auto px-6 py-8">
@@ -28,7 +29,7 @@ export default function SurveyIntro({ onStartSurvey }: SurveyIntroProps) {
           {/* 3개 질문 - 파란색 */}
           <div className="text-center">
             <MessageSquare className="w-6 h-6 text-blue-500 mx-auto mb-2" />
-            <p className="font-semibold text-blue-800 text-lg">{surveyInfo.totalQuestions}개 질문</p>
+            <p className="font-semibold text-blue-800 text-lg">{questions.length}개 질문</p>
             <p className="text-blue-600 text-sm">{surveyInfo.personalizedQuestions}</p>
           </div>
 
@@ -54,7 +55,13 @@ export default function SurveyIntro({ onStartSurvey }: SurveyIntroProps) {
           </h2>
           
           <div className="space-y-4">
-            {surveyQuestions.map((question, index) => (
+            {isLoading && (
+              <div className="text-gray-600">질문을 불러오는 중...</div>
+            )}
+            {error && !isLoading && (
+              <div className="text-red-600">{error}</div>
+            )}
+            {!isLoading && !error && questions.map((question, index) => (
               <div
                 key={question.id}
                 className="relative rounded-lg p-6 shadow-sm"
@@ -69,7 +76,7 @@ export default function SurveyIntro({ onStartSurvey }: SurveyIntroProps) {
                   </div>
                   <div className="flex-1">
                     <p className="text-sm font-medium text-purple-800 mb-2">
-                      질문 {question.id} {question.category}
+                      질문 {index + 1} {question.category}
                     </p>
                     <h3 className="text-lg font-bold text-purple-800 mb-2">
                       {question.title}

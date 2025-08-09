@@ -2,10 +2,11 @@
 
 import { useState, useEffect, useRef } from "react"
 import { SurveyFormProps, RecordingData } from "./types"
-import { surveyQuestions } from "./surveyData"
+import { useDailySurveyQuestions } from "./surveyData"
 import { ArrowLeft, Play, Check, Volume2, Clock, User, Brain, Heart, Mic, MicOff } from "lucide-react"
 
 export default function SurveyForm({ onComplete, onBack }: SurveyFormProps) {
+  const { questions: surveyQuestions, isLoading, error } = useDailySurveyQuestions()
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0)
   const [recordings, setRecordings] = useState<Record<number, RecordingData>>({})
   const [isRecording, setIsRecording] = useState(false)
@@ -19,7 +20,7 @@ export default function SurveyForm({ onComplete, onBack }: SurveyFormProps) {
   const timerRef = useRef<NodeJS.Timeout | null>(null)
 
   const currentQuestion = surveyQuestions[currentQuestionIndex]
-  const progress = ((currentQuestionIndex + 1) / surveyQuestions.length) * 100
+  const progress = surveyQuestions.length > 0 ? ((currentQuestionIndex + 1) / surveyQuestions.length) * 100 : 0
 
   useEffect(() => {
     return () => {
@@ -141,6 +142,22 @@ export default function SurveyForm({ onComplete, onBack }: SurveyFormProps) {
       case 2: return <Heart className="w-5 h-5" />
       default: return <User className="w-5 h-5" />
     }
+  }
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-lg">질문을 불러오는 중...</div>
+      </div>
+    )
+  }
+
+  if (error || surveyQuestions.length === 0) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-red-600">{error ?? '질문을 불러오지 못했습니다'}</div>
+      </div>
+    )
   }
 
   return (
