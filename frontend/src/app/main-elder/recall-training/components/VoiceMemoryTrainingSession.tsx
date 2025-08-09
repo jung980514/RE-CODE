@@ -27,10 +27,13 @@ function useVoiceRecording(videoStream: MediaStream | null) {
   const [isRecording, setIsRecording] = useState(false)
   const [audioLevel, setAudioLevel] = useState(0)
   const [recordedMedia, setRecordedMedia] = useState<string | null>(null)
+  const [recordedBlob, setRecordedBlob] = useState<Blob | null>(null)
   const [isAutoRecording, setIsAutoRecording] = useState(false)
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const audioContextRef = useRef<AudioContext | null>(null)
   const combinedStreamRef = useRef<MediaStream | null>(null)
+  const chunksRef = useRef<Blob[]>([])
+  const stopResolverRef = useRef<((blob: Blob) => void) | null>(null)
 
   const startRecording = async (isAuto = false) => {
     try {
@@ -41,6 +44,13 @@ function useVoiceRecording(videoStream: MediaStream | null) {
       if (combinedStreamRef.current) {
         combinedStreamRef.current.getTracks().forEach((track) => track.stop())
       }
+      // 이전 결과 초기화
+      if (recordedMedia) {
+        URL.revokeObjectURL(recordedMedia)
+      }
+      setRecordedMedia(null)
+      setRecordedBlob(null)
+      chunksRef.current = []
       
       const audioStream = await navigator.mediaDevices.getUserMedia({ audio: true })
       const newVideoStream = await navigator.mediaDevices.getUserMedia({ video: true })
@@ -72,16 +82,33 @@ function useVoiceRecording(videoStream: MediaStream | null) {
         }
       }
 
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data && event.data.size > 0) {
+          chunksRef.current.push(event.data)
+        }
+      }
+
+      mediaRecorder.onstop = () => {
+        try {
+          const finalBlob = new Blob(chunksRef.current, { type: 'video/mp4' })
+          setRecordedBlob(finalBlob)
+          const mediaUrl = URL.createObjectURL(finalBlob)
+          setRecordedMedia(mediaUrl)
+          if (stopResolverRef.current) {
+            stopResolverRef.current(finalBlob)
+            stopResolverRef.current = null
+          }
+        } catch (e) {
+          console.error('녹화 종료 처리 중 오류:', e)
+        } finally {
+          chunksRef.current = []
+        }
+      }
+
       mediaRecorder.start()
       setIsRecording(true)
       setIsAutoRecording(isAuto)
       updateAudioLevel()
-
-      mediaRecorder.ondataavailable = (event) => {
-        const mediaBlob = new Blob([event.data], { type: "video/mp4" })
-        const mediaUrl = URL.createObjectURL(mediaBlob)
-        setRecordedMedia(mediaUrl)
-      }
     } catch (error) {
       console.error("녹화 오류:", error)
     }
@@ -126,20 +153,47 @@ function useVoiceRecording(videoStream: MediaStream | null) {
     setIsAutoRecording(false)
     setAudioLevel(0)
     setRecordedMedia(null)
+    setRecordedBlob(null)
     // ref 정리
     mediaRecorderRef.current = null
     audioContextRef.current = null
     combinedStreamRef.current = null
+    chunksRef.current = []
+  }
+
+  const stopAndGetBlob = async (): Promise<Blob> => {
+    if (recordedBlob && !isRecording) {
+      return recordedBlob
+    }
+    if (mediaRecorderRef.current && isRecording) {
+      return new Promise<Blob>((resolve) => {
+        stopResolverRef.current = resolve
+        mediaRecorderRef.current?.stop()
+        setIsRecording(false)
+        setIsAutoRecording(false)
+        setAudioLevel(0)
+        // 스트림 및 오디오 컨텍스트 정리
+        if (combinedStreamRef.current) {
+          combinedStreamRef.current.getTracks().forEach((track) => track.stop())
+        }
+        if (audioContextRef.current) {
+          audioContextRef.current.close()
+        }
+      })
+    }
+    throw new Error('녹화된 블랍이 없습니다.')
   }
 
   return {
     isRecording,
     audioLevel,
     recordedMedia,
+    recordedBlob,
     isAutoRecording,
     startRecording,
     stopRecording,
     resetRecording,
+    stopAndGetBlob,
   }
 }
 
@@ -404,7 +458,7 @@ export function VoiceMemoryTrainingSession({ onBack }: VoiceSessionProps) {
   const [questionIds, setQuestionIds] = useState<number[]>([])
   const [isLoadingQuestions, setIsLoadingQuestions] = useState<boolean>(false)
   const videoRef = useRef<HTMLVideoElement>(null)
-  const { isRecording, audioLevel, recordedMedia, isAutoRecording, startRecording, stopRecording, resetRecording } = useVoiceRecording(webcamStream)
+  const { isRecording, audioLevel, recordedMedia, recordedBlob, isAutoRecording, startRecording, stopRecording, resetRecording, stopAndGetBlob } = useVoiceRecording(webcamStream)
   const { emotion, confidence, analyzeEmotionHistory } = useEmotionDetection(videoRef, isRecording)
   const { showCountdown, countdown, startAutoRecording } = useAutoRecording(startRecording)
 
@@ -480,19 +534,46 @@ export function VoiceMemoryTrainingSession({ onBack }: VoiceSessionProps) {
     setHasStartedRecording(false)
   }, [currentStep])
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (questions.length === 0) return
-    if (currentStep < questions.length - 1) {
-      setCurrentStep(currentStep + 1)
-      // 이전 질문의 녹화 결과 창 숨김을 위해 녹음 상태 초기화
-      resetRecording()
-      // startAutoRecording() 제거 - 자동 녹음 시작하지 않음
-    } else {
-      // 마지막 질문 완료 시 최종 감정 분석 실행
-      console.log('=== 기억 꺼내기 훈련 최종 감정 분석 결과 ===')
-      analyzeEmotionHistory()
-      markRecallTrainingSessionAsCompleted('memory')
-      setShowCompletionModal(true)
+    try {
+      const questionId = questionIds[currentStep]
+      let blobToUpload = recordedBlob
+      if (isRecording) {
+        blobToUpload = await stopAndGetBlob()
+      }
+      if (!blobToUpload) {
+        console.warn('업로드할 녹화 파일이 없습니다.')
+      } else {
+        const formData = new FormData()
+        formData.append('questionId', String(questionId))
+        const fileName = `answer_${questionId}_${new Date().toISOString().replace(/[:.]/g, '-')}.mp4`
+        const file = new File([blobToUpload], fileName, { type: 'video/mp4' })
+        formData.append('videoFile', file)
+
+        const uploadResponse = await fetch('https://recode-my-life.site/api/basic/answers', {
+          method: 'POST',
+          credentials: 'include',
+          body: formData,
+        })
+        if (!uploadResponse.ok) {
+          console.error('답변 업로드 실패:', uploadResponse.status)
+        }
+      }
+
+      if (currentStep < questions.length - 1) {
+        setCurrentStep(currentStep + 1)
+        // 이전 질문의 녹화 결과 창 숨김을 위해 녹음 상태 초기화
+        resetRecording()
+      } else {
+        // 마지막 질문 완료 시 최종 감정 분석 실행
+        console.log('=== 기억 꺼내기 훈련 최종 감정 분석 결과 ===')
+        analyzeEmotionHistory()
+        markRecallTrainingSessionAsCompleted('memory')
+        setShowCompletionModal(true)
+      }
+    } catch (err) {
+      console.error('다음으로 진행 중 오류:', err)
     }
   }
 
