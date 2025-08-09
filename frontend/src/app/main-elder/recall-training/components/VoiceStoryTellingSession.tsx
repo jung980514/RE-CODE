@@ -549,17 +549,17 @@ export function VoiceStoryTellingSession({ onBack }: VoiceSessionProps) {
         }
       }
 
-      if (currentTopic < topics.length - 1) {
-        setCurrentTopic(currentTopic + 1)
-        if (isRecording) {
-          stopRecording()
-        }
-        resetRecording()
-      } else {
-        console.log('=== 이야기 나누기 훈련 최종 감정 분석 결과 ===')
-        analyzeEmotionHistory()
-        markRecallTrainingSessionAsCompleted('story')
-        setShowCompletionModal(true)
+    if (currentTopic < topics.length - 1) {
+      setCurrentTopic(currentTopic + 1)
+      if (isRecording) {
+        stopRecording()
+      }
+      resetRecording()
+    } else {
+      console.log('=== 이야기 나누기 훈련 최종 감정 분석 결과 ===')
+      analyzeEmotionHistory()
+      markRecallTrainingSessionAsCompleted('story')
+      setShowCompletionModal(true)
       }
     } catch (err) {
       console.error('다음으로 진행 중 오류:', err)
@@ -656,8 +656,8 @@ export function VoiceStoryTellingSession({ onBack }: VoiceSessionProps) {
                       주제 {currentTopic + 1}/{topics.length}
                     </span>
                   </div>
-                  <div className="text-8xl mb-6">{topicIcons[currentTopic % topicIcons.length]}</div>
-                  <h2 className="text-4xl font-bold text-gray-800 mb-6">{topics[currentTopic].title}</h2>
+                  <div className="text-8xl mb-6">{topicIcons[(topics.length > 0 ? currentTopic : 0) % topicIcons.length]}</div>
+                  <h2 className="text-4xl font-bold text-gray-800 mb-6">{topics[currentTopic]?.title ?? '개인화 질문'}</h2>
                 </div>
 
                 {/* 질문 내용 */}
@@ -668,9 +668,9 @@ export function VoiceStoryTellingSession({ onBack }: VoiceSessionProps) {
                     </div>
                     <div className="flex-1">
                       <p className="text-lg text-orange-600 font-bold mb-3">질문을 읽어주세요</p>
-                       <p className="text-2xl leading-relaxed text-gray-800 whitespace-pre-line font-medium">
+                      <p className="text-2xl leading-relaxed text-gray-800 whitespace-pre-line font-medium">
                         {topics[currentTopic]?.question ?? '질문을 불러오는 중입니다...'}
-                       </p>
+                      </p>
                     </div>
                   </div>
                 </div>
