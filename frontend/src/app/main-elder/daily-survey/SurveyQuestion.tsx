@@ -855,7 +855,6 @@ export default function SurveyQuestion({
               <WebcamView
                 isRecording={isRecording}
                 onStreamReady={setWebcamStream}
-                autoStart={false}
               />
             </div>
           </div>
