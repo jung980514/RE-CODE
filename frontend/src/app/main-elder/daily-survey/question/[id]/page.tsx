@@ -1,8 +1,8 @@
 "use client"
 
 import { useParams, useRouter } from "next/navigation"
-import { useEffect, useState } from "react"
-import { surveyQuestions } from "../../surveyData"
+import { useEffect } from "react"
+import { useDailySurveyQuestions } from "../../surveyData"
 import SurveyQuestion from "../../SurveyQuestion"
 import { setDailySurveyCompleted, getCurrentUserId } from "@/lib/auth"
 import { FloatingButtons } from "@/components/common/Floting-Buttons"
@@ -10,16 +10,19 @@ import { FloatingButtons } from "@/components/common/Floting-Buttons"
 export default function QuestionPage() {
   const params = useParams()
   const router = useRouter()
+  const { questions: surveyQuestions, isLoading, error } = useDailySurveyQuestions()
   
   const questionId = parseInt(params.id as string)
   const currentQuestion = surveyQuestions[questionId - 1] // 배열 인덱스는 0부터 시작
 
   // 유효하지 않은 질문 ID인 경우 첫 번째 질문으로 리다이렉트
   useEffect(() => {
-    if (questionId < 1 || questionId > surveyQuestions.length) {
-      router.push('/main-elder/daily-survey/question/1')
+    if (!isLoading && !error) {
+      if (questionId < 1 || questionId > surveyQuestions.length) {
+        router.push('/main-elder/daily-survey/question/1')
+      }
     }
-  }, [questionId, router])
+  }, [questionId, router, isLoading, error, surveyQuestions.length])
 
   const handleBackToIntro = () => {
     router.push('/main-elder/daily-survey')
@@ -45,11 +48,18 @@ export default function QuestionPage() {
     router.push('/main-elder/daily-survey/complete')
   }
 
-  // 유효하지 않은 질문 ID인 경우 로딩 표시
-  if (questionId < 1 || questionId > surveyQuestions.length) {
+  if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-lg">로딩 중...</div>
+        <div className="text-lg">질문을 불러오는 중...</div>
+      </div>
+    )
+  }
+
+  if (error || surveyQuestions.length === 0 || !currentQuestion) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-red-600">{error ?? '질문을 불러오지 못했습니다'}</div>
       </div>
     )
   }
