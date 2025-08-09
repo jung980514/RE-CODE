@@ -21,8 +21,8 @@ export function WebcamView({
   const internalVideoRef = useRef<HTMLVideoElement>(null)
   const finalVideoRef = externalVideoRef || internalVideoRef
   const currentStreamRef = useRef<MediaStream | null>(null)
-  const canvasRef = useRef<HTMLCanvasElement>(null)
-  const rafRef = useRef<number | null>(null)
+  // 캔버스 미러링은 호환성 이슈가 있어 비활성화
+  const framePollRef = useRef<number | null>(null)
 
   const attachAndPlay = async (stream: MediaStream) => {
     if (!finalVideoRef.current) return
@@ -36,23 +36,82 @@ export function WebcamView({
     finalVideoRef.current.setAttribute('webkit-playsinline', '')
     // DOM 페인트 이후 연결 시도
     await new Promise(requestAnimationFrame)
-    finalVideoRef.current.srcObject = stream
+    // srcObject 우선, 미지원 브라우저는 createObjectURL 폴백
+    const videoElAny = finalVideoRef.current as any
+    if ('srcObject' in videoElAny) {
+      videoElAny.srcObject = stream
+    } else {
+      // @ts-ignore - 구형 브라우저 폴백
+      finalVideoRef.current.src = URL.createObjectURL(stream)
+    }
     currentStreamRef.current = stream
+    // 강제 로드 시도
+    try { finalVideoRef.current.load?.() } catch {}
     try {
       await finalVideoRef.current.play()
       setAutoplayBlocked(false)
-      // 프레임 감지: playing 이벤트 또는 videoWidth 체크
+      // 프레임 감지: 다양한 이벤트 및 폴백 사용
+      const videoEl = finalVideoRef.current
       const onPlaying = () => setHasFrames(true)
-      finalVideoRef.current.addEventListener('playing', onPlaying, { once: true })
-      // 시간차로 보조 체크
-      setTimeout(() => {
-        if (finalVideoRef.current && finalVideoRef.current.videoWidth > 0) {
-          setHasFrames(true)
+      const onCanPlay = () => setHasFrames(true)
+      const onLoadedMeta = () => {
+        if (videoEl.videoWidth > 0) setHasFrames(true)
+      }
+      const onLoadedData = () => {
+        if (videoEl.videoWidth > 0 || videoEl.readyState >= 2) setHasFrames(true)
+      }
+      const onTimeUpdate = () => {
+        if (videoEl.currentTime > 0) setHasFrames(true)
+      }
+      videoEl.addEventListener('playing', onPlaying, { once: true })
+      videoEl.addEventListener('canplay', onCanPlay, { once: true })
+      videoEl.addEventListener('loadedmetadata', onLoadedMeta, { once: true })
+      videoEl.addEventListener('loadeddata', onLoadedData, { once: true })
+      videoEl.addEventListener('timeupdate', onTimeUpdate, { once: true })
+      videoEl.addEventListener('resize', onPlaying, { once: true })
+      // 트랙 unmute 시 프레임 도착으로 간주
+      const vt = stream.getVideoTracks()[0]
+      if (vt) {
+        const handleUnmute = () => setHasFrames(true)
+        // 일부 브라우저는 addEventListener 지원, 없으면 onunmute 폴백
+        try {
+          // @ts-ignore - 일부 브라우저 타입 정의 미비
+          vt.addEventListener?.('unmute', handleUnmute, { once: true })
+        } catch {}
+        // @ts-ignore - 폴백 핸들러
+        if (!('addEventListener' in vt)) {
+          // @ts-ignore - 폴백 속성
+          vt.onunmute = handleUnmute
         }
-      }, 800)
-
-      // 캔버스 미러링 시작 (검은 화면 회피용)
-      startCanvasMirroring()
+      }
+      // requestVideoFrameCallback 사용 가능 시 즉시 프레임 감지
+      // @ts-ignore - 실험적 API 체크
+      if (typeof (videoEl as any).requestVideoFrameCallback === 'function') {
+        // @ts-ignore - 실험적 API 호출
+        (videoEl as any).requestVideoFrameCallback(() => setHasFrames(true))
+      }
+      // 주기 폴링 (최대 3초): videoWidth/readyState 확인
+      if (framePollRef.current) {
+        window.clearInterval(framePollRef.current)
+        framePollRef.current = null
+      }
+      let elapsed = 0
+      framePollRef.current = window.setInterval(() => {
+        elapsed += 200
+        if (!finalVideoRef.current) return
+        const v = finalVideoRef.current
+        if ((v.videoWidth > 0 && v.readyState >= 2) || v.currentTime > 0) {
+          setHasFrames(true)
+          if (framePollRef.current) {
+            window.clearInterval(framePollRef.current)
+            framePollRef.current = null
+          }
+        }
+        if (elapsed >= 3000 && framePollRef.current) {
+          window.clearInterval(framePollRef.current)
+          framePollRef.current = null
+        }
+      }, 200)
     } catch (e) {
       setAutoplayBlocked(true)
       finalVideoRef.current.onloadedmetadata = async () => {
@@ -62,35 +121,11 @@ export function WebcamView({
           if (finalVideoRef.current && finalVideoRef.current.videoWidth > 0) {
             setHasFrames(true)
           }
-          startCanvasMirroring()
         } catch {
           setAutoplayBlocked(true)
         }
       }
     }
-  }
-
-  const startCanvasMirroring = () => {
-    if (!finalVideoRef.current || !canvasRef.current) return
-    const videoEl = finalVideoRef.current
-    const canvasEl = canvasRef.current
-    const ctx = canvasEl.getContext('2d')
-    if (!ctx) return
-
-    const draw = () => {
-      if (!videoEl.paused && !videoEl.ended) {
-        const vw = videoEl.videoWidth || 640
-        const vh = videoEl.videoHeight || 480
-        if (canvasEl.width !== vw || canvasEl.height !== vh) {
-          canvasEl.width = vw
-          canvasEl.height = vh
-        }
-        ctx.drawImage(videoEl, 0, 0, canvasEl.width, canvasEl.height)
-      }
-      rafRef.current = requestAnimationFrame(draw)
-    }
-    if (rafRef.current) cancelAnimationFrame(rafRef.current)
-    rafRef.current = requestAnimationFrame(draw)
   }
 
   const openWebcam = async (): Promise<MediaStream> => {
@@ -172,9 +207,9 @@ export function WebcamView({
         try { finalVideoRef.current.pause() } catch {}
         finalVideoRef.current.srcObject = null
       }
-      if (rafRef.current) {
-        cancelAnimationFrame(rafRef.current)
-        rafRef.current = null
+      if (framePollRef.current) {
+        window.clearInterval(framePollRef.current)
+        framePollRef.current = null
       }
       stopWebcam(stream)
       currentStreamRef.current = null
@@ -217,15 +252,13 @@ export function WebcamView({
           </div>
         ) : (
           <>
-            {/* 비디오 엘리먼트는 숨겨둔 채 캔버스에 미러링 */}
             <video
               ref={finalVideoRef}
               autoPlay
               playsInline
               muted
-              className="hidden"
+              className="w-full h-full object-cover"
             />
-            <canvas ref={canvasRef} className="w-full h-full object-cover" />
           </>
         )}
 
