@@ -33,7 +33,6 @@ export function WebcamView({
     finalVideoRef.current.setAttribute('muted', '')
     finalVideoRef.current.playsInline = true
     finalVideoRef.current.setAttribute('playsinline', '')
-    // @ts-ignore - webkit 전용 속성
     finalVideoRef.current.setAttribute('webkit-playsinline', '')
     // DOM 페인트 이후 연결 시도
     await new Promise(requestAnimationFrame)
@@ -171,7 +170,6 @@ export function WebcamView({
       // 재생 중지 및 srcObject 해제
       if (finalVideoRef.current) {
         try { finalVideoRef.current.pause() } catch {}
-        // @ts-expect-error - srcObject는 표준 속성
         finalVideoRef.current.srcObject = null
       }
       if (rafRef.current) {
