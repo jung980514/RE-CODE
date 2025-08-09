@@ -159,8 +159,10 @@ export default function SurveyQuestion({
   // 진행 상황이 있는지 확인 (설문조사 페이지에 들어왔거나 녹화 중이거나 녹화가 완료된 경우)
   const hasProgress = true // 항상 true로 설정하여 모달이 나타나도록 함
   
-  // 디버깅을 위한 로그
-  console.log('hasProgress:', hasProgress, 'questionIndex:', questionIndex, 'isRecording:', isRecording, 'recordedMedia:', recordedMedia)
+  // 디버깅 로그: 값이 변경될 때만 출력
+  useEffect(() => {
+    console.log('hasProgress:', hasProgress, 'questionIndex:', questionIndex, 'isRecording:', isRecording, 'recordedMedia:', recordedMedia)
+  }, [hasProgress, questionIndex, isRecording, recordedMedia])
 
   // 페이지 이탈 방지 이벤트 핸들러들
   const handleKeyDown = (e: KeyboardEvent) => {
