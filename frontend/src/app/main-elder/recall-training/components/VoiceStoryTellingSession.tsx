@@ -237,10 +237,13 @@ function useVideoRecording(videoStream: MediaStream | null) {
   const [isRecording, setIsRecording] = useState(false)
   const [audioLevel, setAudioLevel] = useState(0)
   const [recordedMedia, setRecordedMedia] = useState<string | null>(null)
+  const [recordedBlob, setRecordedBlob] = useState<Blob | null>(null)
   const [isAutoRecording, setIsAutoRecording] = useState(false)
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const audioContextRef = useRef<AudioContext | null>(null)
   const combinedStreamRef = useRef<MediaStream | null>(null)
+  const chunksRef = useRef<Blob[]>([])
+  const stopResolverRef = useRef<((blob: Blob) => void) | null>(null)
 
   const startRecording = async (isAuto = false) => {
     try {
@@ -282,16 +285,33 @@ function useVideoRecording(videoStream: MediaStream | null) {
         }
       }
 
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data && event.data.size > 0) {
+          chunksRef.current.push(event.data)
+        }
+      }
+
+      mediaRecorder.onstop = () => {
+        try {
+          const finalBlob = new Blob(chunksRef.current, { type: 'video/mp4' })
+          setRecordedBlob(finalBlob)
+          const mediaUrl = URL.createObjectURL(finalBlob)
+          setRecordedMedia(mediaUrl)
+          if (stopResolverRef.current) {
+            stopResolverRef.current(finalBlob)
+            stopResolverRef.current = null
+          }
+        } catch (e) {
+          console.error('녹화 종료 처리 중 오류:', e)
+        } finally {
+          chunksRef.current = []
+        }
+      }
+
       mediaRecorder.start()
       setIsRecording(true)
       setIsAutoRecording(isAuto)
       updateAudioLevel()
-
-      mediaRecorder.ondataavailable = (event) => {
-        const mediaBlob = new Blob([event.data], { type: "video/mp4" })
-        const mediaUrl = URL.createObjectURL(mediaBlob)
-        setRecordedMedia(mediaUrl)
-      }
     } catch (error) {
       console.error("녹화 오류:", error)
     }
@@ -336,20 +356,47 @@ function useVideoRecording(videoStream: MediaStream | null) {
     setIsAutoRecording(false)
     setAudioLevel(0)
     setRecordedMedia(null)
+    setRecordedBlob(null)
     // ref 정리
     mediaRecorderRef.current = null
     audioContextRef.current = null
     combinedStreamRef.current = null
+    chunksRef.current = []
+  }
+
+  const stopAndGetBlob = async (): Promise<Blob> => {
+    if (recordedBlob && !isRecording) {
+      return recordedBlob
+    }
+    if (mediaRecorderRef.current && isRecording) {
+      return new Promise<Blob>((resolve) => {
+        stopResolverRef.current = resolve
+        mediaRecorderRef.current?.stop()
+        setIsRecording(false)
+        setIsAutoRecording(false)
+        setAudioLevel(0)
+        // 스트림 및 오디오 컨텍스트 정리
+        if (combinedStreamRef.current) {
+          combinedStreamRef.current.getTracks().forEach((track) => track.stop())
+        }
+        if (audioContextRef.current) {
+          audioContextRef.current.close()
+        }
+      })
+    }
+    throw new Error('녹화된 블랍이 없습니다.')
   }
 
   return {
     isRecording,
     audioLevel,
     recordedMedia,
+    recordedBlob,
     isAutoRecording,
     startRecording,
     stopRecording,
     resetRecording,
+    stopAndGetBlob,
   }
 }
 
@@ -359,33 +406,75 @@ export function VoiceStoryTellingSession({ onBack }: VoiceSessionProps) {
   const [showCompletionModal, setShowCompletionModal] = useState(false)
   const [webcamStream, setWebcamStream] = useState<MediaStream | null>(null)
   const [hasStartedRecording, setHasStartedRecording] = useState(false)
+  const [userId, setUserId] = useState<number | null>(null)
+  const [topics, setTopics] = useState<Array<{ title: string; question: string }>>([])
+  const [topicIds, setTopicIds] = useState<number[]>([])
   const videoRef = useRef<HTMLVideoElement>(null)
-  const { isRecording, audioLevel, recordedMedia, isAutoRecording, startRecording, stopRecording, resetRecording } = useVideoRecording(webcamStream)
+  const { isRecording, audioLevel, recordedMedia, recordedBlob, isAutoRecording, startRecording, stopRecording, resetRecording, stopAndGetBlob } = useVideoRecording(webcamStream)
   const { emotion, confidence, analyzeEmotionHistory } = useEmotionDetection(videoRef, isRecording)
+  const topicIcons = ["🌟", "🌟", "🌟", "🌟", "🌟"]
 
-  const topics = [
-    {
-      title: "개인화 질문",
-      question: "인생에서1 가장 행복했던 순간은 언제였나요?\n준비가 완료되면 답변하기를 눌러 시작해주세요",
-      icon: "🌟",
-    },
-    {
-      title: "개인화 질문",
-      question: "인생에서2 가장 행복했던 순간은 언제였나요?\n준비가 완료되면 답변하기를 눌러 시작해주세요",
-      icon: "🌟",
-    },
-    {
-      title: "개인화 질문",
-      question: "인생에서3 가장 행복했던 순간은 언제였나요?\n준비가 완료되면 답변하기를 눌러 시작해주세요",
-      icon: "🌟",
-    },
-  ]
+  // 사용자 및 질문 불러오기
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const stored = typeof window !== 'undefined' ? localStorage.getItem('userId') : null
+        if (stored) {
+          const parsed = Number(stored)
+          if (!Number.isNaN(parsed)) setUserId(parsed)
+        }
+        const res = await fetch('https://recode-my-life.site/api/user', {
+          method: 'GET',
+          credentials: 'include',
+          headers: { 'Accept': 'application/json' },
+        })
+        if (res.ok) {
+          const json = await res.json()
+          const idCandidate = json?.data?.id
+          if (typeof idCandidate === 'number') {
+            setUserId(idCandidate)
+            try { localStorage.setItem('userId', String(idCandidate)) } catch {}
+          }
+        }
+      } catch (e) {
+        console.error('사용자 정보 조회 오류:', e)
+      }
+    }
+
+    const fetchQuestions = async () => {
+      try {
+        const response = await fetch('https://recode-my-life.site/api/personal/questions', {
+          method: 'GET',
+          credentials: 'include',
+          headers: { 'Accept': 'application/json' },
+        })
+        if (!response.ok) throw new Error(`질문 불러오기 실패: ${response.status}`)
+        const result = await response.json()
+        const data: Array<{ id: number; content: string }> = Array.isArray(result?.data) ? result.data : []
+        const mapped = data.map((item, idx) => ({
+          title: '개인화 질문',
+          question: `${item.content}\n준비가 완료되면 답변하기를 눌러 시작해주세요`,
+        }))
+        const ids = data.map((item) => item.id)
+        setTopics(mapped)
+        setTopicIds(ids)
+        setCurrentTopic(0)
+        setHasStartedRecording(false)
+      } catch (e) {
+        console.error(e)
+      }
+    }
+
+    fetchUser()
+    fetchQuestions()
+  }, [])
 
   useEffect(() => {
     // 주제가 변경될 때마다 TTS 재생
     const playTopicTTS = async () => {
       try {
         setIsAITalking(true)
+        if (!topics[currentTopic]) return
         const audioContent = await synthesizeSpeech(topics[currentTopic].question)
         await playAudio(audioContent)
       } catch (error) {
@@ -401,27 +490,79 @@ export function VoiceStoryTellingSession({ onBack }: VoiceSessionProps) {
     return () => {
       stopCurrentAudio()
     }
-  }, [currentTopic, topics.length])
+  }, [currentTopic, topics])
 
   // 주제가 바뀌면 다음 버튼을 비활성화 상태로 초기화
   useEffect(() => {
     setHasStartedRecording(false)
   }, [currentTopic])
 
-  const handleNext = () => {
-    if (currentTopic < topics.length - 1) {
-      setCurrentTopic(currentTopic + 1)
-      if (isRecording) {
-        stopRecording()
+  const handleNext = async () => {
+    if (topics.length === 0) return
+    try {
+      const questionId = topicIds[currentTopic]
+      // 업로드 직전에 userId 없으면 조회 시도
+      let ensuredUserId = userId
+      if (ensuredUserId == null) {
+        try {
+          const res = await fetch('https://recode-my-life.site/api/user', {
+            method: 'GET',
+            credentials: 'include',
+            headers: { 'Accept': 'application/json' },
+          })
+          if (res.ok) {
+            const json = await res.json()
+            const idCandidate = json?.data?.id
+            if (typeof idCandidate === 'number') {
+              ensuredUserId = idCandidate
+              setUserId(idCandidate)
+              try { localStorage.setItem('userId', String(idCandidate)) } catch {}
+            }
+          }
+        } catch {}
       }
-      // 이전 주제의 녹화 결과 창 숨김을 위해 녹음 상태 초기화
-      resetRecording()
-    } else {
-      // 마지막 주제 완료 시 최종 감정 분석 실행
-      console.log('=== 이야기 나누기 훈련 최종 감정 분석 결과 ===')
-      analyzeEmotionHistory()
-      markRecallTrainingSessionAsCompleted('story')
-      setShowCompletionModal(true)
+
+      let blobToUpload = recordedBlob
+      if (isRecording) {
+        blobToUpload = await stopAndGetBlob()
+      }
+      if (!blobToUpload) {
+        console.warn('업로드할 녹화 파일이 없습니다.')
+      } else {
+        const formData = new FormData()
+        formData.append('questionId', String(questionId))
+        if (ensuredUserId != null) {
+          formData.append('userId', String(ensuredUserId))
+        }
+        formData.append('mediaType', 'video')
+        const fileName = `answer_${questionId}_${new Date().toISOString().replace(/[:.]/g, '-')}.mp4`
+        const file = new File([blobToUpload], fileName, { type: 'video/mp4' })
+        formData.append('videoFile', file)
+
+        const uploadResponse = await fetch('https://recode-my-life.site/api/personal/answers', {
+          method: 'POST',
+          credentials: 'include',
+          body: formData,
+        })
+        if (!uploadResponse.ok) {
+          console.error('답변 업로드 실패:', uploadResponse.status)
+        }
+      }
+
+      if (currentTopic < topics.length - 1) {
+        setCurrentTopic(currentTopic + 1)
+        if (isRecording) {
+          stopRecording()
+        }
+        resetRecording()
+      } else {
+        console.log('=== 이야기 나누기 훈련 최종 감정 분석 결과 ===')
+        analyzeEmotionHistory()
+        markRecallTrainingSessionAsCompleted('story')
+        setShowCompletionModal(true)
+      }
+    } catch (err) {
+      console.error('다음으로 진행 중 오류:', err)
     }
   }
 
@@ -515,7 +656,7 @@ export function VoiceStoryTellingSession({ onBack }: VoiceSessionProps) {
                       주제 {currentTopic + 1}/{topics.length}
                     </span>
                   </div>
-                  <div className="text-8xl mb-6">{topics[currentTopic].icon}</div>
+                  <div className="text-8xl mb-6">{topicIcons[currentTopic % topicIcons.length]}</div>
                   <h2 className="text-4xl font-bold text-gray-800 mb-6">{topics[currentTopic].title}</h2>
                 </div>
 
@@ -527,9 +668,9 @@ export function VoiceStoryTellingSession({ onBack }: VoiceSessionProps) {
                     </div>
                     <div className="flex-1">
                       <p className="text-lg text-orange-600 font-bold mb-3">질문을 읽어주세요</p>
-                      <p className="text-2xl leading-relaxed text-gray-800 whitespace-pre-line font-medium">
-                        {topics[currentTopic].question}
-                      </p>
+                       <p className="text-2xl leading-relaxed text-gray-800 whitespace-pre-line font-medium">
+                        {topics[currentTopic]?.question ?? '질문을 불러오는 중입니다...'}
+                       </p>
                     </div>
                   </div>
                 </div>

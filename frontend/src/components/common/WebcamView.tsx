@@ -52,8 +52,6 @@ export function WebcamView({
     try {
       await finalVideoRef.current.play()
       setAutoplayBlocked(false)
-      // 일부 환경에서 이벤트가 지연될 수 있어 즉시 프레임 도착으로 간주 (오버레이 제거)
-      setHasFrames(true)
       // 프레임 감지: 다양한 이벤트 및 폴백 사용
       const videoEl = finalVideoRef.current as ExtendedVideoEl
       const onPlaying = () => setHasFrames(true)
