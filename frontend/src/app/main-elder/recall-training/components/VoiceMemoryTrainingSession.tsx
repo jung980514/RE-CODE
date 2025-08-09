@@ -457,6 +457,7 @@ export function VoiceMemoryTrainingSession({ onBack }: VoiceSessionProps) {
   const [questions, setQuestions] = useState<Array<{ title: string; question: string }>>([])
   const [questionIds, setQuestionIds] = useState<number[]>([])
   const [isLoadingQuestions, setIsLoadingQuestions] = useState<boolean>(false)
+  const [userId, setUserId] = useState<number | null>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
   const { isRecording, audioLevel, recordedMedia, recordedBlob, isAutoRecording, startRecording, stopRecording, resetRecording, stopAndGetBlob } = useVoiceRecording(webcamStream)
   const { emotion, confidence, analyzeEmotionHistory } = useEmotionDetection(videoRef, isRecording)
@@ -464,6 +465,37 @@ export function VoiceMemoryTrainingSession({ onBack }: VoiceSessionProps) {
 
   // 질문 불러오기 (쿠키 세션 포함)
   useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        // 로컬 저장된 userId 우선 사용
+        const stored = typeof window !== 'undefined' ? localStorage.getItem('userId') : null
+        if (stored) {
+          const parsed = Number(stored)
+          if (!Number.isNaN(parsed)) {
+            setUserId(parsed)
+          }
+        }
+        // 서버에서 최신 사용자 조회
+        const res = await fetch('https://recode-my-life.site/api/user', {
+          method: 'GET',
+          credentials: 'include',
+          headers: { 'Accept': 'application/json' },
+        })
+        if (res.ok) {
+          const json = await res.json()
+          const idCandidate = json?.data?.id
+          if (typeof idCandidate === 'number') {
+            setUserId(idCandidate)
+            try { localStorage.setItem('userId', String(idCandidate)) } catch {}
+          }
+        } else {
+          console.warn('사용자 정보 조회 실패:', res.status)
+        }
+      } catch (e) {
+        console.error('사용자 정보 조회 오류:', e)
+      }
+    }
+
     const fetchQuestions = async () => {
       try {
         setIsLoadingQuestions(true)
@@ -499,6 +531,7 @@ export function VoiceMemoryTrainingSession({ onBack }: VoiceSessionProps) {
       }
     }
 
+    fetchUser()
     fetchQuestions()
   }, [])
 
@@ -538,6 +571,26 @@ export function VoiceMemoryTrainingSession({ onBack }: VoiceSessionProps) {
     if (questions.length === 0) return
     try {
       const questionId = questionIds[currentStep]
+      // 업로드 직전에 userId 없으면 한 번 더 조회 시도
+      let ensuredUserId = userId
+      if (ensuredUserId == null) {
+        try {
+          const res = await fetch('https://recode-my-life.site/api/user', {
+            method: 'GET',
+            credentials: 'include',
+            headers: { 'Accept': 'application/json' },
+          })
+          if (res.ok) {
+            const json = await res.json()
+            const idCandidate = json?.data?.id
+            if (typeof idCandidate === 'number') {
+              ensuredUserId = idCandidate
+              setUserId(idCandidate)
+              try { localStorage.setItem('userId', String(idCandidate)) } catch {}
+            }
+          }
+        } catch {}
+      }
       let blobToUpload = recordedBlob
       if (isRecording) {
         blobToUpload = await stopAndGetBlob()
@@ -547,6 +600,10 @@ export function VoiceMemoryTrainingSession({ onBack }: VoiceSessionProps) {
       } else {
         const formData = new FormData()
         formData.append('questionId', String(questionId))
+        if (ensuredUserId != null) {
+          formData.append('userId', String(ensuredUserId))
+        }
+        formData.append('mediaType', 'video')
         const fileName = `answer_${questionId}_${new Date().toISOString().replace(/[:.]/g, '-')}.mp4`
         const file = new File([blobToUpload], fileName, { type: 'video/mp4' })
         formData.append('videoFile', file)
