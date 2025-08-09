@@ -10,8 +10,8 @@ import { useGoogleTTS } from "@/api/googleTTS"
 import { WebcamView } from "@/components/common/WebcamView"
 import { setupTTSLeaveDetection, forceStopAllAudio, muteAllAudio } from "@/utils/ttsCleanup"
 
-// 음성 및 영상 녹화 훅 (프리뷰 비디오 스트림 공유)
-function useVoiceRecording(videoStream: MediaStream | null) {
+// 음성 및 영상 녹화 훅 (recall-training 방식)
+function useVoiceRecording() {
   const [isRecording, setIsRecording] = useState(false)
   const [recordedMedia, setRecordedMedia] = useState<string | null>(null)
   const [isAutoRecording, setIsAutoRecording] = useState(false)
@@ -26,24 +26,16 @@ function useVoiceRecording(videoStream: MediaStream | null) {
         combinedStreamRef.current.getTracks().forEach((track) => track.stop())
       }
       
-      // 오디오 트랙은 새로 요청
       const audioStream = await navigator.mediaDevices.getUserMedia({ audio: true })
-      // 비디오 트랙은 가능한 경우 프리뷰(webcam) 스트림을 재사용
-      let videoTracks: MediaStreamTrack[] = []
-      if (videoStream && videoStream.getVideoTracks().length > 0) {
-        videoTracks = videoStream.getVideoTracks()
-      } else {
-        const fallbackVideo = await navigator.mediaDevices.getUserMedia({
-          video: {
-            width: { ideal: 1280 },
-            height: { ideal: 720 },
-            facingMode: 'user'
-          }
-        })
-        videoTracks = fallbackVideo.getVideoTracks()
-      }
+      const newVideoStream = await navigator.mediaDevices.getUserMedia({ 
+        video: { 
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+          facingMode: 'user'
+        }
+      })
       
-      const tracks = [...audioStream.getAudioTracks(), ...videoTracks]
+      const tracks = [...audioStream.getAudioTracks(), ...newVideoStream.getVideoTracks()]
       
       const combinedStream = new MediaStream(tracks)
       combinedStreamRef.current = combinedStream
@@ -158,7 +150,7 @@ export default function SurveyQuestion({
   } = useGoogleTTS()
   
   // 녹화 훅 사용
-  const { isRecording, recordedMedia, isAutoRecording, startRecording, stopRecording, resetRecording } = useVoiceRecording(webcamStream)
+  const { isRecording, recordedMedia, isAutoRecording, startRecording, stopRecording, resetRecording } = useVoiceRecording()
 
   const currentQuestion = surveyQuestions[questionIndex]
   const progress = ((questionIndex + 1) / surveyQuestions.length) * 100
@@ -724,7 +716,7 @@ export default function SurveyQuestion({
                     onClick={handleNextQuestion}
                     disabled={!recordedMedia && !isRecording}
                     aria-label={isLastQuestion ? '설문 완료' : '다음 질문'}
-                    className={`flex items-center gap-3 px-8 py-4 rounded-2xl font-bold text-lg transition-colors focus:outline-none focus-visible:ring-4 ${
+                    className={`flex items-center gap-3 px-8 py-4 rounded-2xl font-bold text-lg t수동 녹음ition-colors focus:outline-none focus-visible:ring-4 ${
                       recordedMedia || isRecording
                         ? "bg-blue-700 hover:bg-blue-800 text-white focus-visible:ring-blue-300"
                         : "bg-gray-300 text-gray-500 cursor-not-allowed"
@@ -744,7 +736,6 @@ export default function SurveyQuestion({
               <WebcamView
                 isRecording={isRecording}
                 onStreamReady={setWebcamStream}
-                stream={webcamStream}
               />
             </div>
           </div>
