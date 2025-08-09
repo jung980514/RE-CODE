@@ -10,8 +10,8 @@ import { useGoogleTTS } from "@/api/googleTTS"
 import { WebcamView } from "@/components/common/WebcamView"
 import { setupTTSLeaveDetection, forceStopAllAudio, muteAllAudio } from "@/utils/ttsCleanup"
 
-// 음성 및 영상 녹화 훅 (recall-training 방식)
-function useVoiceRecording() {
+// 음성 및 영상 녹화 훅 (미리보기 스트림 재사용)
+function useVoiceRecording(previewVideoStream: MediaStream | null) {
   const [isRecording, setIsRecording] = useState(false)
   const [recordedMedia, setRecordedMedia] = useState<string | null>(null)
   const [isAutoRecording, setIsAutoRecording] = useState(false)
@@ -25,17 +25,18 @@ function useVoiceRecording() {
       if (combinedStreamRef.current) {
         combinedStreamRef.current.getTracks().forEach((track) => track.stop())
       }
-      
+
+      // 미리보기 스트림이 준비되지 않은 경우 녹화 불가 (이중 요청 방지)
+      if (!previewVideoStream) {
+        console.error("웹캠 스트림이 아직 준비되지 않았습니다. 미리보기 준비 후 녹화를 시작해주세요.")
+        return
+      }
+
+      // 오디오 스트림은 새로 요청 (카메라 스트림은 미리보기의 트랙을 clone하여 사용)
       const audioStream = await navigator.mediaDevices.getUserMedia({ audio: true })
-      const newVideoStream = await navigator.mediaDevices.getUserMedia({ 
-        video: { 
-          width: { ideal: 1280 },
-          height: { ideal: 720 },
-          facingMode: 'user'
-        }
-      })
-      
-      const tracks = [...audioStream.getAudioTracks(), ...newVideoStream.getVideoTracks()]
+      const clonedVideoTracks = previewVideoStream.getVideoTracks().map((track) => track.clone())
+
+      const tracks = [...audioStream.getAudioTracks(), ...clonedVideoTracks]
       
       const combinedStream = new MediaStream(tracks)
       combinedStreamRef.current = combinedStream
@@ -150,7 +151,7 @@ export default function SurveyQuestion({
   } = useGoogleTTS()
   
   // 녹화 훅 사용
-  const { isRecording, recordedMedia, isAutoRecording, startRecording, stopRecording, resetRecording } = useVoiceRecording()
+  const { isRecording, recordedMedia, isAutoRecording, startRecording, stopRecording, resetRecording } = useVoiceRecording(webcamStream)
 
   const currentQuestion = surveyQuestions[questionIndex]
   const progress = ((questionIndex + 1) / surveyQuestions.length) * 100
@@ -683,13 +684,13 @@ export default function SurveyQuestion({
                       ttsStop()
                       startRecording(false)
                     }}
-                    disabled={isTTSPlaying}
+                    disabled={isTTSPlaying || !webcamStream}
                     aria-label={isRecording ? '녹음 중지' : '녹음 시작'}
                     aria-pressed={isRecording}
                     className={`flex items-center gap-3 px-8 py-4 rounded-2xl font-bold text-lg transition-colors focus:outline-none focus-visible:ring-4 ${
                       isRecording
                         ? "bg-red-600 hover:bg-red-700 text-white focus-visible:ring-red-300"
-                        : isTTSPlaying
+                        : (isTTSPlaying || !webcamStream)
                         ? "bg-gray-300 text-gray-500 cursor-not-allowed"
                         : "bg-green-600 hover:bg-green-700 text-white focus-visible:ring-green-300"
                     }`}
