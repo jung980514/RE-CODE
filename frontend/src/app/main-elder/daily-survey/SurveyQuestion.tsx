@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { usePathname } from "next/navigation"
 import { SurveyQuestionProps } from "./types"
-import { surveyQuestions } from "./surveyData"
+import { useDailySurveyQuestions } from "./surveyData"
 import { ArrowLeft, Play, Check, Volume2, Clock, User, Brain, Heart, Mic, MicOff, Video, VideoOff, Download, AlertTriangle, VolumeX, Volume1, ArrowRight, CheckCircle, RotateCcw } from "lucide-react"
 import { useGoogleTTS } from "@/api/googleTTS"
 import { WebcamView } from "@/components/common/WebcamView"
@@ -14,10 +14,13 @@ import { setupTTSLeaveDetection, forceStopAllAudio, muteAllAudio } from "@/utils
 function useVoiceRecording(previewVideoStream: MediaStream | null) {
   const [isRecording, setIsRecording] = useState(false)
   const [recordedMedia, setRecordedMedia] = useState<string | null>(null)
+  const [recordedBlob, setRecordedBlob] = useState<Blob | null>(null)
   const [isAutoRecording, setIsAutoRecording] = useState(false)
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const audioContextRef = useRef<AudioContext | null>(null)
   const combinedStreamRef = useRef<MediaStream | null>(null)
+  const chunksRef = useRef<Blob[]>([])
+  const stopResolverRef = useRef<((blob: Blob) => void) | null>(null)
 
   const startRecording = async (isAuto = false) => {
     try {
@@ -41,20 +44,41 @@ function useVoiceRecording(previewVideoStream: MediaStream | null) {
       const combinedStream = new MediaStream(tracks)
       combinedStreamRef.current = combinedStream
 
-      const mediaRecorder = new MediaRecorder(combinedStream, {
-        mimeType: "video/mp4",
-      })
+      const mediaRecorder = new MediaRecorder(combinedStream, { mimeType: "video/mp4" })
       mediaRecorderRef.current = mediaRecorder
+
+      // 이전 결과 초기화
+      if (recordedMedia) {
+        URL.revokeObjectURL(recordedMedia)
+      }
+      setRecordedMedia(null)
+      setRecordedBlob(null)
+      chunksRef.current = []
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data && event.data.size > 0) {
+          chunksRef.current.push(event.data)
+        }
+      }
+
+      mediaRecorder.onstop = () => {
+        try {
+          const finalBlob = new Blob(chunksRef.current, { type: 'video/mp4' })
+          setRecordedBlob(finalBlob)
+          const mediaUrl = URL.createObjectURL(finalBlob)
+          setRecordedMedia(mediaUrl)
+          if (stopResolverRef.current) {
+            stopResolverRef.current(finalBlob)
+            stopResolverRef.current = null
+          }
+        } finally {
+          chunksRef.current = []
+        }
+      }
 
       mediaRecorder.start()
       setIsRecording(true)
       setIsAutoRecording(isAuto)
-
-      mediaRecorder.ondataavailable = (event) => {
-        const mediaBlob = new Blob([event.data], { type: "video/mp4" })
-        const mediaUrl = URL.createObjectURL(mediaBlob)
-        setRecordedMedia(mediaUrl)
-      }
     } catch (error) {
       console.error("녹화 오류:", error)
     }
@@ -101,20 +125,46 @@ function useVoiceRecording(previewVideoStream: MediaStream | null) {
     setIsRecording(false)
     setIsAutoRecording(false)
     setRecordedMedia(null)
+    setRecordedBlob(null)
     
     // ref 초기화
     mediaRecorderRef.current = null
     audioContextRef.current = null
     combinedStreamRef.current = null
+    chunksRef.current = []
+  }
+
+  const stopAndGetBlob = async (): Promise<Blob> => {
+    if (recordedBlob && !isRecording) {
+      return recordedBlob
+    }
+    if (mediaRecorderRef.current && isRecording) {
+      return new Promise<Blob>((resolve) => {
+        stopResolverRef.current = resolve
+        mediaRecorderRef.current?.stop()
+        setIsRecording(false)
+        setIsAutoRecording(false)
+        // 스트림 및 오디오 컨텍스트 정리
+        if (combinedStreamRef.current) {
+          combinedStreamRef.current.getTracks().forEach((track) => track.stop())
+        }
+        if (audioContextRef.current) {
+          audioContextRef.current.close()
+        }
+      })
+    }
+    throw new Error('녹화된 블랍이 없습니다.')
   }
 
   return {
     isRecording,
     recordedMedia,
+    recordedBlob,
     isAutoRecording,
     startRecording,
     stopRecording,
     resetRecording,
+    stopAndGetBlob,
   }
 }
 
@@ -127,6 +177,7 @@ export default function SurveyQuestion({
   onComplete, 
   isLastQuestion 
 }: SurveyQuestionProps) {
+  const { questions: surveyQuestions, isLoading, error } = useDailySurveyQuestions()
   const [showWarningModal, setShowWarningModal] = useState(false)
   
   // showWarningModal 상태 변화 로그
@@ -151,10 +202,11 @@ export default function SurveyQuestion({
   } = useGoogleTTS()
   
   // 녹화 훅 사용
-  const { isRecording, recordedMedia, isAutoRecording, startRecording, stopRecording, resetRecording } = useVoiceRecording(webcamStream)
+  const { isRecording, recordedMedia, recordedBlob, isAutoRecording, startRecording, stopRecording, resetRecording, stopAndGetBlob } = useVoiceRecording(webcamStream)
+  const [userId, setUserId] = useState<number | null>(null)
 
   const currentQuestion = surveyQuestions[questionIndex]
-  const progress = ((questionIndex + 1) / surveyQuestions.length) * 100
+  const progress = surveyQuestions.length > 0 ? ((questionIndex + 1) / surveyQuestions.length) * 100 : 0
 
   // 진행 상황이 있는지 확인 (설문조사 페이지에 들어왔거나 녹화 중이거나 녹화가 완료된 경우)
   const hasProgress = true // 항상 true로 설정하여 모달이 나타나도록 함
@@ -415,6 +467,34 @@ export default function SurveyQuestion({
   
 
   useEffect(() => {
+    // 최초 진입 시 사용자 ID 확보 (쿠키 세션 포함)
+    const fetchUser = async () => {
+      try {
+        const stored = typeof window !== 'undefined' ? localStorage.getItem('userId') : null
+        if (stored) {
+          const parsed = Number(stored)
+          if (!Number.isNaN(parsed)) {
+            setUserId(parsed)
+          }
+        }
+        const res = await fetch('https://recode-my-life.site/api/user', {
+          method: 'GET',
+          credentials: 'include',
+          headers: { 'Accept': 'application/json' },
+        })
+        if (res.ok) {
+          const json = await res.json()
+          const idCandidate = json?.data?.id
+          if (typeof idCandidate === 'number') {
+            setUserId(idCandidate)
+            try { localStorage.setItem('userId', String(idCandidate)) } catch {}
+          }
+        }
+      } catch (e) {
+        console.error('사용자 정보 조회 오류:', e)
+      }
+    }
+    fetchUser()
     // 컴포넌트 마운트 시 이전 TTS 정리
     forceStopAllAudio()
     
@@ -494,15 +574,46 @@ export default function SurveyQuestion({
     }
   }, [isRecording, ttsStop])
 
-  const handleNextQuestion = () => {
+  const handleNextQuestion = async () => {
     // 응답이 없으면 경고 표시
     if (!recordedMedia && !isRecording) {
       setShowNoResponseWarning(true)
       return
     }
 
-    // 현재 녹화 파일 다운로드
-    downloadAllRecordings()
+    // 업로드 시도
+    try {
+      const questionId = currentQuestion?.id
+      if (!questionId) {
+        throw new Error('질문 ID가 없습니다')
+      }
+      let blobToUpload = recordedBlob
+      if (isRecording) {
+        blobToUpload = await stopAndGetBlob()
+      }
+      if (blobToUpload) {
+        const formData = new FormData()
+        formData.append('questionId', String(questionId))
+        if (userId != null) {
+          formData.append('userId', String(userId))
+        }
+        formData.append('mediaType', 'video')
+        const fileName = `answer_${questionId}_${new Date().toISOString().replace(/[:.]/g, '-')}.mp4`
+        const file = new File([blobToUpload], fileName, { type: 'video/mp4' })
+        formData.append('videoFile', file)
+
+        const uploadResponse = await fetch('https://recode-my-life.site/api/survey/answers', {
+          method: 'POST',
+          credentials: 'include',
+          body: formData,
+        })
+        if (!uploadResponse.ok) {
+          console.error('답변 업로드 실패:', uploadResponse.status)
+        }
+      }
+    } catch (err) {
+      console.error('답변 업로드 중 오류:', err)
+    }
 
     if (isLastQuestion) {
       // 마지막 질문이면 완료 처리
@@ -512,18 +623,7 @@ export default function SurveyQuestion({
       onNext()
     }
   }
-
-  const downloadAllRecordings = () => {
-    // 현재 녹화된 미디어 다운로드
-    if (recordedMedia) {
-      const a = document.createElement('a')
-      a.href = recordedMedia
-      a.download = `complete_survey_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.mp4`
-      document.body.appendChild(a)
-      a.click()
-      document.body.removeChild(a)
-    }
-  }
+  
 
 
 
@@ -548,6 +648,22 @@ export default function SurveyQuestion({
 
   const handleCloseNoResponseWarning = () => {
     setShowNoResponseWarning(false)
+  }
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-lg">질문을 불러오는 중...</div>
+      </div>
+    )
+  }
+
+  if (error || surveyQuestions.length === 0 || !currentQuestion) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-red-600">{error ?? '질문을 불러오지 못했습니다'}</div>
+      </div>
+    )
   }
 
   return (
