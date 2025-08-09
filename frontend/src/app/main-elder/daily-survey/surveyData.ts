@@ -84,9 +84,10 @@ export function useDailySurveyQuestions() {
         const server = await fetchSurveyQuestionsWithCredentials();
         if (!isMounted) return;
         setQuestions(buildQuestionsFromServer(server));
-      } catch (e: any) {
+      } catch (error: unknown) {
         if (!isMounted) return;
-        setError(e?.message ?? '설문 질문을 불러오지 못했습니다');
+        const message = error instanceof Error ? error.message : '설문 질문을 불러오지 못했습니다';
+        setError(message);
         setQuestions([]); // 실패 시 빈 배열 유지
       } finally {
         if (isMounted) setIsLoading(false);
