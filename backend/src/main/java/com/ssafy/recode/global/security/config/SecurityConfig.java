@@ -82,46 +82,14 @@ public class SecurityConfig {
                                          CorsConfigurationSource corsConfigurationSource,
                                          RefreshTokenService refreshTokenService) throws Exception {
 
-    JWTLoginFilter jwtLoginFilter = new JWTLoginFilter(authenticationManager, jwtUtil,
-        refreshTokenService);
+    JWTLoginFilter jwtLoginFilter = new JWTLoginFilter(authenticationManager, jwtUtil, refreshTokenService);
 
-    // 기본 보안 기능 비활성화 (JWT 기반이므로 세션 사용 X)
-    http.cors(cors -> cors.configurationSource(corsConfigurationSource));
-    http.csrf(csrf -> csrf.disable());
-    http.formLogin(form -> form.disable());
-    http.httpBasic(basic -> basic.disable());
-
-    // JWT 커스텀 필터 등록
-//    http
-//        .addFilterBefore(jwtLoginFilter, UsernamePasswordAuthenticationFilter.class)
-//        .addFilterAfter(new JWTAccessFilter(jwtUtil, filterResponseUtils),
-//            OAuth2LoginAuthenticationFilter.class)
-//        .addFilterAfter(new JWTRefreshFilter(refreshTokenRepository, filterResponseUtils),
-//            OAuth2LoginAuthenticationFilter.class)
-//        .addFilterBefore(new JWTLogoutFilter(refreshTokenRepository, filterResponseUtils),
-//            LogoutFilter.class);
-//
-//    // OAuth2 로그인 설정
-//    http
-//        .oauth2Login(oauth2 -> oauth2
-//            .loginPage("/api/user/login/page") // 커스텀 로그인 페이지 URL
-//            .userInfoEndpoint(endpoint -> endpoint.userService(oAuth2UserService)) // 사용자 정보 조회 서비스
-//            .successHandler(oAuth2SuccessHandler) // 로그인 성공 시 핸들러
-//        );
-
-    // 인가 정책 설정
     http
-            // CORS 설정 (Customizer 람다만 사용) :contentReference[oaicite:0]{index=0}
             .cors(cors -> cors.configurationSource(corsConfigurationSource))
-            // CSRF 비활성화
             .csrf(csrf -> csrf.disable())
-            // 세션 사용 안 함
-            .sessionManagement(sm -> sm
-                    .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-            )
-            // 기본 로그인·폼·기본 인증 비활성화
-            .formLogin(Customizer.withDefaults())
-            .httpBasic(Customizer.withDefaults())
+            .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            .formLogin(form -> form.disable())
+            .httpBasic(basic -> basic.disable())
 
             // 커스텀 JWT 필터 등록
             .addFilterBefore(jwtLoginFilter, UsernamePasswordAuthenticationFilter.class)
@@ -141,13 +109,14 @@ public class SecurityConfig {
 
             // 인가 정책
             .authorizeHttpRequests(auth -> auth
-                    // Swagger UI & OpenAPI Docs
+                    // Swagger & Docs & favicon & error 페이지
                     .requestMatchers(
+                            "/favicon.ico",
+                            "/error",
                             "/v3/api-docs/**",
                             "/swagger-ui/**",
                             "/swagger-ui.html",
-                            "/webjars/**",
-                            "/actuator/health/**"
+                            "/webjars/**"
                     ).permitAll()
                     // 인증 없이 열어둘 API
                     .requestMatchers(
@@ -158,15 +127,17 @@ public class SecurityConfig {
                             "/login/oauth2/code/**",
                             "/index.html"
                     ).permitAll()
+                    // Prometheus 모니터링 IP 제한
                     .requestMatchers("/actuator/prometheus")
-                    .access(
-                            new WebExpressionAuthorizationManager("hasIpAddress('172.18.0.0/16')"))
+                    .access(new WebExpressionAuthorizationManager("hasIpAddress('172.18.0.0/16')"))
                     // 나머지 요청은 인증 필요
                     .anyRequest().authenticated()
             );
 
     return http.build();
   }
+
+
 
   /**
    * WebSecurityCustomizer

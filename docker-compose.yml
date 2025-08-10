@@ -61,6 +61,8 @@ services:
     depends_on:
       - frontend
       - backend
+      - prometheus
+      - grafana
     networks:
       - app-network
   prometheus:
@@ -83,6 +85,8 @@ services:
     volumes:
       - grafana-data:/var/lib/grafana
     environment:
+      - GF_SERVER_ROOT_URL=%https://recone-my-life.site/grafana/
+      - GF_SERVER_SERVE_FROM_SUB_PATH=true
       - GF_SECURITY_ADMIN_USER=${GRAFANA_USER}
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PW}
     depends_on:
