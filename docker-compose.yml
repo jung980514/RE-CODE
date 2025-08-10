@@ -69,18 +69,22 @@ services:
     restart: unless-stopped
     networks:
       - app-network
-
   grafana:
     build: ./grafana
     ports:
       - "3000:3000"
     volumes:
       - grafana-data:/var/lib/grafana
+      - ./grafana/grafana.ini:/etc/grafana/grafana.ini:ro
     environment:
       - GF_SERVER_ROOT_URL=https://recode-my-life.site/grafana/
       - GF_SERVER_SERVE_FROM_SUB_PATH=true
+      - GF_SERVER_DOMAIN=recode-my-life.site
       - GF_SECURITY_ADMIN_USER=${GRAFANA_USER}
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PW}
+      - GF_SECURITY_COOKIE_SECURE=true
+      - GF_SECURITY_COOKIE_SAMESITE=lax
+      - GF_SERVER_ENABLE_GZIP=true
     depends_on:
       - prometheus
     restart: unless-stopped
