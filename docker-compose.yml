@@ -36,6 +36,11 @@ services:
       - "8088"
     networks:
       - app-network
+    healthcheck:
+        test: [ "CMD", "wget", "-qO-", "http://localhost:8081/actuator/health/liveness" ]
+        interval: 15s
+        timeout: 3s
+        retries: 3
 
   frontend:
     build: ./frontend
@@ -58,7 +63,35 @@ services:
       - backend
     networks:
       - app-network
+  prometheus:
+    build: ./prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/data:/prometheus
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=15d
+      - --storage.tsdb.retention.size=5GB
+      - --web.enable-lifecycle      # /-/reload 로 무중단 리로드
 
+  grafana:
+    build: ./grafana
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana-data:/var/lib/grafana
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_USER}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PW}
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+volumes:
+  grafana-data:
 networks:
   app-network:
     driver: bridge
+
+

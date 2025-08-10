@@ -23,6 +23,7 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.oauth2.client.web.OAuth2LoginAuthenticationFilter;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.access.expression.WebExpressionAuthorizationManager;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.authentication.logout.LogoutFilter;
 import org.springframework.web.cors.CorsConfiguration;
@@ -145,7 +146,8 @@ public class SecurityConfig {
                             "/v3/api-docs/**",
                             "/swagger-ui/**",
                             "/swagger-ui.html",
-                            "/webjars/**"
+                            "/webjars/**",
+                            "/actuator/health/**"
                     ).permitAll()
                     // 인증 없이 열어둘 API
                     .requestMatchers(
@@ -156,6 +158,9 @@ public class SecurityConfig {
                             "/login/oauth2/code/**",
                             "/index.html"
                     ).permitAll()
+                    .requestMatchers("/actuator/prometheus")
+                    .access(
+                            new WebExpressionAuthorizationManager("hasIpAddress('172.18.0.0/16')"))
                     // 나머지 요청은 인증 필요
                     .anyRequest().authenticated()
             );
