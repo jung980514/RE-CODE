@@ -58,7 +58,7 @@ services:
     ports:
       - "9090:9090"
     volumes:
-      - ./prometheus/data:/prometheus
+      - prometheus-data:/prometheus
       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
     command:
       - --config.file=/etc/prometheus/prometheus.yml
@@ -100,6 +100,7 @@ services:
 
 volumes:
   grafana-data:
+  prometheus-data:
 networks:
   app-network:
     driver: bridge
