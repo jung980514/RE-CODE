@@ -129,7 +129,7 @@ public class SecurityConfig {
                     ).permitAll()
                     // Prometheus 모니터링 IP 제한
                     .requestMatchers("/actuator/prometheus")
-                    .access(new WebExpressionAuthorizationManager("hasIpAddress('172.18.0.0/16')"))
+                    .access(new WebExpressionAuthorizationManager("hasIpAddress('172.21.0.0/16')"))
                     // 나머지 요청은 인증 필요
                     .anyRequest().authenticated()
             );
