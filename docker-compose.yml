@@ -67,6 +67,8 @@ services:
       - --storage.tsdb.retention.size=5GB
       - --web.enable-lifecycle      # /-/reload 로 무중단 리로드
     restart: unless-stopped
+    networks:
+      - app-network
 
   grafana:
     build: ./grafana
@@ -82,6 +84,8 @@ services:
     depends_on:
       - prometheus
     restart: unless-stopped
+    networks:
+      - app-network
 
   nginx:
     build: ./nginx
