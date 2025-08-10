@@ -1,9 +1,10 @@
 .main {
   width: 100%;
   overflow-x: hidden;
+  letter-spacing: 0.2em;
+  line-height: 1.2;
 }
 
-/* Hero Section */
 .hero {
   position: relative;
   width: 100%;
@@ -143,7 +144,7 @@
 /* Necessity Section */
 .necessity {
   padding: 100px 20px;
-  max-width: 1200px;
+  max-width: 1500px;
   margin: 0 auto;
 }
 

@@ -36,6 +36,11 @@ const GuardianSignupModal: React.FC<GuardianSignupModalProps> = ({
   // 가상키보드 상태
   const [showVirtualKeyboard, setShowVirtualKeyboard] = useState(false);
   const [activeInput, setActiveInput] = useState<string | null>(null);
+  const nameInputRef = useRef<HTMLInputElement>(null);
+  const phoneInputRef = useRef<HTMLInputElement>(null);
+  const emailInputRef = useRef<HTMLInputElement>(null);
+  const passwordInputRef = useRef<HTMLInputElement>(null);
+  const confirmPasswordInputRef = useRef<HTMLInputElement>(null);
 
   // 개인정보 동의서 모달 상태
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
@@ -120,6 +125,39 @@ const GuardianSignupModal: React.FC<GuardianSignupModalProps> = ({
     setShowVirtualKeyboard(!showVirtualKeyboard);
   };
 
+  const focusActiveInput = () => {
+    setTimeout(() => {
+      if (!activeInput) return;
+      let el: HTMLInputElement | null = null;
+      switch (activeInput) {
+        case 'name':
+          el = nameInputRef.current;
+          break;
+        case 'phoneNumber':
+          el = phoneInputRef.current;
+          break;
+        case 'email':
+          el = emailInputRef.current;
+          break;
+        case 'password':
+          el = passwordInputRef.current;
+          break;
+        case 'confirmPassword':
+          el = confirmPasswordInputRef.current;
+          break;
+        default:
+          el = null;
+      }
+      if (el) {
+        el.focus();
+        const len = el.value.length;
+        try {
+          el.setSelectionRange(len, len);
+        } catch {}
+      }
+    }, 0);
+  };
+
   // 가상키보드에서 입력 처리
   const handleVirtualKeyboardInput = (key: string, replaceLast?: boolean) => {
     if (activeInput) {
@@ -134,6 +172,7 @@ const GuardianSignupModal: React.FC<GuardianSignupModalProps> = ({
           [activeInput]: newValue
         };
       });
+      focusActiveInput();
     }
   };
 
@@ -144,6 +183,7 @@ const GuardianSignupModal: React.FC<GuardianSignupModalProps> = ({
         ...prev,
         [activeInput]: String(prev[activeInput as keyof typeof prev]).slice(0, -1)
       }));
+      focusActiveInput();
     }
   };
 
@@ -151,6 +191,7 @@ const GuardianSignupModal: React.FC<GuardianSignupModalProps> = ({
   const handleVirtualKeyboardSpace = () => {
     if (activeInput) {
       setGuardianFormData((prev) => ({...prev, [activeInput]: String(prev[activeInput as keyof typeof prev]) + ' '}));
+      focusActiveInput();
     }
   };
 
@@ -158,6 +199,14 @@ const GuardianSignupModal: React.FC<GuardianSignupModalProps> = ({
   const handleVirtualKeyboardEnter = () => {
     setShowVirtualKeyboard(false);
   };
+
+  // 다른 모달(약관/성공) 열리면 가상키보드 닫기 및 활성 입력 해제
+  useEffect(() => {
+    if (showPrivacyModal || showSensitiveModal || showSuccessModal) {
+      setShowVirtualKeyboard(false);
+      setActiveInput(null);
+    }
+  }, [showPrivacyModal, showSensitiveModal, showSuccessModal]);
 
   // 마우스 다운 이벤트 핸들러
   const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -293,6 +342,8 @@ const GuardianSignupModal: React.FC<GuardianSignupModalProps> = ({
               <label className={styles.label}>이름 *</label>
               <input
                 type="text"
+                ref={nameInputRef}
+                onFocus={() => setActiveInput('name')}
                 value={guardianFormData.name}
                 onChange={(e) => handleGuardianInputChange('name', e.target.value)}
                 placeholder="이름을 입력해주세요."
@@ -306,6 +357,8 @@ const GuardianSignupModal: React.FC<GuardianSignupModalProps> = ({
               <label className={styles.label}>휴대전화 번호 *</label>
               <input
                 type="tel"
+                ref={phoneInputRef}
+                onFocus={() => setActiveInput('phoneNumber')}
                 value={guardianFormData.phoneNumber}
                 onChange={(e) => handleGuardianInputChange('phoneNumber', e.target.value)}
                 placeholder="&apos;-&apos; 없이 입력해주세요."
@@ -336,6 +389,8 @@ const GuardianSignupModal: React.FC<GuardianSignupModalProps> = ({
               <label className={styles.label}>비밀번호 *</label>
               <input
                 type="password"
+                ref={passwordInputRef}
+                onFocus={() => setActiveInput('password')}
                 value={guardianFormData.password}
                 onChange={(e) => handleGuardianInputChange('password', e.target.value)}
                 placeholder="영문, 숫자, 특수문자 포함 8자 이상"
@@ -347,6 +402,8 @@ const GuardianSignupModal: React.FC<GuardianSignupModalProps> = ({
               <label className={styles.label}>비밀번호 확인 *</label>
               <input
                 type="password"
+                ref={confirmPasswordInputRef}
+                onFocus={() => setActiveInput('confirmPassword')}
                 value={guardianFormData.confirmPassword}
                 onChange={(e) => handleGuardianInputChange('confirmPassword', e.target.value)}
                 placeholder="비밀번호를 다시 입력해주세요"
@@ -373,6 +430,8 @@ const GuardianSignupModal: React.FC<GuardianSignupModalProps> = ({
               <label className={styles.label}>이메일</label>
               <input
                 type="email"
+                ref={emailInputRef}
+                onFocus={() => setActiveInput('email')}
                 value={guardianFormData.email}
                 onChange={(e) => handleGuardianInputChange('email', e.target.value)}
                 placeholder="이메일을 입력해주세요"

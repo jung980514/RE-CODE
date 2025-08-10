@@ -178,6 +178,13 @@
   padding-right: 50px;
 }
 
+.passwordInputWrapper input::-ms-reveal,
+.passwordInputWrapper input::-ms-clear {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
 .passwordToggle {
   position: absolute;
   right: 15px;
@@ -282,6 +289,7 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
+  margin-top: 15px; /* 카카오 버튼과의 간격 */
   margin-bottom: 20px;
   transition: background-color 0.2s ease;
 }

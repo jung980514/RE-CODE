@@ -42,7 +42,7 @@ const SensitivePolicyModal: React.FC<SensitivePolicyModalProps> = ({ open, onClo
         onClick={e => e.stopPropagation()}
       >
         <h2 style={{ fontWeight: 700, fontSize: 26, marginBottom: 24, textAlign: "center", letterSpacing: "-1px" }}>
-          RE:CORD 민감정보 수집 및 이용동의서
+          RE:CODE 민감정보 수집 및 이용동의서
         </h2>
         {/* 본문 카드 */}
         <div
@@ -79,7 +79,7 @@ const SensitivePolicyModal: React.FC<SensitivePolicyModalProps> = ({ open, onClo
             위치정보는 서비스 종료 후 6개월 이내 삭제{"\n"}
             {"\n"}
             <b>민감정보 제3자 제공</b>{"\n"}
-            RE:CORD는 원칙적으로 민감정보를 제3자에게 제공하지 않습니다. 다만, 다음의 경우에는 예외로 합니다:{"\n"}
+            RE:CODE는 원칙적으로 민감정보를 제3자에게 제공하지 않습니다. 다만, 다음의 경우에는 예외로 합니다:{"\n"}
             법령에 의한 요구가 있는 경우{"\n"}
             생명이 위급한 응급상황에서 의료진에게 제공하는 경우{"\n"}
             사전에 별도 동의를 받은 경우{"\n"}

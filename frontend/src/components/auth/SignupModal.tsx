@@ -83,7 +83,7 @@ const SignupModal: React.FC<SignupModalProps> = ({ isOpen, onClose }) => {
               height={71}
               className={styles.logo}
             />
-            <span className={styles.logoText}>RE:CORD</span>
+            <span className={styles.logoText}>RE:CODE</span>
           </div>
 
           <div className={styles.content}>
@@ -96,7 +96,9 @@ const SignupModal: React.FC<SignupModalProps> = ({ isOpen, onClose }) => {
             >
               보호자로 가입하기
             </button>
-            
+            <div className={styles.divider}>
+            <span>또는</span>
+          </div>
             <button 
               type="button"
               className={`${styles.signupButton} ${styles.seniorButton}`}

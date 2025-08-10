@@ -142,6 +142,14 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLoginSuccess
     setShowFindAccountModal(true);
   };
 
+  // 다른 모달이 열리면 가상 키보드 닫기
+  useEffect(() => {
+    if (showSignupModal || showFindAccountModal) {
+      setIsKeyboardVisible(false);
+      setActiveInput(null);
+    }
+  }, [showSignupModal, showFindAccountModal]);
+
   const handleToggleKeyboard = () => {
     setIsKeyboardVisible((prev) => !prev);
   };

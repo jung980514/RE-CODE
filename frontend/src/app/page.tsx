@@ -67,7 +67,7 @@ export default function Home() {
       <section className={styles.introduction}>
         <div className={styles.introductionContent}>
           <h2 className={`${styles.quote} ${styles.animateOnScroll}`}>
-            &quot행복한 추억으로 오늘의 기억을 지켜주세요!&quot
+            행복한 추억으로 오늘의 기억을 지켜주세요!
           </h2>
           <p className={`${styles.description} ${styles.animateOnScroll}`}>
             RE:CORD는 사랑하는 사람들이 추억을 공유하며, 부모님・지인 등 소중한 분의 기억을 지켜주는 애플리케이션입니다.
@@ -84,10 +84,10 @@ export default function Home() {
         <p className={`${styles.necessityText} ${styles.animateOnScroll}`}>
           전 세계적으로 고령화가 심각한 사회문제로 떠오르고 있습니다. 이에 따라, 나이가 들면서 기억력 감소와 경도인지장애 등으로 고민하고 힘들어하시는 분들이 늘어나고 있습니다.
           <br /><br />
-          우리가 건강하고 행복한 노후를 위해, 운동을 하는 것처럼 두뇌건강도 관리가 필요합니다. RE:CORD로 사랑하는 부모님의 두뇌건강을 지켜주세요.
+          우리가 건강하고 행복한 노후를 위해, 운동을 하는 것처럼 두뇌건강도 관리가 필요합니다. RE:CODE로 사랑하는 부모님의 두뇌건강을 지켜주세요.
         </p>
         <h3 className={`${styles.slogan} ${styles.animateOnScroll}`}>
-          &quot두뇌건강, 노년의 행복이 되다!&quot
+          두뇌건강, 노년의 행복이 되다!
         </h3>
         < MainPageGrid />
       </section>
@@ -115,7 +115,7 @@ export default function Home() {
           </div>
         </div>
         <h3 className={`${styles.slogan} ${styles.animateOnScroll}`}>
-          &quot추억으로 기억의 불씨를 되살리다!&quot
+          추억으로 기억의 불씨를 되살리다!
         </h3>
       </section>
       </main>
