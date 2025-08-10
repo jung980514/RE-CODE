@@ -50,6 +50,7 @@ services:
       - PORT=3030
     networks:
       - app-network
+
   prometheus:
     user: "65534:65534"
     build: ./prometheus
@@ -58,7 +59,7 @@ services:
       - "9090:9090"
     volumes:
       - ./prometheus/data:/prometheus
-        - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
     command:
       - --config.file=/etc/prometheus/prometheus.yml
       - --storage.tsdb.path=/prometheus
