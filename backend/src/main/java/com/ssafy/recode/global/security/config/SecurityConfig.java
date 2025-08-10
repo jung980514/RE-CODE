@@ -116,7 +116,8 @@ public class SecurityConfig {
                             "/v3/api-docs/**",
                             "/swagger-ui/**",
                             "/swagger-ui.html",
-                            "/webjars/**"
+                            "/webjars/**",
+                            "/actuator/**"
                     ).permitAll()
                     // 인증 없이 열어둘 API
                     .requestMatchers(
@@ -125,7 +126,8 @@ public class SecurityConfig {
                             "/api/user/register",
                             "/api/reissue",
                             "/login/oauth2/code/**",
-                            "/index.html"
+                            "/index.html",
+                            "/actuator/prometheus"
                     ).permitAll()
                     // Prometheus 모니터링 IP 제한
                     .requestMatchers("/actuator/prometheus")
