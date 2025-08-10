@@ -51,18 +51,21 @@ services:
     networks:
       - app-network
   prometheus:
+    user: "65534:65534"
     build: ./prometheus
     container_name: prometheus
     ports:
       - "9090:9090"
     volumes:
       - ./prometheus/data:/prometheus
+        - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
     command:
       - --config.file=/etc/prometheus/prometheus.yml
       - --storage.tsdb.path=/prometheus
       - --storage.tsdb.retention.time=15d
       - --storage.tsdb.retention.size=5GB
       - --web.enable-lifecycle      # /-/reload 로 무중단 리로드
+    restart: unless-stopped
 
   grafana:
     build: ./grafana
