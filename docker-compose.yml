@@ -50,23 +50,9 @@ services:
       - PORT=3030
     networks:
       - app-network
-
-  nginx:
-    build: ./nginx
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - /etc/letsencrypt:/etc/letsencrypt:ro
-    depends_on:
-      - frontend
-      - backend
-      - prometheus
-      - grafana
-    networks:
-      - app-network
   prometheus:
     build: ./prometheus
+    container_name: prometheus
     ports:
       - "9090:9090"
     volumes:
@@ -92,6 +78,22 @@ services:
     depends_on:
       - prometheus
     restart: unless-stopped
+
+  nginx:
+    build: ./nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+    depends_on:
+      - frontend
+      - backend
+      - prometheus
+      - grafana
+    networks:
+      - app-network
+
 volumes:
   grafana-data:
 networks:
