@@ -75,6 +75,7 @@ services:
       - "3000:3000"
     volumes:
       - grafana-data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
       - ./grafana/grafana.ini:/etc/grafana/grafana.ini:ro
     environment:
       - GF_SERVER_ROOT_URL=https://recode-my-life.site/grafana/
