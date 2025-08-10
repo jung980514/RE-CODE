@@ -3,4 +3,4 @@ providers:
   - name: 'App Dashboards'
     type: file
     options:
-      path: /var/lib/grafana/dashboards
+      path: /etc/grafana/provisioning/dashboards
