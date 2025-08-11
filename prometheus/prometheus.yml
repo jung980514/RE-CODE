@@ -7,4 +7,3 @@ scrape_configs:
     metrics_path: /actuator/prometheus
     static_configs:
       - targets: ['backend:8088']
-    bearer_token: ${USER_TOKEN}

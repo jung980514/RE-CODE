@@ -66,8 +66,6 @@ services:
       - --storage.tsdb.retention.time=15d
       - --storage.tsdb.retention.size=5GB
       - --web.enable-lifecycle      # /-/reload 로 무중단 리로드
-    environment:
-      - USER_TOKEN=${USER_TOKEN}
     restart: unless-stopped
     networks:
       - app-network
