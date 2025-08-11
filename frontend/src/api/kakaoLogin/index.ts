@@ -1,7 +1,29 @@
 import axios from 'axios';
-import { openKakaoLoginPopup, redirectToKakaoLogin } from './kakaoAuth';
+import { redirectToKakaoLogin } from './kakaoAuth';
 import { KakaoLoginResponse, SurveyData } from './types';
 import { KAKAO_CONFIG } from './config';
+
+// 회원정보(설문) 업데이트 API
+export const updateUserInfo = async (surveyData: SurveyData) => {
+  try {
+    const response = await axios.patch(`${KAKAO_CONFIG.API_BASE_URL}/api/user/update`, surveyData, { withCredentials: true });
+    return {
+      success: response.data.status === 'success',
+      user: response.data.data,
+      error: response.data.message || null,
+    };
+  } catch (error: unknown) {
+    let errMsg = '설정 저장 중 오류가 발생했습니다.';
+    if (axios.isAxiosError(error)) {
+      errMsg = error.response?.data?.message || error.message || errMsg;
+    }
+    return {
+      success: false,
+      user: null,
+      error: errMsg,
+    };
+  }
+};
 
 /**
  * 카카오 로그인 메인 함수 (백엔드 OAuth2 사용)
@@ -21,8 +43,6 @@ export const kakaoLogin = async (usePopup: boolean = false): Promise<KakaoLoginR
         message: '카카오 로그인 페이지로 이동 중...'
       };
     } else {
-      // 리다이렉트 방식 - 백엔드 OAuth2 엔드포인트로 이동
-      console.log('🔄 리다이렉트 방식으로 카카오 로그인 시작');
       redirectToKakaoLogin();
       return {
         success: true,
@@ -40,15 +60,9 @@ export const kakaoLogin = async (usePopup: boolean = false): Promise<KakaoLoginR
   }
 };
 
-/**
- * 백엔드에서 카카오 로그인 후 콜백 처리
- * 백엔드는 쿠키로 토큰을 설정하고 성공 응답을 반환함
- */
+// 카카오 콜백 처리 함수
 export const handleKakaoCallback = async (): Promise<KakaoLoginResponse> => {
   try {
-    console.log('🔍 handleKakaoCallback 시작');
-    
-    // URL에 에러 파라미터가 있는지 먼저 확인
     const urlParams = new URLSearchParams(window.location.search);
     const errorParam = urlParams.get('error');
     
@@ -60,7 +74,7 @@ export const handleKakaoCallback = async (): Promise<KakaoLoginResponse> => {
         error: `OAuth2 인증 오류: ${errorParam}`
       };
     }
-    
+
     // 백엔드에서 설정한 쿠키에서 사용자 정보 확인
     const response = await axios.get(`${KAKAO_CONFIG.API_BASE_URL}/api/user`, {
       withCredentials: true // 쿠키 포함
@@ -68,46 +82,30 @@ export const handleKakaoCallback = async (): Promise<KakaoLoginResponse> => {
 
     console.log('📡 백엔드 응답:', response.data);
     const apiResponse = response.data;
-    
+
     if (apiResponse.status === 'success' && apiResponse.data) {
       const userData = apiResponse.data;
       console.log('👤 사용자 데이터:', userData);
-      
-      // 사용자 타입 결정 (백엔드 Role enum 기반)
-      let userType = 2; // 기본값: 설문조사 필요
-      if (userData.role === 'ELDER') {
-        userType = 0;
-      } else if (userData.role === 'GUARDIAN') {
-        userType = 1;
-      } else if (userData.role === 'USER') {
-        userType = 2; // 최초 사용자 - 설문조사 필요
-      }
-      
-      console.log('🎯 사용자 역할:', userData.role, '→ 사용자 타입:', userType);
-      
-      // localStorage에 사용자 정보 저장
+
+      // 사용자 역할 저장 (백엔드 Role enum 기반)
+      const role = userData.role;
       localStorage.setItem('isLoggedIn', 'true');
-      localStorage.setItem('userType', userType.toString());
+      localStorage.setItem('role', role);
       localStorage.setItem('name', userData.name || '');
       localStorage.setItem('email', userData.email || '');
 
       // 최초 로그인 사용자인 경우 설문조사 완료 여부 확인
-      if (userType === 2) {
+      if (role === 'USER') {
         // 카카오 설문조사 완료 여부 확인 (이메일별)
         const userEmail = userData.email?.replace('kakao ', '') || 'unknown';
         const surveyCompleted = localStorage.getItem(`kakao_survey_completed_${userEmail}`) === 'true';
-        
+
         console.log('🔍 설문조사 완료 여부 확인:', {
           userEmail,
           surveyCompleted
         });
-        
-        if (surveyCompleted) {
-          // 이미 설문조사를 완료한 사용자 - 저장된 userType 사용
-          const savedUserType = localStorage.getItem('userType');
-          userType = savedUserType ? parseInt(savedUserType) : 2;
-          console.log('✅ 설문조사 완료된 사용자, 저장된 userType:', userType);
-        } else {
+
+        if (!surveyCompleted) {
           // 설문조사 미완료 - 카카오 정보를 설문조사에서 사용할 수 있도록 저장
           localStorage.setItem('kakaoUserInfo', JSON.stringify({
             id: userData.id,
@@ -115,6 +113,27 @@ export const handleKakaoCallback = async (): Promise<KakaoLoginResponse> => {
             email: userData.email
           }));
           console.log('⚠️ 설문조사 필요한 사용자');
+        } else {
+          // 🔥 이미 설문조사를 완료한 카카오 사용자
+          // localStorage에서 이전에 설정한 역할을 가져와서 사용
+          const savedRole = localStorage.getItem(`kakao_role_${userEmail}`);
+          if (savedRole && (savedRole === 'ELDER' || savedRole === 'GUARDIAN')) {
+            console.log('✅ 이전에 설정한 역할 발견:', savedRole);
+            localStorage.setItem('role', savedRole);
+            // role 값을 업데이트하여 콜백 페이지에서 올바른 페이지로 이동하도록 함
+            const result = {
+              success: true,
+              status: 'success' as const,
+              user: {
+                id: userData.id,
+                email: userData.email,
+                name: userData.name,
+                role: savedRole as 'ELDER' | 'GUARDIAN' | 'USER' // 저장된 역할 사용
+              }
+            };
+            console.log('✅ 최종 반환 결과 (저장된 역할 사용):', result);
+            return result;
+          }
         }
       }
 
@@ -125,10 +144,10 @@ export const handleKakaoCallback = async (): Promise<KakaoLoginResponse> => {
           id: userData.id,
           email: userData.email,
           name: userData.name,
-          userType: userType
+          role: role as 'ELDER' | 'GUARDIAN' | 'USER'
         }
       };
-      
+
       console.log('✅ 최종 반환 결과:', result);
       return result;
     } else {
@@ -138,79 +157,49 @@ export const handleKakaoCallback = async (): Promise<KakaoLoginResponse> => {
         error: '사용자 정보를 가져올 수 없습니다.'
       };
     }
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('카카오 콜백 처리 오류:', error);
-    
+
     if (axios.isAxiosError(error)) {
-      const errorMessage = error.response?.data?.message || error.message;
+      const status = error.response?.status;
+      const statusText = error.response?.statusText;
+
+      console.error('📡 백엔드 API 에러 상세:', {
+        status,
+        statusText,
+        url: error.config?.url,
+        data: error.response?.data,
+        headers: error.response?.headers
+      });
+
+      let errorMessage = '카카오 로그인 처리 중 오류가 발생했습니다.';
+
+      if (status === 500) {
+        errorMessage = '백엔드 서버에서 카카오 로그인 처리 중 내부 오류가 발생했습니다. 잠시 후 다시 시도해주세요.';
+        console.error('🚨 백엔드 500 에러 - OAuth2 처리 실패');
+      } else if (status === 401) {
+        errorMessage = '카카오 로그인 인증이 실패했습니다. 다시 로그인해주세요.';
+      } else if (status === 403) {
+        errorMessage = '카카오 로그인 접근 권한이 없습니다.';
+      } else if (status === 404) {
+        errorMessage = '카카오 로그인 API를 찾을 수 없습니다. 관리자에게 문의하세요.';
+      } else if ((error as { code?: string }).code === 'ECONNREFUSED' || (error as { code?: string }).code === 'NETWORK_ERROR') {
+        errorMessage = '백엔드 서버에 연결할 수 없습니다. 네트워크 연결을 확인해주세요.';
+      } else {
+        errorMessage = error.response?.data?.message || error.message || errorMessage;
+      }
+
       return {
         success: false,
         status: 'error',
         error: errorMessage
       };
     }
-    
+
     return {
       success: false,
       status: 'error',
       error: error instanceof Error ? error.message : '서버와의 통신 중 오류가 발생했습니다.'
-    };
-  }
-};
-
-/**
- * 설문조사 데이터 제출 (카카오 로그인 후 추가 정보 입력 완료)
- */
-export const submitSurvey = async (surveyData: SurveyData): Promise<KakaoLoginResponse> => {
-  try {
-    console.log('📤 설문조사 데이터 제출:', surveyData);
-    
-    // 카카오에서 받은 사용자 정보 가져오기
-    const kakaoUserInfo = JSON.parse(localStorage.getItem('kakaoUserInfo') || '{}');
-    
-    console.log('📤 추가 정보 localStorage 저장 (카카오 계정 설정 완료):', {
-      phone: surveyData.additionalInfo?.phoneNumber,
-      birthDate: surveyData.additionalInfo?.birthDate,
-      userType: surveyData.userType
-    });
-    
-    // 설문조사 완료 처리 - localStorage에 영구 저장
-    localStorage.setItem('userType', surveyData.userType.toString());
-    localStorage.setItem('isLoggedIn', 'true');
-    
-    // 추가 정보 localStorage에 저장
-    if (surveyData.additionalInfo?.phoneNumber) {
-      localStorage.setItem('phone', String(surveyData.additionalInfo.phoneNumber));
-    }
-    if (surveyData.additionalInfo?.birthDate) {
-      localStorage.setItem('birthDate', String(surveyData.additionalInfo.birthDate));
-    }
-    
-    // 카카오 설문조사 완료 플래그 (이메일별로 저장)
-    const userEmail = kakaoUserInfo.email?.replace('kakao ', '') || 'unknown';
-    localStorage.setItem(`kakao_survey_completed_${userEmail}`, 'true');
-    
-    // 카카오 임시 정보 삭제
-    localStorage.removeItem('kakaoUserInfo');
-    
-    return {
-      success: true,
-      status: 'success',
-      user: {
-        id: kakaoUserInfo.id || '',
-        userType: surveyData.userType,
-        name: kakaoUserInfo.name || '',
-        email: userEmail
-      },
-      message: '설정이 완료되었습니다.'
-    };
-  } catch (error) {
-    console.error('설정 저장 오류:', error);
-    
-    return {
-      success: false,
-      status: 'error',
-      error: error instanceof Error ? error.message : '설정 저장 중 오류가 발생했습니다.'
     };
   }
 };
@@ -238,7 +227,7 @@ export const kakaoLogout = async (): Promise<void> => {
   } finally {
     // 로컬 스토리지 정리
     localStorage.removeItem('isLoggedIn');
-    localStorage.removeItem('userType');
+    localStorage.removeItem('role');
     localStorage.removeItem('name');
     localStorage.removeItem('accessToken');
     localStorage.removeItem('kakaoSurveyCompleted'); // 설문조사 완료 플래그 삭제

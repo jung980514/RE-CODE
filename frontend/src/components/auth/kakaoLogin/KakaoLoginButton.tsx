@@ -6,7 +6,7 @@ import { kakaoLogin } from '@/api/kakaoLogin';
 import styles from './KakaoLoginButton.module.css';
 
 interface KakaoLoginButtonProps {
-  onSuccess?: (userType: number) => void;
+  onSuccess?: (role: 'ELDER' | 'GUARDIAN' | 'USER' | 'ADMIN') => void;
   onError?: (error: string) => void;
   disabled?: boolean;
   usePopup?: boolean; // true: 팝업, false: 리다이렉트
@@ -36,19 +36,21 @@ const KakaoLoginButton: React.FC<KakaoLoginButtonProps> = ({
       if (result.success) {
         // 리다이렉트가 시작되므로 여기서는 성공 처리를 하지 않음
         // 실제 성공 처리는 콜백 페이지에서 수행됨
+        console.log('🔄 카카오 로그인 페이지로 리다이렉트 시작');
       } else {
         // 에러 콜백 호출
         const errorMessage = result.error || result.message || '카카오 로그인에 실패했습니다.';
         console.error('❌ 카카오 로그인 실패:', errorMessage);
         onError?.(errorMessage);
+        setIsLoading(false); // 에러 시에만 로딩 상태 해제
       }
     } catch (error) {
       console.error('❌ 카카오 로그인 오류:', error);
       const errorMessage = error instanceof Error ? error.message : '카카오 로그인 중 오류가 발생했습니다.';
       onError?.(errorMessage);
-    } finally {
-      setIsLoading(false);
+      setIsLoading(false); // 에러 시에만 로딩 상태 해제
     }
+    // 성공 시 리다이렉트되므로 finally에서 setIsLoading(false) 제거
   };
 
   return (

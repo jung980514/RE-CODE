@@ -4,7 +4,7 @@ export interface KakaoUser {
   id: number;
   email: string;
   name: string;
-  userType: number; // 0: 노인, 1: 보호자, 2: 미설정(최초 로그인)
+  role: 'ELDER' | 'GUARDIAN' | 'USER';
 }
 
 export interface KakaoLoginResponse {
@@ -32,7 +32,7 @@ export interface KakaoPopupResult {
 
 // 설문조사 데이터 타입
 export interface SurveyData {
-  userType: 0 | 1; // 0: 노인, 1: 보호자
+  role: 'ELDER' | 'GUARDIAN';
   additionalInfo?: Record<string, unknown>; // 추가 정보
 }
 
