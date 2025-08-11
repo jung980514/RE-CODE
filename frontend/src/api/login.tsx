@@ -79,7 +79,51 @@ export const login = async (credentials: LoginCredentials): Promise<User> => {
       console.error('로그인 후 사용자 정보 조회 실패:', e);
     }
 
-  return user;
+    // 로그인 성공 후 일일 설문 완료 여부 조회 → 로컬스토리지 플래그 저장
+    try {
+      const dailySurveyResp = await fetch('https://recode-my-life.site/api/user/daily-survey', {
+        method: 'GET',
+        credentials: 'include',
+        headers: { 'Accept': 'application/json' },
+      })
+      if (dailySurveyResp.ok) {
+        const json: unknown = await dailySurveyResp.json()
+        // 다양한 응답 래퍼에 대해 안전하게 파싱
+        let isCompleted = false
+        if (typeof json === 'boolean') {
+          isCompleted = json
+        } else if (typeof json === 'string') {
+          isCompleted = json === 'true'
+        } else if (typeof json === 'object' && json !== null) {
+          const root = json as Record<string, unknown>
+          const direct = root['isCompleted']
+          if (typeof direct === 'boolean') {
+            isCompleted = direct
+          } else {
+            const dataVal = root['data']
+            if (typeof dataVal === 'boolean') {
+              isCompleted = dataVal
+            } else if (typeof dataVal === 'string') {
+              isCompleted = dataVal === 'true'
+            } else if (typeof dataVal === 'object' && dataVal !== null) {
+              const nested = dataVal as Record<string, unknown>
+              const nestedFlag = nested['isCompleted']
+              if (typeof nestedFlag === 'boolean') {
+                isCompleted = nestedFlag
+              }
+            }
+          }
+        }
+        localStorage.setItem('isdailysurveycompleted', isCompleted ? '1' : '0')
+      } else {
+        localStorage.setItem('isdailysurveycompleted', '0')
+      }
+    } catch (e) {
+      console.error('일일 설문 완료 여부 조회 실패:', e)
+      try { localStorage.setItem('isdailysurveycompleted', '0') } catch {}
+    }
+
+    return user;
   } catch (error) {
     console.error('Login API call failed:', error);
     throw error instanceof Error ? error : new Error('네트워크 오류 또는 알 수 없는 문제가 발생했습니다.');

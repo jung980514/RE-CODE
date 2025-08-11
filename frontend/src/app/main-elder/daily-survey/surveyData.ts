@@ -24,6 +24,7 @@ interface ServerSurveyQuestion {
   content: string;
   createdAt?: string;
 }
+
 export const SURVEY_API_URL = 'https://recode-my-life.site/api/survey/questions';
 // export const SURVEY_API_URL = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8088'}/api/survey/questions`;
 
