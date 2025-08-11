@@ -1,6 +1,5 @@
-FROM prom/prometheus:v3.5.0
+FROM prom/prometheus:v3.5.0-debian
 
-# curl + CA 인증서 설치
-RUN apk add --no-cache curl ca-certificates
+RUN apt-get update && apt-get install -y curl ca-certificates && rm -rf /var/lib/apt/lists/*
 
 COPY prometheus.yml /etc/prometheus/prometheus.yml
