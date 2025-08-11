@@ -23,7 +23,7 @@ interface VoiceSessionProps {
 }
 
 // 음성 및 영상 녹화 훅
-function useVoiceRecording(previewStream: MediaStream | null) {
+function useVoiceRecording(videoStream: MediaStream | null) {
   const [isRecording, setIsRecording] = useState(false)
   const [audioLevel, setAudioLevel] = useState(0)
   const [recordedMedia, setRecordedMedia] = useState<string | null>(null)
@@ -52,51 +52,23 @@ function useVoiceRecording(previewStream: MediaStream | null) {
       setRecordedBlob(null)
       chunksRef.current = []
       
-      // test/page.tsx와 유사하게 하나의 스트림(오디오+비디오) 사용을 우선 시도
-      let sourceStream: MediaStream
-      if (previewStream) {
-        // 미리보기 스트림이 있으면 트랙을 clone 해서 사용 (미리보기 영향 방지)
-        const clonedTracks: MediaStreamTrack[] = []
-        previewStream.getTracks().forEach((t) => {
-          const cloned = t.clone()
-          // 오디오/비디오 트랙 모두 활성화 보장
-          cloned.enabled = true
-          clonedTracks.push(cloned)
-        })
-        sourceStream = new MediaStream(clonedTracks)
-      } else {
-        // 없으면 기본적으로 오디오+비디오를 함께 요청
-        sourceStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true })
-      }
-
-      const combinedStream = sourceStream
+      const audioStream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      const newVideoStream = await navigator.mediaDevices.getUserMedia({ video: true })
+      
+      const tracks = [...audioStream.getAudioTracks(), ...newVideoStream.getVideoTracks()]
+      
+      const combinedStream = new MediaStream(tracks)
       combinedStreamRef.current = combinedStream
 
-      // 브라우저 지원 코덱 우선순위 선택 (test/page.tsx 접근과 유사)
-      let selectedMime = "video/webm;codecs=vp9"
-      const candidates = [
-        "video/mp4;codecs=h264",
-        "video/mp4",
-        "video/webm;codecs=vp9",
-        "video/webm;codecs=vp8",
-        "video/webm"
-      ]
-      for (const c of candidates) {
-        try {
-          if (MediaRecorder.isTypeSupported(c)) { selectedMime = c; break }
-        } catch {}
-      }
-
       const mediaRecorder = new MediaRecorder(combinedStream, {
-        mimeType: selectedMime,
+        mimeType: "video/mp4",
       })
       mediaRecorderRef.current = mediaRecorder
 
       // 오디오 레벨 감지
       const audioContext = new AudioContext()
       const analyser = audioContext.createAnalyser()
-      // 오디오 레벨 분석은 sourceStream의 오디오 트랙 기반으로 수행
-      const microphone = audioContext.createMediaStreamSource(sourceStream)
+      const microphone = audioContext.createMediaStreamSource(audioStream)
       microphone.connect(analyser)
       audioContextRef.current = audioContext
 
@@ -118,7 +90,7 @@ function useVoiceRecording(previewStream: MediaStream | null) {
 
       mediaRecorder.onstop = () => {
         try {
-          const finalBlob = new Blob(chunksRef.current, { type: selectedMime })
+          const finalBlob = new Blob(chunksRef.current, { type: 'video/mp4' })
           setRecordedBlob(finalBlob)
           const mediaUrl = URL.createObjectURL(finalBlob)
           setRecordedMedia(mediaUrl)
