@@ -10,24 +10,10 @@ import { register } from '@/api/register';
 import SignUpSuccessModal from './sign-up-success-modal';
 import { VirtualKeyboard } from '@/components/common/VirtualKeyboard';
 
+// flatpickr는 클라이언트에서 동적 로드하여 초기화합니다
 
-type JQueryDatepickerInstance = {
-  datepicker: (
-    arg?:
-      | 'destroy'
-      | {
-          format: string;
-          language: string;
-          autoclose: boolean;
-          endDate: Date;
-          todayHighlight: boolean;
-          orientation: string;
-        }
-  ) => JQueryDatepickerInstance;
-  on: (event: 'changeDate', handler: () => void) => JQueryDatepickerInstance;
-};
 
-type JQueryDollar = (element: HTMLElement) => JQueryDatepickerInstance;
+// jQuery datepicker 타입은 제거합니다
 
 interface GuardianSignupModalProps {
   isOpen: boolean;
@@ -59,6 +45,8 @@ const GuardianSignupModal: React.FC<GuardianSignupModalProps> = ({
   const passwordInputRef = useRef<HTMLInputElement>(null);
   const confirmPasswordInputRef = useRef<HTMLInputElement>(null);
   const birthInputRef = useRef<HTMLInputElement>(null);
+  type FlatpickrController = { destroy: () => void } | null;
+  const flatpickrRef = useRef<FlatpickrController>(null);
 
   // 개인정보 동의서 모달 상태
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
@@ -83,7 +71,7 @@ const GuardianSignupModal: React.FC<GuardianSignupModalProps> = ({
     agreeToSensitive: false
   });
 
-  // 부트스트랩 데이트피커 초기화 (입력이 렌더된 뒤 초기화)
+  // flatpickr 초기화 (입력이 렌더된 뒤 초기화)
   useEffect(() => {
     let isMounted = true;
     let inputEl: HTMLInputElement | null = null;
@@ -93,38 +81,33 @@ const GuardianSignupModal: React.FC<GuardianSignupModalProps> = ({
       await new Promise((r) => setTimeout(r, 0));
       if (!birthInputRef.current) return;
 
-      const jqModule = await import('jquery');
-      const $: JQueryDollar = ((jqModule as unknown as { default?: unknown }).default ?? jqModule) as unknown as JQueryDollar;
-
-      if (typeof window !== 'undefined') {
-        const w = window as unknown as { $?: JQueryDollar; jQuery?: JQueryDollar };
-        w.$ = $;
-        w.jQuery = $;
-        await import('bootstrap-datepicker');
-        await import('bootstrap-datepicker/dist/locales/bootstrap-datepicker.ko.min.js');
-      }
-
-      if (!isMounted || !birthInputRef.current) return;
       inputEl = birthInputRef.current;
 
       try {
-        (window as unknown as { $?: JQueryDollar }).$?.(inputEl).datepicker('destroy');
-      } catch {}
+        const fpModule = await import('flatpickr');
+        const localeModule = await import('flatpickr/dist/l10n/ko.js');
+        const flatpickr = (fpModule as { default: (el: HTMLElement, opts?: unknown) => { destroy: () => void } }).default;
+        const Korean = (localeModule as { Korean: unknown }).Korean;
 
-      (window as unknown as { $?: JQueryDollar }).$?.(inputEl)
-        .datepicker({
-          format: 'yyyy-mm-dd',
-          language: 'ko',
-          autoclose: true,
-          endDate: new Date(),
-          todayHighlight: true,
-          orientation: 'bottom auto',
-        })
-        .on('changeDate', () => {
-          if (!inputEl) return;
-          const value = inputEl.value || '';
-          handleGuardianInputChange('birthDate', value);
+        // 기존 인스턴스 제거
+        if (flatpickrRef.current) {
+          try { flatpickrRef.current.destroy(); } catch {}
+          flatpickrRef.current = null;
+        }
+
+        flatpickrRef.current = flatpickr(inputEl, {
+          dateFormat: 'Y-m-d',
+          maxDate: 'today',
+          locale: Korean,
+          allowInput: false,
+          onChange: (_selectedDates: Date[], dateStr: string) => {
+            handleGuardianInputChange('birthDate', dateStr || '');
+          },
         });
+      } catch (e) {
+        // 초기화 실패 시 콘솔 경고만 남김
+        console.warn('flatpickr 초기화 실패', e);
+      }
     };
 
     void init();
@@ -132,8 +115,9 @@ const GuardianSignupModal: React.FC<GuardianSignupModalProps> = ({
     return () => {
       isMounted = false;
       try {
-        if (inputEl) {
-          (window as unknown as { $?: JQueryDollar }).$?.(inputEl).datepicker('destroy');
+        if (flatpickrRef.current) {
+          flatpickrRef.current.destroy();
+          flatpickrRef.current = null;
         }
       } catch {}
     };
