@@ -40,7 +40,7 @@ const Navbar = () => {
 
   const handleLogout = async () => {
     try {
-      await fetch('http://localhost:8088/api/user/logout', {
+      await fetch('http://recode-my-life.site/api/user/logout', {
         method: 'POST',
         credentials: 'include', // 세션 쿠키를 포함하여 요청
       });
@@ -63,6 +63,20 @@ const Navbar = () => {
       checkAuthStatus();
     }, 100); // localStorage 업데이트를 위한 약간의 지연
     setIsLoginModalOpen(false);
+  };
+
+  // 기록하기 클릭 시 일일 설문 완료 여부에 따라 경로 분기
+  const handleRecordClick = (e?: React.MouseEvent) => {
+    try {
+      const completed = typeof window !== 'undefined' ? localStorage.getItem('isdailysurveycompleted') : null;
+      if (completed === '1') {
+        router.push('/main-elder/recall-training');
+      } else {
+        router.push('/main-elder/daily-survey');
+      }
+    } catch {
+      router.push('/main-elder/daily-survey');
+    }
   };
 
   // 로고 링크 동적 처리
@@ -94,7 +108,11 @@ return (
             <>
               {userType !== '0' && <div></div>}
               {userType !== '0' && <div></div>}
-              {userType !== '1' && <Link href="/main-elder/daily-survey" className={styles.authLink}>기록하기</Link>}
+              {userType !== '1' && (
+                <button onClick={handleRecordClick} className={styles.authLink}>
+                  기록하기
+                </button>
+              )}
               <Link href="/userinfo" className={styles.authLink}>회원정보</Link>
               <Link href="/calender" className={styles.authLink}>회상캘린더</Link>
               <button onClick={handleLogout} className={styles.authLink}>
