@@ -1,24 +1,6 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-
-type JQueryDatepickerInstance = {
-  datepicker: (
-    arg?:
-      | 'destroy'
-      | {
-          format: string;
-          language: string;
-          autoclose: boolean;
-          endDate: Date;
-          todayHighlight: boolean;
-          orientation: string;
-        }
-  ) => JQueryDatepickerInstance;
-  on: (event: 'changeDate', handler: () => void) => JQueryDatepickerInstance;
-};
-
-type JQueryDollar = (element: HTMLElement) => JQueryDatepickerInstance;
 import Image from 'next/image';
 import { UserCircle2 } from 'lucide-react';
 import styles from './OldPeopleSignupModal.module.css';
@@ -58,6 +40,8 @@ const OldPeopleSignupModal: React.FC<OldPeopleSignupModalProps> = ({
   const passwordInputRef = useRef<HTMLInputElement>(null);
   const confirmPasswordInputRef = useRef<HTMLInputElement>(null);
   const birthInputRef = useRef<HTMLInputElement>(null);
+  type FlatpickrController = { destroy: () => void } | null;
+  const flatpickrRef = useRef<FlatpickrController>(null);
 
   // 개인정보 동의서 모달 상태
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
@@ -82,7 +66,7 @@ const OldPeopleSignupModal: React.FC<OldPeopleSignupModalProps> = ({
     agreeToSensitive: false
   });
 
-  // 부트스트랩 데이트피커 초기화 (입력이 렌더된 뒤 초기화)
+  // flatpickr 초기화 (입력이 렌더된 뒤 초기화)
   useEffect(() => {
     let isMounted = true;
     let inputEl: HTMLInputElement | null = null;
@@ -92,40 +76,32 @@ const OldPeopleSignupModal: React.FC<OldPeopleSignupModalProps> = ({
       await new Promise((r) => setTimeout(r, 0));
       if (!birthInputRef.current) return;
 
-      // 동적 jQuery 로드 및 타입 지정
-      const jqModule = await import('jquery');
-      const $: JQueryDollar = ((jqModule as unknown as { default?: unknown }).default ?? jqModule) as unknown as JQueryDollar;
-
-      if (typeof window !== 'undefined') {
-        const w = window as unknown as { $?: JQueryDollar; jQuery?: JQueryDollar };
-        w.$ = $;
-        w.jQuery = $;
-        await import('bootstrap-datepicker');
-        await import('bootstrap-datepicker/dist/locales/bootstrap-datepicker.ko.min.js');
-      }
-
-      if (!isMounted || !birthInputRef.current) return;
       inputEl = birthInputRef.current;
 
       try {
-        // 초기화 전에 기존 인스턴스 제거
-        (window as unknown as { $?: JQueryDollar }).$?.(inputEl).datepicker('destroy');
-      } catch {}
+        const fpModule = await import('flatpickr');
+        const localeModule = await import('flatpickr/dist/l10n/ko.js');
+        const flatpickr = (fpModule as { default: (el: HTMLElement, opts?: unknown) => { destroy: () => void } }).default;
+        const Korean = (localeModule as { Korean: unknown }).Korean;
 
-      (window as unknown as { $?: JQueryDollar }).$?.(inputEl)
-        .datepicker({
-          format: 'yyyy-mm-dd',
-          language: 'ko',
-          autoclose: true,
-          endDate: new Date(),
-          todayHighlight: true,
-          orientation: 'bottom auto',
-        })
-        .on('changeDate', () => {
-          if (!inputEl) return;
-          const value = inputEl.value || '';
-          handleInputChange('birthDate', value);
+        // 기존 인스턴스 제거
+        if (flatpickrRef.current) {
+          try { flatpickrRef.current.destroy(); } catch {}
+          flatpickrRef.current = null;
+        }
+
+        flatpickrRef.current = flatpickr(inputEl, {
+          dateFormat: 'Y-m-d',
+          maxDate: 'today',
+          locale: Korean,
+          allowInput: false,
+          onChange: (_selectedDates: Date[], dateStr: string) => {
+            handleInputChange('birthDate', dateStr || '');
+          },
         });
+      } catch (e) {
+        console.warn('flatpickr 초기화 실패', e);
+      }
     };
 
     void init();
@@ -133,8 +109,9 @@ const OldPeopleSignupModal: React.FC<OldPeopleSignupModalProps> = ({
     return () => {
       isMounted = false;
       try {
-        if (inputEl) {
-          (window as unknown as { $?: JQueryDollar }).$?.(inputEl).datepicker('destroy');
+        if (flatpickrRef.current) {
+          flatpickrRef.current.destroy();
+          flatpickrRef.current = null;
         }
       } catch {}
     };
