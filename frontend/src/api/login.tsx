@@ -44,7 +44,7 @@ export const login = async (credentials: LoginCredentials): Promise<User> => {
         if (errorData && errorData.message) {
           errorMessage = errorData.message;
         }
-      } catch (e) {
+      } catch {
         // JSON 파싱 실패 시 기본 에러 메시지 사용
       }
       throw new Error(errorMessage);
