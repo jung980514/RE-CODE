@@ -185,7 +185,9 @@ public class SecurityConfig {
             "/v3/api-docs/**",
             "/swagger-ui/**",
             "/swagger-ui.html",
-            "/webjars/**");
+            "/webjars/**")
+        .requestMatchers("/actuator/**"); // 개발용으로 모두 허용;
+
 
     // H2 웹 콘솔은 개발 편의용으로 보안 필터에서 제외
 //                .requestMatchers(toH2Console());
