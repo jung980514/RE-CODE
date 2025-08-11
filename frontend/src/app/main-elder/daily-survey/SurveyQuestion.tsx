@@ -547,25 +547,25 @@ export default function SurveyQuestion({
   //   }
   // }, [])
 
-  // 질문 변경 시 TTS 실행 (단일 실행 보장)
+  // 질문 로딩 완료 후 TTS 실행 (질문 준비를 명확히 기다림)
   useEffect(() => {
+    if (isLoading) return
+    if (!currentQuestion) return
+
     // 이전 TTS 정리
     forceStopAllAudio()
-    
+
     // 약간의 지연 후 새로운 TTS 실행
     const timer = setTimeout(() => {
-      const question = surveyQuestions[questionIndex]
-      if (question) {
-        const questionText = `${question.title} ${question.description}`
-        speakQuestion(questionText)
-      }
+      const questionText = `${currentQuestion.title} ${currentQuestion.description}`
+      speakQuestion(questionText)
     }, 100)
-    
+
     return () => {
       clearTimeout(timer)
       forceStopAllAudio()
     }
-  }, [questionIndex, speakQuestion]) // questionIndex가 변경될 때만 실행
+  }, [isLoading, currentQuestion?.id, currentQuestion?.title, currentQuestion?.description, speakQuestion])
 
   // 녹음 시작 시 TTS 중지
   useEffect(() => {
@@ -640,11 +640,13 @@ export default function SurveyQuestion({
 
   const replayQuestion = useCallback(() => {
     const question = surveyQuestions[questionIndex]
-    if (question) {
-      const questionText = `${question.title} ${question.description}`
-      speakQuestion(questionText)
-    }
-  }, [questionIndex, speakQuestion])
+    if (!question) return
+    // 기존 재생 중인 음성 정지 후 다시 재생
+    try { ttsStop() } catch {}
+    try { forceStopAllAudio() } catch {}
+    const questionText = `${question.title} ${question.description}`
+    speakQuestion(questionText)
+  }, [questionIndex, speakQuestion, ttsStop])
 
   const handleCloseNoResponseWarning = () => {
     setShowNoResponseWarning(false)
@@ -790,7 +792,8 @@ export default function SurveyQuestion({
                   <button
                     onClick={replayQuestion}
                     aria-label="질문 다시 재생"
-                    className="flex items-center gap-3 px-6 py-3 border-2 border-blue-400 rounded-xl text-blue-700 hover:bg-blue-50 bg-white transition-colors text-lg font-semibold focus:outline-none focus-visible:ring-4 focus-visible:ring-blue-300"
+                    disabled={isTTSPlaying}
+                    className="flex items-center gap-3 px-6 py-3 border-2 border-blue-400 rounded-xl text-blue-700 hover:bg-blue-50 bg-white transition-colors text-lg font-semibold focus:outline-none focus-visible:ring-4 focus-visible:ring-blue-300 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <RotateCcw className="w-5 h-5" aria-hidden="true" />
                     다시 재생
