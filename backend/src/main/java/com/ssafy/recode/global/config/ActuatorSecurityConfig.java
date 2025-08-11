@@ -23,13 +23,14 @@ public class ActuatorSecurityConfig {
     @Order(1)
     public SecurityFilterChain actuatorSecurityFilterChain(HttpSecurity http) throws Exception {
         http
-            .securityMatcher("/actuator/**")
+            .securityMatcher("/actuator/**", "/health", "/info", "/metrics/**", "/prometheus")
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(
-                    "/actuator/health",
-                    "/actuator/info", 
-                    "/actuator/metrics/**",
-                    "/actuator/prometheus"
+                    "/actuator/**",
+                    "/health",
+                    "/info", 
+                    "/metrics/**",
+                    "/prometheus"
                 ).permitAll()
                 .anyRequest().authenticated()
             )
