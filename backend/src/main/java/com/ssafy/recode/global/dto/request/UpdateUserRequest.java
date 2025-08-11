@@ -1,5 +1,6 @@
 package com.ssafy.recode.global.dto.request;
 
+import com.ssafy.recode.global.enums.Role;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import java.time.LocalDate;
@@ -40,4 +41,6 @@ public class UpdateUserRequest {
     /** 새 비밀번호 (선택: LOCAL 계정에서 비밀번호 변경 시 사용) */
     @Size(min = 8, max = 100, message = "새 비밀번호는 8~100자여야 합니다.")
     private String newPassword;
+
+    private Role role;
 }

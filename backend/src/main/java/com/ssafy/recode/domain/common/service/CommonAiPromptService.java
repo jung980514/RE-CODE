@@ -28,7 +28,7 @@ import reactor.core.publisher.Mono;
 public class CommonAiPromptService implements AiPromptService {
 
     private final SurveyService surveyService;
-    private GenericPersistenceService genericPersistenceService;
+    private final GenericPersistenceService genericPersistenceService;
 
     @Value("${gms.api-key}")
     private String apiKey;
