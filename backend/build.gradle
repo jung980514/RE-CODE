@@ -66,6 +66,9 @@ dependencies {
     // ✅ 레디스
     implementation 'org.springframework.boot:spring-boot-starter-data-redis'
 
+    // ✅ Actuator (모니터링용)
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+
     // QueryDSL
     implementation 'com.querydsl:querydsl-jpa:5.0.0:jakarta'
     annotationProcessor 'com.querydsl:querydsl-apt:5.0.0:jakarta'

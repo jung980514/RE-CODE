@@ -36,6 +36,11 @@ services:
       - "8088"
     networks:
       - app-network
+    healthcheck:
+        test: [ "CMD", "wget", "-qO-", "http://localhost:8088/actuator/health" ]
+        interval: 15s
+        timeout: 3s
+        retries: 3
 
   frontend:
     build: ./frontend
@@ -43,6 +48,47 @@ services:
       - "3030"
     environment:
       - PORT=3030
+    networks:
+      - app-network
+
+  prometheus:
+    user: "65534:65534"
+    build: ./prometheus
+    container_name: prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - prometheus-data:/prometheus
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=15d
+      - --storage.tsdb.retention.size=5GB
+      - --web.enable-lifecycle      # /-/reload 로 무중단 리로드
+    restart: unless-stopped
+    networks:
+      - app-network
+  grafana:
+    build: ./grafana
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/grafana.ini:/etc/grafana/grafana.ini:ro
+    environment:
+      - GF_SERVER_ROOT_URL=https://recode-my-life.site/grafana/
+      - GF_SERVER_SERVE_FROM_SUB_PATH=true
+      - GF_SERVER_DOMAIN=recode-my-life.site
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_USER}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PW}
+      - GF_SECURITY_COOKIE_SECURE=true
+      - GF_SECURITY_COOKIE_SAMESITE=lax
+      - GF_SERVER_ENABLE_GZIP=true
+    depends_on:
+      - prometheus
+    restart: unless-stopped
     networks:
       - app-network
 
@@ -56,9 +102,16 @@ services:
     depends_on:
       - frontend
       - backend
+      - prometheus
+      - grafana
     networks:
       - app-network
 
+volumes:
+  grafana-data:
+  prometheus-data:
 networks:
   app-network:
     driver: bridge
+
+
