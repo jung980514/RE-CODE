@@ -25,11 +25,7 @@ import org.springframework.security.oauth2.client.web.OAuth2LoginAuthenticationF
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.authentication.logout.LogoutFilter;
-import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
-import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-
-import java.util.List;
 
 /**
  * SecurityConfig
@@ -85,10 +81,10 @@ public class SecurityConfig {
         refreshTokenService);
 
     // 기본 보안 기능 비활성화 (JWT 기반이므로 세션 사용 X)
-    http.cors(cors -> cors.configurationSource(corsConfigurationSource));
-    http.csrf(csrf -> csrf.disable());
-    http.formLogin(form -> form.disable());
-    http.httpBasic(basic -> basic.disable());
+//    http.cors(cors -> cors.configurationSource(corsConfigurationSource));
+//    http.csrf(csrf -> csrf.disable());
+//    http.formLogin(form -> form.disable());
+//    http.httpBasic(basic -> basic.disable());
 
     // JWT 커스텀 필터 등록
 //    http

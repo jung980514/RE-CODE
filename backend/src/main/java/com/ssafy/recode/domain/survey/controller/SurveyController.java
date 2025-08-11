@@ -36,10 +36,12 @@ public class SurveyController {
    * @return List
    */
   @GetMapping("/questions")
-  public ResponseEntity<?> getQuestions() {
+  public ResponseEntity<?> getQuestions(
+      @LoginUser User user
+  ) {
     return ResponseEntity.ok(
         ApiResponse.successResponse(
-            surveyService.getTodaySurveyQuestions()
+            surveyService.getTodaySurveyQuestions(user)
         )
     );
   }
@@ -87,7 +89,7 @@ public class SurveyController {
    * @return
    * @throws Exception
    */
-  @GetMapping("/api/survey/generate/personal")
+  @PostMapping("/generate/personal")
   public ResponseEntity<?> generatePersonalQuestions(@LoginUser User user) throws Exception {
     aiPromptService.generatePersonalQuestions(user);
     return ResponseEntity.ok(

@@ -1,12 +1,14 @@
 // src/main/java/com/ssafy/recode/domain/personal/service/PersonalAnswerService.java
 package com.ssafy.recode.domain.survey.service;
 
+import com.ssafy.recode.domain.auth.entity.User;
 import com.ssafy.recode.domain.common.service.GenericPersistenceService;
 import com.ssafy.recode.domain.common.service.S3UploaderService;
 import com.ssafy.recode.domain.common.service.VideoTranscriptionService;
 import com.ssafy.recode.domain.survey.entity.SurveyAnswer;
-import com.ssafy.recode.domain.survey.repository.SurveyRepository;
+import com.ssafy.recode.domain.survey.entity.SurveyQuestion;
 import com.ssafy.recode.domain.survey.repository.DailyServeyCheckRepository;
+import com.ssafy.recode.domain.survey.repository.SurveyRepository;
 import com.ssafy.recode.global.dto.response.survey.SurveyQAResponse;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -15,6 +17,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 @Slf4j
@@ -35,8 +38,20 @@ public class SurveyService {
    *
    * @return
    */
-  public List<String> getTodaySurveyQuestions() {
-    return surveyRepository.findTodayQuestions();
+  @Transactional(readOnly = true)
+  public List<SurveyQuestion> getTodaySurveyQuestions(User user) {
+    Long lastQuestionId = surveyRepository.findMaxQuestionIdByUserId(user.getId());
+
+    List<SurveyQuestion> next = surveyRepository.findTop3ByQuestionIdGreaterThanOrderByQuestionIdAsc(lastQuestionId);
+
+    // 3개 미만이라면 처음부터 이어 붙이기
+    if (next.size() < 3) {
+      int needed = 3 - next.size();
+      List<SurveyQuestion> head = surveyRepository.findTop3ByOrderByQuestionIdAsc();
+      next.addAll(head.subList(0, Math.min(needed, head.size())));
+    }
+
+    return next;
   }
 
   /**

@@ -24,6 +24,7 @@ public class SurveyAnswer {
 
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
+  @Column(name = "answer_id", nullable = false)
   private Long id;
 
   @Column(name = "question_id", nullable = false)
