@@ -137,9 +137,7 @@ public class SecurityConfig {
                             "/v3/api-docs/**",
                             "/swagger-ui/**",
                             "/swagger-ui.html",
-                            "/webjars/**",
-                            "/actuator/**",
-                            "/metrics/**"
+                            "/webjars/**"
                     ).permitAll()
                     // 인증 없이 열어둘 API
                     .requestMatchers(
@@ -150,9 +148,6 @@ public class SecurityConfig {
                             "/login/oauth2/code/**",
                             "/index.html"
                     ).permitAll()
-                    // Prometheus 모니터링 IP 제한
-                    //.requestMatchers("/actuator/prometheus")
-                    //.access(new WebExpressionAuthorizationManager("hasIpAddress('172.21.0.0/16')"))
                     // 나머지 요청은 인증 필요
                     .anyRequest().authenticated()
             );
@@ -185,10 +180,9 @@ public class SecurityConfig {
             "/v3/api-docs/**",
             "/swagger-ui/**",
             "/swagger-ui.html",
-            "/webjars/**")
-        .requestMatchers("/actuator/**"); // 개발용으로 모두 허용;
+            "/webjars/**");
 
-
+    // Actuator 엔드포인트는 별도 보안 설정에서 처리
     // H2 웹 콘솔은 개발 편의용으로 보안 필터에서 제외
 //                .requestMatchers(toH2Console());
   }
