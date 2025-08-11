@@ -5,8 +5,10 @@ import com.ssafy.recode.domain.basic.repository.BasicAnswerRepository;
 import com.ssafy.recode.domain.cognitive.entity.CognitiveAnswer;
 import com.ssafy.recode.domain.cognitive.repository.CognitiveAnswerRepository;
 import com.ssafy.recode.domain.personal.entity.PersonalAnswer;
+import com.ssafy.recode.domain.personal.entity.PersonalQuestion;
 import com.ssafy.recode.domain.personal.repository.PersonalAnswerRepository;
 import com.ssafy.recode.domain.personal.repository.PersonalQuestionRepository;
+import com.ssafy.recode.domain.survey.entity.SurveyAnswer;
 import com.ssafy.recode.domain.survey.repository.SurveyRepository;
 import jakarta.annotation.PostConstruct;
 import java.util.HashMap;
@@ -45,8 +47,8 @@ public class GenericPersistenceService {
         repositoryMap.put(BasicAnswer.class, basicAnswerRepository);
         repositoryMap.put(PersonalAnswer.class, personalAnswerRepository);
         repositoryMap.put(CognitiveAnswer.class, cognitiveAnswerRepository);
-        repositoryMap.put(SurveyRepository.class, surveyRepository);
-        repositoryMap.put(PersonalQuestionRepository.class, personalQuestionRepository);
+        repositoryMap.put(SurveyAnswer.class, surveyRepository);
+        repositoryMap.put(PersonalQuestion.class, personalQuestionRepository);
     }
 
     /**

@@ -88,7 +88,7 @@ export default function UserInfoPage() {
       if (response.ok) {
         alert('회원 탈퇴가 완료되었습니다. 이용해주셔서 감사합니다.');
         // 로컬 스토리지 정리
-        localStorage.removeItem('userType');
+  localStorage.removeItem('role');
         localStorage.removeItem('name');
         // 다른 정보도 필요 시 삭제
         router.replace('/'); // 메인 페이지로 리디렉션
@@ -322,10 +322,10 @@ export default function UserInfoPage() {
             <button
               onClick={() => {
                 // 계정 타입: 0=노인, 1=보호자
-                const userType = localStorage.getItem('userType');
-                if (userType === '0') {
+                const role = localStorage.getItem('role');
+                if (role === 'ELDER') {
                   window.location.href = "/userinfo/link-elder";
-                } else if (userType === '1') {
+                } else if (role === 'GUARDIAN') {
                   window.location.href = "/userinfo/link-guardian";
                 } else {
                   alert('계정 타입을 확인할 수 없습니다.');

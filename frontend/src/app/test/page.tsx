@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef, useCallback } from "react"
+import { useState, useRef, useCallback, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
@@ -14,7 +14,9 @@ export default function CameraRecorder() {
   const [error, setError] = useState<string | null>(null)
   const [isStreaming, setIsStreaming] = useState(false)
   const [recordingTime, setRecordingTime] = useState(0)
-  const [fileExtension, setFileExtension] = useState("mp4")
+  // fileExtension 상태는 실제 녹화된 파일의 내부 형식을 추적합니다.
+  // 다운로드 시에는 이 값과 상관없이 무조건 .mp4를 사용합니다.
+  const [actualFileExtension, setActualFileExtension] = useState("webm")
   const [recordingStatus, setRecordingStatus] = useState<"idle" | "recording" | "stopped">("idle")
 
   const videoRef = useRef<HTMLVideoElement>(null)
@@ -53,24 +55,29 @@ export default function CameraRecorder() {
     setIsStreaming(false)
   }, [])
 
+  useEffect(() => {
+    startCamera()
+
+    return () => {
+      stopCamera()
+    }
+  }, [startCamera, stopCamera])
+
   const startRecording = useCallback(() => {
     if (!streamRef.current) return
 
     try {
-      // 녹화 청크 초기화
       recordedChunksRef.current = []
 
-      // 브라우저 지원 형식 확인 및 선택
-      let mimeType = "video/webm;codecs=vp9"
-      let fileExt = "webm"
+      let mimeType = "video/webm;codecs=vp9" // 기본값
+      let fileExt = "webm" // 실제 녹화될 파일 형식
 
-      // 더 안정적인 형식 선택 로직
       const supportedTypes = [
+        { type: "video/mp4;codecs=h264", ext: "mp4" }, // MP4 우선
+        { type: "video/mp4", ext: "mp4" },
         { type: "video/webm;codecs=vp9", ext: "webm" },
         { type: "video/webm;codecs=vp8", ext: "webm" },
         { type: "video/webm", ext: "webm" },
-        { type: "video/mp4;codecs=h264", ext: "mp4" },
-        { type: "video/mp4", ext: "mp4" },
       ]
 
       for (const format of supportedTypes) {
@@ -89,7 +96,7 @@ export default function CameraRecorder() {
       })
 
       mediaRecorderRef.current = mediaRecorder
-      setFileExtension(fileExt)
+      setActualFileExtension(fileExt) // 실제 녹화될 파일 형식 저장
 
       mediaRecorder.ondataavailable = (event) => {
         console.log("Data available:", event.data.size)
@@ -117,21 +124,19 @@ export default function CameraRecorder() {
         setIsRecording(false)
       }
 
-      // 100ms마다 데이터 수집
       mediaRecorder.start(100)
       setIsRecording(true)
       setRecordingStatus("recording")
       setRecordingTime(0)
 
-      // 녹화 시간 타이머 시작
       timerRef.current = setInterval(() => {
         setRecordingTime((prev) => prev + 1)
       }, 1000)
-    } catch (err) {
-      console.error("Recording start error:", err)
-      const message = err instanceof Error ? err.message : String(err)
-      setError(`녹화를 시작할 수 없습니다: ${message}`)
-    }
+      } catch (err) {
+        console.error("Recording start error:", err)
+        const message = err instanceof Error ? err.message : typeof err === "string" ? err : "알 수 없는 오류가 발생했습니다."
+        setError(`녹화를 시작할 수 없습니다: ${message}`)
+      }
   }, [])
 
   const stopRecording = useCallback(() => {
@@ -150,12 +155,13 @@ export default function CameraRecorder() {
     if (recordedVideoUrl) {
       const a = document.createElement("a")
       a.href = recordedVideoUrl
-      a.download = `recording-${new Date().toISOString().slice(0, 19).replace(/:/g, "-")}.${fileExtension}`
+      // 무조건 .mp4 확장자로 다운로드되도록 고정
+      a.download = `recording-${new Date().toISOString().slice(0, 19).replace(/:/g, "-")}.mp4`
       document.body.appendChild(a)
       a.click()
       document.body.removeChild(a)
     }
-  }, [recordedVideoUrl, fileExtension])
+  }, [recordedVideoUrl])
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60)
@@ -207,12 +213,7 @@ export default function CameraRecorder() {
               </div>
 
               <div className="flex gap-2">
-                {!isStreaming ? (
-                  <Button onClick={startCamera} className="flex-1">
-                    <Camera className="w-4 h-4 mr-2" />
-                    카메라 시작
-                  </Button>
-                ) : (
+                {isStreaming ? (
                   <>
                     {!isRecording ? (
                       <Button onClick={startRecording} className="flex-1" variant="destructive">
@@ -229,6 +230,11 @@ export default function CameraRecorder() {
                       카메라 중지
                     </Button>
                   </>
+                ) : (
+                  <Button onClick={startCamera} className="flex-1" disabled={true}>
+                    <Camera className="w-4 h-4 mr-2" />
+                    카메라 시작 중...
+                  </Button>
                 )}
               </div>
             </CardContent>
@@ -279,7 +285,7 @@ export default function CameraRecorder() {
             <CardContent>
               <div className="text-sm space-y-2">
                 <p>녹화 상태: {recordingStatus}</p>
-                <p>파일 형식: {fileExtension}</p>
+                <p>실제 녹화 형식: {actualFileExtension}</p>
                 <p>스트림 상태: {isStreaming ? "활성" : "비활성"}</p>
                 <p>녹화된 청크: {recordedChunksRef.current.length}개</p>
               </div>
@@ -299,8 +305,8 @@ export default function CameraRecorder() {
                   1
                 </div>
                 <div>
-                  <h4 className="font-semibold mb-1">카메라 시작</h4>
-                  <p className="text-gray-600">카메라 시작 버튼을 클릭하여 웹캠을 활성화하세요.</p>
+                  <h4 className="font-semibold mb-1">카메라 자동 시작</h4>
+                  <p className="text-gray-600">사이트 접속 시 자동으로 웹캠이 활성화됩니다.</p>
                 </div>
               </div>
               <div className="flex items-start gap-3">
@@ -323,10 +329,15 @@ export default function CameraRecorder() {
               </div>
             </div>
             <div className="mt-4 p-3 bg-blue-50 rounded-lg">
-              <h4 className="font-semibold text-blue-900 mb-2">📹 녹화 형식 정보</h4>
+              <h4 className="font-semibold text-blue-900 mb-2">⚠️ 중요: 녹화 형식 정보</h4>
               <p className="text-sm text-blue-800">
-                브라우저가 MP4를 지원하는 경우 MP4 형식으로, 그렇지 않은 경우 WebM 형식으로 녹화됩니다. 대부분의 최신
-                브라우저에서 MP4 형식을 지원합니다.
+                다운로드되는 파일의 확장자는 항상 **.mp4**입니다. 하지만 브라우저가 MP4 녹화를 직접 지원하지 않는 경우,
+                실제 비디오 데이터는 WebM 형식으로 녹화될 수 있습니다. 이 경우 일부 비디오 플레이어에서 파일이 제대로
+                재생되지 않을 수 있습니다.
+              </p>
+              <p className="text-sm text-blue-800 mt-2">
+                진정한 MP4 변환은 클라이언트 측에서 추가적인 변환 라이브러리가 필요하며, 이는 앱의 크기와 복잡성을
+                증가시킵니다.
               </p>
             </div>
           </CardContent>

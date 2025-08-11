@@ -103,7 +103,7 @@ public class AuthController {
         @LoginUser User user,
         @RequestBody @jakarta.validation.Valid UpdateUserRequest request
     ) {
-      User updated = authService.updateUser(user.getId(), request);
+      User updated = authService.updateUser(user, request);
       return ResponseEntity.ok(ApiResponse.successResponse(updated)); // 필요 시 UserResponse로 변환
     }
 
