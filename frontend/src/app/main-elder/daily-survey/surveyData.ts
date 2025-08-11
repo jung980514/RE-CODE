@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Question } from './types';
+import { useSurveyQuestionsContext } from './SurveyQuestionsContext';
+import type { ApiResponse } from '@/lib/api';
 
 // 더미 데이터 제거: 서버 응답을 기반으로 UI 메타데이터만 부여하여 구성합니다.
 const CATEGORY_BY_INDEX = ["일일 설문", "기억 및 인지", "관심사 및 취미"] as const;
@@ -20,12 +22,7 @@ export const surveyInfo = {
 interface ServerSurveyQuestion {
   questionId: number;
   content: string;
-}
-
-interface ServerSurveyResponse {
-  status: string;
-  message: string;
-  data: ServerSurveyQuestion[];
+  createdAt?: string;
 }
 
 export const SURVEY_API_URL = 'https://recode-my-life.site/api/survey/questions';
@@ -41,8 +38,8 @@ export async function fetchSurveyQuestionsWithCredentials(): Promise<ServerSurve
     throw new Error(`설문 API 오류: ${res.status}`);
   }
 
-  const json = (await res.json()) as ServerSurveyResponse;
-  if (json.status !== 'SUCCESS' || !Array.isArray(json.data)) {
+  const json = (await res.json()) as ApiResponse<ServerSurveyQuestion[]>;
+  if (json.status !== 'success' || json.code !== 200 || !Array.isArray(json.data)) {
     throw new Error('설문 API 응답 형식이 올바르지 않습니다');
   }
   return json.data;
@@ -72,11 +69,20 @@ export function buildQuestionsFromServer(server: ServerSurveyQuestion[]): Questi
 
 // 클라이언트 훅: 서버에서 제목만 가져와 교체 (description 등은 유지)
 export function useDailySurveyQuestions() {
-  const [questions, setQuestions] = useState<Question[]>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
+  // 상위 컨텍스트가 있으면 우선 사용
+  const ctx = useSurveyQuestionsContext();
+  const [questions, setQuestions] = useState<Question[]>(ctx?.questions ?? []);
+  const [isLoading, setIsLoading] = useState<boolean>(ctx?.isLoading ?? true);
+  const [error, setError] = useState<string | null>(ctx?.error ?? null);
 
   useEffect(() => {
+    // 컨텍스트가 제공되면 자체 로딩을 하지 않음
+    if (ctx) {
+      setQuestions(ctx.questions);
+      setIsLoading(ctx.isLoading);
+      setError(ctx.error);
+      return;
+    }
     let isMounted = true;
     const load = async () => {
       try {
@@ -98,7 +104,7 @@ export function useDailySurveyQuestions() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [ctx]);
 
   return { questions, isLoading, error };
 }

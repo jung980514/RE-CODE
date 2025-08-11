@@ -3,6 +3,7 @@
 import { motion, AnimatePresence } from "framer-motion"
 import { SurveyCompleteModalProps } from "./types"
 import { Check } from "lucide-react"
+import { useRouter } from "next/navigation"
 
 const modalVariants = {
   hidden: { 
@@ -37,6 +38,32 @@ const backdropVariants = {
 }
 
 export default function SurveyCompleteModal({ isOpen, onConfirm }: SurveyCompleteModalProps) {
+  const router = useRouter()
+
+  const handleConfirm = () => {
+    try {
+      // 응답은 기다리지 않고 바로 네비게이션 (fire-and-forget)
+      void fetch('https://recode-my-life.site/api/survey/generate/personal', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Accept': 'application/json' },
+      }).catch((e) => console.error('개인화 생성 요청 실패:', e))
+      // 로컬스토리지 완료 플래그 저장
+      try {
+        if (typeof window !== 'undefined') {
+          window.localStorage.setItem('isdailysurveycompleted', '1')
+        }
+      } catch {}
+    } catch (e) {
+      // 네트워크 예외는 무시하고 진행
+      console.error('개인화 생성 요청 예외:', e)
+    } finally {
+      // 바로 회상 훈련으로 이동
+      router.push('/main-elder/recall-training')
+      // 기존 콜백도 호출 (선택적 후처리용)
+      try { onConfirm(); } catch {}
+    }
+  }
   return (
     <AnimatePresence>
       {isOpen && (
@@ -77,7 +104,7 @@ export default function SurveyCompleteModal({ isOpen, onConfirm }: SurveyComplet
 
             {/* Confirm Button */}
             <button
-              onClick={onConfirm}
+              onClick={handleConfirm}
               className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-200 shadow-lg"
             >
               확인
