@@ -23,9 +23,14 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.oauth2.client.web.OAuth2LoginAuthenticationFilter;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.access.expression.WebExpressionAuthorizationManager;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.authentication.logout.LogoutFilter;
+import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import java.util.List;
 
 /**
  * SecurityConfig
@@ -77,14 +82,7 @@ public class SecurityConfig {
                                          CorsConfigurationSource corsConfigurationSource,
                                          RefreshTokenService refreshTokenService) throws Exception {
 
-    JWTLoginFilter jwtLoginFilter = new JWTLoginFilter(authenticationManager, jwtUtil,
-        refreshTokenService);
-
-    // 기본 보안 기능 비활성화 (JWT 기반이므로 세션 사용 X)
-//    http.cors(cors -> cors.configurationSource(corsConfigurationSource));
-//    http.csrf(csrf -> csrf.disable());
-//    http.formLogin(form -> form.disable());
-//    http.httpBasic(basic -> basic.disable());
+    JWTLoginFilter jwtLoginFilter = new JWTLoginFilter(authenticationManager, jwtUtil, refreshTokenService);
 
     // JWT 커스텀 필터 등록
 //    http
@@ -110,13 +108,9 @@ public class SecurityConfig {
             .cors(cors -> cors.configurationSource(corsConfigurationSource))
             // CSRF 비활성화
             .csrf(csrf -> csrf.disable())
-            // 세션 사용 안 함
-            .sessionManagement(sm -> sm
-                    .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-            )
-            // 기본 로그인·폼·기본 인증 비활성화
-            .formLogin(Customizer.withDefaults())
-            .httpBasic(Customizer.withDefaults())
+            .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            .formLogin(form -> form.disable())
+            .httpBasic(basic -> basic.disable())
 
             // 커스텀 JWT 필터 등록
             .addFilterBefore(jwtLoginFilter, UsernamePasswordAuthenticationFilter.class)
@@ -136,12 +130,16 @@ public class SecurityConfig {
 
             // 인가 정책
             .authorizeHttpRequests(auth -> auth
-                    // Swagger UI & OpenAPI Docs
+                    // Swagger & Docs & favicon & error 페이지
                     .requestMatchers(
+                            "/favicon.ico",
+                            "/error",
                             "/v3/api-docs/**",
                             "/swagger-ui/**",
                             "/swagger-ui.html",
-                            "/webjars/**"
+                            "/webjars/**",
+                            "/actuator/**",
+                            "/metrics/**"
                     ).permitAll()
                     // 인증 없이 열어둘 API
                     .requestMatchers(
@@ -152,12 +150,17 @@ public class SecurityConfig {
                             "/login/oauth2/code/**",
                             "/index.html"
                     ).permitAll()
+                    // Prometheus 모니터링 IP 제한
+                    //.requestMatchers("/actuator/prometheus")
+                    //.access(new WebExpressionAuthorizationManager("hasIpAddress('172.21.0.0/16')"))
                     // 나머지 요청은 인증 필요
                     .anyRequest().authenticated()
             );
 
     return http.build();
   }
+
+
 
   /**
    * WebSecurityCustomizer
