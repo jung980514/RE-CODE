@@ -9,4 +9,4 @@ scrape_configs:
     tls_config:
       insecure_skip_verify: true
     static_configs:
-      - targets: ['nginx:443']
+      - targets: ['backend:8088']
