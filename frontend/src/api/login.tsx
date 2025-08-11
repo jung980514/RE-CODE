@@ -71,6 +71,7 @@ export const login = async (credentials: LoginCredentials): Promise<User> => {
         const userInfo = await userInfoResponse.json();
         console.log('로그인 후 사용자 정보:', userInfo);
         localStorage.setItem("name", userInfo.data.name);
+        localStorage.setItem("userID", userInfo.data.id);
         localStorage.setItem("userType", userInfo.data.role === 'GUARDIAN' ? '1' : '0');
       }
     } catch (e) {
