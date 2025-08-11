@@ -450,14 +450,46 @@ export function VoiceStoryTellingSession({ onBack }: VoiceSessionProps) {
         })
         if (!response.ok) throw new Error(`질문 불러오기 실패: ${response.status}`)
         const result = await response.json()
-        const data: Array<{ id: number; content: string }> = Array.isArray(result?.data) ? result.data : []
-        const mapped = data.map((item, idx) => ({
-          title: '개인화 질문',
-          question: `${item.content}\n준비가 완료되면 답변하기를 눌러 시작해주세요`,
-        }))
-        const ids = data.map((item) => item.id)
-        setTopics(mapped)
-        setTopicIds(ids)
+        // API 응답 타입 정의로 any 제거
+        interface PersonalQuestionRaw {
+          id?: number
+          questionId?: number
+          personalQuestionId?: number
+          content?: string
+          questionContent?: string
+          [key: string]: unknown
+        }
+        const raw: PersonalQuestionRaw[] = Array.isArray(result?.data)
+          ? (result.data as PersonalQuestionRaw[])
+          : []
+        // 서버 스키마(id | questionId | personalQuestionId) 대응하여 topic/ids 동기화 구성
+        interface Pair { id: number | undefined; topic: { title: string; question: string } }
+        const mappedPairs: Pair[] = raw.map((item): Pair => {
+          const idCandidate: number | undefined =
+            typeof item?.id === 'number' ? item.id
+            : typeof item?.questionId === 'number' ? item.questionId
+            : typeof item?.personalQuestionId === 'number' ? item.personalQuestionId
+            : undefined
+
+          const content: string = typeof item?.content === 'string'
+            ? item.content
+            : (typeof item?.questionContent === 'string' ? item.questionContent : '')
+
+          return {
+            id: idCandidate,
+            topic: {
+              title: '개인화 질문',
+              question: `${content}\n준비가 완료되면 답변하기를 눌러 시작해주세요`,
+            }
+          }
+        })
+
+        const validPairs: Pair[] = mappedPairs.filter((p: Pair) => typeof p.id === 'number')
+        if (validPairs.length !== mappedPairs.length) {
+          console.warn(`개인화 질문 ID가 없는 항목이 ${mappedPairs.length - validPairs.length}개 있습니다. 원본 일부:`, raw)
+        }
+        setTopics(validPairs.map((p: Pair) => p.topic))
+        setTopicIds(validPairs.map((p: Pair) => p.id as number))
         setCurrentTopic(0)
         setHasStartedRecording(false)
       } catch (e) {
@@ -501,6 +533,7 @@ export function VoiceStoryTellingSession({ onBack }: VoiceSessionProps) {
     if (topics.length === 0) return
     try {
       const questionId = topicIds[currentTopic]
+      console.log('업로드에 사용할 questionId:', questionId)
       // 업로드 직전에 userId 없으면 조회 시도
       let ensuredUserId = userId
       if (ensuredUserId == null) {
@@ -545,6 +578,7 @@ export function VoiceStoryTellingSession({ onBack }: VoiceSessionProps) {
           body: formData,
         })
         if (!uploadResponse.ok) {
+          console.log(uploadResponse)
           console.error('답변 업로드 실패:', uploadResponse.status)
         }
       }
