@@ -107,7 +107,7 @@ public class AuthController {
       return ResponseEntity.ok(ApiResponse.successResponse(updated)); // 필요 시 UserResponse로 변환
     }
 
-    @DeleteMapping("/delete")
+    @DeleteMapping()
     public ResponseEntity<?> deleteUser(
         @LoginUser User user,
         @RequestBody(required = false) DeleteUserRequest request,
