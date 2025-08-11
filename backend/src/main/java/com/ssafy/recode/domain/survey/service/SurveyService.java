@@ -7,8 +7,9 @@ import com.ssafy.recode.domain.common.service.S3UploaderService;
 import com.ssafy.recode.domain.common.service.VideoTranscriptionService;
 import com.ssafy.recode.domain.survey.entity.SurveyAnswer;
 import com.ssafy.recode.domain.survey.entity.SurveyQuestion;
-import com.ssafy.recode.domain.survey.repository.DailyServeyCheckRepository;
+import com.ssafy.recode.domain.survey.repository.SurveyAnswerRepository;
 import com.ssafy.recode.domain.survey.repository.SurveyRepository;
+import com.ssafy.recode.global.dto.response.calender.MonthlyCalendarResponse;
 import com.ssafy.recode.global.dto.response.survey.SurveyQAResponse;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -28,7 +29,7 @@ public class SurveyService {
   private static final String FOLDER = "servey";
 
   private final SurveyRepository surveyRepository;
-  private final DailyServeyCheckRepository dailyServeyCheckRepository;
+  private final SurveyAnswerRepository surveyAnswerRepository;
   private final VideoTranscriptionService transcriptionService;
   private final S3UploaderService uploader;
   private final GenericPersistenceService genericPersistenceService;
@@ -96,7 +97,7 @@ public class SurveyService {
     LocalDateTime endOfDay = today.plusDays(1).atStartOfDay().minusNanos(1);
 
     // 단순 응답 존재 여부
-    return dailyServeyCheckRepository.existsByUserIdAndCreatedAtBetween(
+    return surveyAnswerRepository.existsByUserIdAndCreatedAtBetween(
             userId, startOfDay, endOfDay
     );
   }
@@ -110,6 +111,18 @@ public class SurveyService {
     LocalDateTime end = start.plusDays(1);                        // 내일 00:00
 
     return surveyRepository.findTodayQAByUserId(userId, start, end);
+  }
+
+  public List<MonthlyCalendarResponse> getMonthlyCalendar(User user, int year, int month) {
+    LocalDate startDate = LocalDate.of(year, month, 1);
+    System.out.println(user.getId());
+
+    return surveyAnswerRepository.findMonthlyCalendarWithFlags(user.getId(), startDate).stream()
+        .map(r -> new MonthlyCalendarResponse(
+            r.getCalDate().toLocalDate(),
+            r.getHasData() != null && r.getHasData() == 1
+        ))
+        .toList();
   }
 
 }
