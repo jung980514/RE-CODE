@@ -19,6 +19,7 @@ interface RegisterResponse {
 
 export const register = async (data: RegisterData): Promise<RegisterResponse> => {
   try {
+    // const response = await fetch('https://recode-my-life.site/api/user/login', {
     const response = await fetch('https://recode-my-life.site/api/user/register', {
       method: 'POST',
       headers: {

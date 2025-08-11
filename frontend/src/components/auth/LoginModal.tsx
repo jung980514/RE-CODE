@@ -91,13 +91,13 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLoginSuccess
     try {
       const user = await login({ email: formData.email, password: formData.password });
       console.log('로그인 성공:', user);
-      // userType에 따라 리다이렉트
-      const userType = localStorage.getItem('userType')
-      console.log(userType)
-      if (userType === '0') {
+      // role에 따라 리다이렉트
+      const role = localStorage.getItem('role')
+      console.log(role)
+      if (role === 'ELDER') {
         // 노인 계정: main-elder로 이동
         router.push('/main-elder');
-      } else if (userType === '1') {
+      } else if (role === 'GUARDIAN') {
         // 보호자 계정: main-guardian으로 이동
         router.push('/main-guardian');
       }
@@ -111,21 +111,19 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLoginSuccess
   };
 
   // 카카오 로그인 성공 핸들러
-  const handleKakaoLoginSuccess = (userType: number) => {
+  const handleKakaoLoginSuccess = (role: 'ELDER' | 'GUARDIAN' | 'ADMIN' | 'USER') => {
     onClose();
-    
-    // 사용자 타입에 따라 리다이렉트
-    if (userType === 0) {
+    // 역할에 따라 리다이렉트
+    if (role === 'ELDER') {
       router.push('/main-elder');
-    } else if (userType === 1) {
+    } else if (role === 'GUARDIAN') {
       router.push('/main-guardian');
-    } else if (userType === 2) {
+    } else if (role === 'ADMIN') {
+      router.push('/admin');
+    } else {
       // 최초 카카오 로그인 - 역할 선택 및 설문조사 페이지로 이동
       router.push('/auth/kakao/setup');
-    } else {
-      router.push('/');
     }
-    
     onLoginSuccess();
   };
 

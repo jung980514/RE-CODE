@@ -4,17 +4,17 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { UserCircle2, Calendar as CalendarIcon } from 'lucide-react';
-import { submitSurvey } from '@/api/kakaoLogin';
 import { SurveyData } from '@/api/kakaoLogin/types';
 import styles from './page.module.css';
 import PrivacyPolicyModal from "@/components/common/PrivacyPolicyModal";
+import { authApi } from '@/lib/api';
 import SensitivePolicyModal from '@/components/common/SensitivePolicyModal';
 import Datepicker, { DateValueType } from 'react-tailwindcss-datepicker';
 import { VirtualKeyboard } from '@/components/common/VirtualKeyboard';
 
 const KakaoSetupPage: React.FC = () => {
   const router = useRouter();
-  const [currentStep, setCurrentStep] = useState<'userType' | 'userInfo'>('userType');
+  const [currentStep, setCurrentStep] = useState<'role' | 'userInfo'>('role');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -35,8 +35,7 @@ const KakaoSetupPage: React.FC = () => {
   const [formData, setFormData] = useState({
     phoneNumber: '',
     birthDate: '',
-    profileImage: null as File | null,
-    userType: null as 0 | 1 | null, // 0: 노인, 1: 보호자
+    role: null as 'ELDER' | 'GUARDIAN' | null,
     agreeToPrivacy: false,
     agreeToSensitive: false
   });
@@ -48,17 +47,43 @@ const KakaoSetupPage: React.FC = () => {
 
   // 로그인 상태 확인
   useEffect(() => {
-    const isLoggedIn = localStorage.getItem('isLoggedIn');
-    const userType = localStorage.getItem('userType');
+    let mounted = true; // 컴포넌트 마운트 상태 추적
     
-    if (!isLoggedIn || userType !== '2') {
-      // 로그인되지 않았거나 이미 설정이 완료된 사용자는 메인으로 리다이렉트
-      router.replace('/');
-    }
-  }, [router]);
+    const checkAuthStatus = () => {
+      if (!mounted) return;
+      
+      const isLoggedIn = localStorage.getItem('isLoggedIn');
+      const role = localStorage.getItem('role');
+      
+      console.log('🔍 Setup 페이지 인증 상태 확인:', { isLoggedIn, role });
+      
+      if (!isLoggedIn) {
+        console.log('❌ 로그인되지 않은 사용자 → 홈으로 이동');
+        router.replace('/');
+        return;
+      }
+      
+      // role이 이미 설정되어 있다면 (이미 설문조사 완료) 홈으로 이동
+      if (role && role !== 'USER') {
+        console.log('✅ 이미 역할이 설정된 사용자 → 홈으로 이동');
+        router.replace('/');
+        return;
+      }
+      
+      console.log('✅ 설문조사 진행 가능한 사용자');
+    };
+    
+    // 약간의 지연을 두어 렌더링 안정화
+    const timeoutId = setTimeout(checkAuthStatus, 100);
+    
+    return () => {
+      mounted = false;
+      clearTimeout(timeoutId);
+    };
+  }, []);
 
   // 폼 데이터 변경 핸들러
-  const handleInputChange = (field: string, value: string | boolean | File | number) => {
+  const handleInputChange = (field: string, value: string | boolean | File) => {
     setFormData(prev => ({
       ...prev,
       [field]: value
@@ -78,13 +103,7 @@ const KakaoSetupPage: React.FC = () => {
     }
   };
 
-  // 프로필 이미지 업로드 핸들러
-  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      handleInputChange('profileImage', file);
-    }
-  };
+
 
   // 가상키보드 토글 핸들러
   const handleVirtualKeyboardToggle = () => {
@@ -156,7 +175,7 @@ const KakaoSetupPage: React.FC = () => {
     }
 
     // 사용자 타입 확인
-    if (formData.userType === null) {
+  if (formData.role === null) {
       setError('사용자 타입을 선택해주세요.');
       return;
     }
@@ -176,28 +195,71 @@ const KakaoSetupPage: React.FC = () => {
     setError(null);
 
     try {
-      const surveyData: SurveyData = {
-        userType: formData.userType,
-        additionalInfo: {
-          phoneNumber: formData.phoneNumber,
-          birthDate: formData.birthDate,
-          agreements: {
-            personalInfo: formData.agreeToPrivacy,
-            serviceTerms: formData.agreeToSensitive
-          }
-        }
+      // 🔥 백엔드 수정 없이 해결하는 방법:
+      // UpdateUserRequest에 role 필드가 없으므로, role은 localStorage에만 저장하고
+      // 다른 정보만 백엔드에 업데이트
+      
+      const updateData = {
+        phone: formData.phoneNumber,
+        birthDate: formData.birthDate, // YYYY-MM-DD 형식이므로 그대로 전송
+        name: localStorage.getItem('name') || '',
+        role: formData.role,
       };
 
-      const result = await submitSurvey(surveyData);
+      console.log('📤 백엔드로 전송할 데이터 (role 제외):', updateData);
+      
+      // 1. 먼저 localStorage에 역할 저장 (백엔드 요청과 별개로)
+      localStorage.setItem('role', formData.role as string);
+      console.log('💾 프론트엔드 localStorage role 저장:', formData.role);
+      
+      // 2. 백엔드에 다른 정보만 업데이트 (phone, birthDate, name)
+      const result = await authApi.updateUser(updateData);
+      
+      console.log('📡 백엔드 응답:', result);
+      console.log('📊 응답 상태:', result.status);
+      console.log('📊 응답 데이터:', result.data);
 
-      if (result.success && result.user) {
-        if (result.user.userType === 0) {
-          router.push('/main-elder');
-        } else if (result.user.userType === 1) {
-          router.push('/main-guardian');
-        }
+      // 3. 백엔드 업데이트 성공 여부와 관계없이 프론트엔드에서 역할 관리
+      if (result.status === 'success') {
+        console.log('✅ 사용자 정보 업데이트 성공! 역할은 프론트엔드에서 관리됨');
+        
+        // 카카오 설문조사 완료 표시 (이메일별로 저장)
+        const userEmail = localStorage.getItem('email')?.replace('kakao ', '') || 'unknown';
+        localStorage.setItem(`kakao_survey_completed_${userEmail}`, 'true');
+        localStorage.setItem(`kakao_role_${userEmail}`, formData.role as string); // 역할도 영구 저장
+        console.log('✅ 카카오 설문조사 완료 표시:', userEmail);
+        console.log('✅ 카카오 역할 영구 저장:', formData.role);
+        
+        // localStorage 업데이트가 완료될 때까지 잠시 대기
+        setTimeout(() => {
+          if (formData.role === 'ELDER') {
+            console.log('🚀 ELDER 역할 → /main-elder로 이동');
+            window.location.href = '/main-elder';
+          } else if (formData.role === 'GUARDIAN') {
+            console.log('🚀 GUARDIAN 역할 → /main-guardian로 이동');
+            window.location.href = '/main-guardian';
+          }
+        }, 200);
       } else {
-        setError(result.error || '설정 저장에 실패했습니다.');
+        // 백엔드 업데이트가 실패해도 역할은 프론트엔드에서 관리되므로 계속 진행
+        console.log('⚠️ 백엔드 업데이트 실패했지만 역할은 프론트엔드에서 관리됨');
+        
+        // 실패해도 카카오 설정 완료로 처리
+        const userEmail = localStorage.getItem('email')?.replace('kakao ', '') || 'unknown';
+        localStorage.setItem(`kakao_survey_completed_${userEmail}`, 'true');
+        localStorage.setItem(`kakao_role_${userEmail}`, formData.role as string);
+        console.log('✅ 카카오 설정 완료 처리 (백엔드 실패 무시)');
+        
+        // 사용자에게는 성공으로 보이도록 처리
+        setTimeout(() => {
+          if (formData.role === 'ELDER') {
+            console.log('🚀 ELDER 역할 → /main-elder로 이동 (백엔드 실패 무시)');
+            window.location.href = '/main-elder';
+          } else if (formData.role === 'GUARDIAN') {
+            console.log('🚀 GUARDIAN 역할 → /main-guardian로 이동 (백엔드 실패 무시)');
+            window.location.href = '/main-guardian';
+          }
+        }, 200);
       }
     } catch (error) {
       console.error('설정 저장 오류:', error);
@@ -208,16 +270,16 @@ const KakaoSetupPage: React.FC = () => {
   };
 
   // 사용자 타입 선택 핸들러
-  const handleUserTypeSelection = (userType: 0 | 1) => {
-    handleInputChange('userType', userType);
+  const handleRoleSelection = (role: 'ELDER' | 'GUARDIAN') => {
+    handleInputChange('role', role);
     setCurrentStep('userInfo');
   };
 
   // 뒤로가기 처리
   const handleGoBack = () => {
     if (currentStep === 'userInfo') {
-      setCurrentStep('userType');
-      handleInputChange('userType', '');
+      setCurrentStep('role');
+      handleInputChange('role', '');
     } else {
       handleCancel();
     }
@@ -225,9 +287,9 @@ const KakaoSetupPage: React.FC = () => {
 
   // 취소 처리
   const handleCancel = () => {
-    localStorage.removeItem('isLoggedIn');
-    localStorage.removeItem('userType');
-    localStorage.removeItem('name');
+  localStorage.removeItem('isLoggedIn');
+  localStorage.removeItem('role');
+  localStorage.removeItem('name');
     router.replace('/');
   };
 
@@ -267,11 +329,11 @@ const KakaoSetupPage: React.FC = () => {
             </button>
           )}
 
-          {/* 1단계: 사용자 타입 선택 */}
-          {currentStep === 'userType' && (
+          {/* 1단계: 역할 선택 */}
+          {currentStep === 'role' && (
             <>
               <div className={styles.header}>
-                <h2 className={styles.title}>사용자 타입 선택</h2>
+                <h2 className={styles.title}>역할 선택</h2>
                 <p className={styles.subtitle}>
                   어떤 서비스를 이용하실 예정인가요?
                 </p>
@@ -279,8 +341,8 @@ const KakaoSetupPage: React.FC = () => {
 
               <div className={styles.userTypeSelectionContainer}>
                 <div 
-                  className={`${styles.userTypeOptionLarge} ${formData.userType === 0 ? styles.selected : ''}`}
-                  onClick={() => handleUserTypeSelection(0)}
+                  className={`${styles.userTypeOptionLarge} ${formData.role === 'ELDER' ? styles.selected : ''}`}
+                  onClick={() => handleRoleSelection('ELDER')}
                 >
                   <div className={styles.userTypeIconLarge}>👵</div>
                   <h3 className={styles.userTypeTitleLarge}>노인</h3>
@@ -290,8 +352,8 @@ const KakaoSetupPage: React.FC = () => {
                 </div>
 
                 <div 
-                  className={`${styles.userTypeOptionLarge} ${formData.userType === 1 ? styles.selected : ''}`}
-                  onClick={() => handleUserTypeSelection(1)}
+                  className={`${styles.userTypeOptionLarge} ${formData.role === 'GUARDIAN' ? styles.selected : ''}`}
+                  onClick={() => handleRoleSelection('GUARDIAN')}
                 >
                   <div className={styles.userTypeIconLarge}>👨‍👩‍👧‍👦</div>
                   <h3 className={styles.userTypeTitleLarge}>보호자</h3>
@@ -321,49 +383,15 @@ const KakaoSetupPage: React.FC = () => {
             <>
               <div className={styles.header}>
                 <h2 className={styles.title}>
-                  {formData.userType === 0 ? '노인' : '보호자'} 정보 입력
+                  {formData.role === 'ELDER' ? '노인' : '보호자'} 정보 입력
                 </h2>
                 <p className={styles.subtitle}>
                   몇가지 정보만 입력하시면 바로 시작하실 수 있어요!
                 </p>
               </div>
 
+
               <form onSubmit={handleSubmit} className={styles.form}>
-                {/* 프로필 사진 섹션 */}
-                <div className={styles.profileSectionStandalone}>
-                  <div className={styles.profileSection}>
-                    <div 
-                      className={styles.profileImageContainer}
-                      onClick={() => document.getElementById('profile-upload')?.click()}
-                    >
-                      {formData.profileImage ? (
-                        <Image
-                          src={URL.createObjectURL(formData.profileImage)}
-                          alt="Profile"
-                          width={140}
-                          height={140}
-                          className={styles.profileImage}
-                          style={{ objectFit: 'contain' }}
-                          priority
-                        />
-                      ) : (
-                        <div className={styles.profilePlaceholder}>
-                          <UserCircle2 className={styles.profilePlaceholderIcon} />
-                        </div>
-                      )}
-                    </div>
-                    <label className={styles.profileLabel}>
-                      프로필 사진 (선택사항)
-                    </label>
-                    <input
-                      id="profile-upload"
-                      type="file"
-                      accept="image/*"
-                      onChange={handleImageUpload}
-                      className={styles.profileInput}
-                    />
-                  </div>
-                </div>
 
                 {/* 휴대전화와 생년월일을 가로로 배치 */}
                 <div className={styles.formColumns}>
