@@ -1,6 +1,6 @@
 "use client"
 
-import type React from "react"
+import React from "react"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -30,6 +30,21 @@ interface AccountDeletionModalProps {
  * 사용자가 계정 탈퇴를 시도할 때 경고 메시지와 함께 최종 확인을 요청합니다.
  */
 export function AccountDeletionModal({ children, onConfirm }: AccountDeletionModalProps) {
+  const [password, setPassword] = React.useState("");
+  const [error, setError] = React.useState("");
+
+  const handleDelete = () => {
+    if (!password) {
+      setError("비밀번호를 입력해주세요.");
+      return;
+    }
+    setError("");
+    // onConfirm에 비밀번호를 전달할 수 있도록 콜백을 확장하거나, 전역 상태/props로 전달 필요
+    // 여기서는 window 이벤트로 전달 (임시)
+    window.dispatchEvent(new CustomEvent("account-delete-password", { detail: password }));
+    onConfirm();
+  };
+
   return (
     <Dialog>
       <DialogTrigger asChild>{children}</DialogTrigger>
@@ -52,13 +67,24 @@ export function AccountDeletionModal({ children, onConfirm }: AccountDeletionMod
             혹시 일시적인 휴식이 필요하시다면, 대신 알림을 끄거나 앱 사용을 잠시 멈춰보시는 것은 어떨까요?
           </p>
         </div>
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-gray-700 mb-2">비밀번호 입력</label>
+          <input
+            type="password"
+            value={password}
+            onChange={e => setPassword(e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
+            placeholder="비밀번호를 입력하세요"
+          />
+          {error && <p className="text-xs text-red-500 mt-1">{error}</p>}
+        </div>
         <DialogFooter className="sm:justify-start">
           <DialogClose asChild>
             <Button type="button" variant="secondary">
               취소
             </Button>
           </DialogClose>
-          <Button type="button" variant="destructive" onClick={onConfirm}>
+          <Button type="button" variant="destructive" onClick={handleDelete}>
             탈퇴
           </Button>
         </DialogFooter>

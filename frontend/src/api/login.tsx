@@ -26,6 +26,7 @@ export interface User {
 export const login = async (credentials: LoginCredentials): Promise<User> => {
   try {
     const response = await fetch('https://recode-my-life.site/api/user/login', {
+    // const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8088'}/api/user/login`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -61,6 +62,7 @@ export const login = async (credentials: LoginCredentials): Promise<User> => {
     // 로그인 성공 후 사용자 정보 조회 및 콘솔 출력
     try {
       const userInfoResponse = await fetch('https://recode-my-life.site/api/user/', {
+      // const userInfoResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8088'}/api/user/`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -80,6 +82,7 @@ export const login = async (credentials: LoginCredentials): Promise<User> => {
     // 로그인 성공 후 일일 설문 완료 여부 조회 → 로컬스토리지 플래그 저장
     try {
       const dailySurveyResp = await fetch('https://recode-my-life.site/api/user/daily-survey', {
+      // const dailySurveyResp = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8088'}/api/user/daily-survey`, {
         method: 'GET',
         credentials: 'include',
         headers: { 'Accept': 'application/json' },
