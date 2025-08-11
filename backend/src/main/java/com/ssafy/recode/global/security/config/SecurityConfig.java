@@ -137,7 +137,8 @@ public class SecurityConfig {
                             "/v3/api-docs/**",
                             "/swagger-ui/**",
                             "/swagger-ui.html",
-                            "/webjars/**"
+                            "/webjars/**",
+                            "/actuator/**"
                     ).permitAll()
                     // 인증 없이 열어둘 API
                     .requestMatchers(
