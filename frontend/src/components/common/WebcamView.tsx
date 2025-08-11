@@ -7,13 +7,15 @@ interface WebcamViewProps {
   isRecording?: boolean
   onStreamReady?: (stream: MediaStream) => void
   videoRef?: React.RefObject<HTMLVideoElement | null>
+  includeAudio?: boolean
 }
 const username2 = typeof window !== 'undefined' ? localStorage.getItem('name') : null
 export function WebcamView({ 
   userName = username2 || "김싸피", 
   isRecording = false, 
   onStreamReady,
-  videoRef: externalVideoRef
+  videoRef: externalVideoRef,
+  includeAudio = false
 }: WebcamViewProps) {
   const [isWebcamActive, setIsWebcamActive] = useState(false)
   const [autoplayBlocked, setAutoplayBlocked] = useState(false)
@@ -135,12 +137,12 @@ export function WebcamView({
           height: { ideal: 480 },
           facingMode: 'user',
         },
-        audio: false,
+        audio: includeAudio,
       })
     } catch (e) {
       console.warn('웹캠 제약 조건 실패, 단순 모드로 재시도합니다:', e)
       // 2차: 제약 완화
-      return await navigator.mediaDevices.getUserMedia({ video: true, audio: false })
+      return await navigator.mediaDevices.getUserMedia({ video: true, audio: includeAudio })
     }
   }
 
@@ -189,7 +191,7 @@ export function WebcamView({
         setTimeout(async () => {
           if (finalVideoRef.current && isWebcamActive && !hasFrames) {
             try {
-              const retry = await navigator.mediaDevices.getUserMedia({ video: true, audio: false })
+              const retry = await navigator.mediaDevices.getUserMedia({ video: true, audio: includeAudio })
               await attachAndPlay(retry)
             } catch {}
           }
