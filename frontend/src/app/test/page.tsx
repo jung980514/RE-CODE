@@ -129,7 +129,8 @@ export default function CameraRecorder() {
       }, 1000)
     } catch (err) {
       console.error("Recording start error:", err)
-      setError(`녹화를 시작할 수 없습니다: ${err.message}`)
+      const message = err instanceof Error ? err.message : String(err)
+      setError(`녹화를 시작할 수 없습니다: ${message}`)
     }
   }, [])
 
@@ -299,7 +300,7 @@ export default function CameraRecorder() {
                 </div>
                 <div>
                   <h4 className="font-semibold mb-1">카메라 시작</h4>
-                  <p className="text-gray-600">"카메라 시작" 버튼을 클릭하여 웹캠을 활성화하세요.</p>
+                  <p className="text-gray-600">카메라 시작 버튼을 클릭하여 웹캠을 활성화하세요.</p>
                 </div>
               </div>
               <div className="flex items-start gap-3">
@@ -308,7 +309,7 @@ export default function CameraRecorder() {
                 </div>
                 <div>
                   <h4 className="font-semibold mb-1">녹화 시작</h4>
-                  <p className="text-gray-600">"녹화 시작" 버튼을 클릭하여 비디오 녹화를 시작하세요.</p>
+                  <p className="text-gray-600">녹화 시작 버튼을 클릭하여 비디오 녹화를 시작하세요.</p>
                 </div>
               </div>
               <div className="flex items-start gap-3">

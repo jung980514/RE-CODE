@@ -11,6 +11,24 @@ import SignUpSuccessModal from './sign-up-success-modal';
 import { VirtualKeyboard } from '@/components/common/VirtualKeyboard';
 
 
+type JQueryDatepickerInstance = {
+  datepicker: (
+    arg?:
+      | 'destroy'
+      | {
+          format: string;
+          language: string;
+          autoclose: boolean;
+          endDate: Date;
+          todayHighlight: boolean;
+          orientation: string;
+        }
+  ) => JQueryDatepickerInstance;
+  on: (event: 'changeDate', handler: () => void) => JQueryDatepickerInstance;
+};
+
+type JQueryDollar = (element: HTMLElement) => JQueryDatepickerInstance;
+
 interface GuardianSignupModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -68,49 +86,54 @@ const GuardianSignupModal: React.FC<GuardianSignupModalProps> = ({
   // 부트스트랩 데이트피커 초기화 (입력이 렌더된 뒤 초기화)
   useEffect(() => {
     let isMounted = true;
+    let inputEl: HTMLInputElement | null = null;
+
     const init = async () => {
       if (!isVisible) return;
-      // 렌더 완료 시점 보장
       await new Promise((r) => setTimeout(r, 0));
       if (!birthInputRef.current) return;
-      const jq = await import('jquery');
-      const $: any = (jq as any).default || jq;
+
+      const jqModule = await import('jquery');
+      const $: JQueryDollar = ((jqModule as unknown as { default?: unknown }).default ?? jqModule) as unknown as JQueryDollar;
+
       if (typeof window !== 'undefined') {
-        (window as any).$ = (window as any).jQuery = $;
-        // @ts-ignore bootstrap-datepicker 타입이 모듈로 선언되어 있지 않음
+        const w = window as unknown as { $?: JQueryDollar; jQuery?: JQueryDollar };
+        w.$ = $;
+        w.jQuery = $;
         await import('bootstrap-datepicker');
-        // @ts-ignore 로케일 파일 타입 선언 없음
         await import('bootstrap-datepicker/dist/locales/bootstrap-datepicker.ko.min.js');
       }
+
       if (!isMounted || !birthInputRef.current) return;
+      inputEl = birthInputRef.current;
+
       try {
-        // 기존 인스턴스 제거 후 재초기화
-        // @ts-ignore
-        (window as any).$?.(birthInputRef.current)?.datepicker('destroy');
+        (window as unknown as { $?: JQueryDollar }).$?.(inputEl).datepicker('destroy');
       } catch {}
-      // @ts-ignore jQuery plugin typings 없음
-      ($(birthInputRef.current) as any)
+
+      (window as unknown as { $?: JQueryDollar }).$?.(inputEl)
         .datepicker({
           format: 'yyyy-mm-dd',
           language: 'ko',
           autoclose: true,
           endDate: new Date(),
           todayHighlight: true,
-          orientation: 'bottom auto'
+          orientation: 'bottom auto',
         })
-        // @ts-ignore
         .on('changeDate', () => {
-          const value = (birthInputRef.current as HTMLInputElement)?.value || '';
+          if (!inputEl) return;
+          const value = inputEl.value || '';
           handleGuardianInputChange('birthDate', value);
         });
     };
-    init();
+
+    void init();
+
     return () => {
       isMounted = false;
       try {
-        if (birthInputRef.current) {
-          // @ts-ignore destroy plugin
-          (window as any).$?.(birthInputRef.current)?.datepicker('destroy');
+        if (inputEl) {
+          (window as unknown as { $?: JQueryDollar }).$?.(inputEl).datepicker('destroy');
         }
       } catch {}
     };
