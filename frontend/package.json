@@ -21,6 +21,7 @@
     "bootstrap-datepicker": "^1.10.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "flatpickr": "^4.6.13",
     "framer-motion": "^12.23.11",
     "jquery": "^3.7.1",
     "lucide-react": "^0.526.0",
