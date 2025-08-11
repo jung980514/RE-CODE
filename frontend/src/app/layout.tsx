@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+// Bootstrap & Datepicker CSS
+import "bootstrap/dist/css/bootstrap.min.css";
+import "bootstrap-datepicker/dist/css/bootstrap-datepicker3.min.css";
 import localFont from "next/font/local"
 import Navbar from "@/components/layout/Navbar";
 
