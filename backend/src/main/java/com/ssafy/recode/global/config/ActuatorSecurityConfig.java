@@ -1,6 +1,5 @@
 package com.ssafy.recode.global.config;
 
-import org.springframework.boot.actuate.autoconfigure.security.servlet.EndpointRequest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
@@ -24,10 +23,14 @@ public class ActuatorSecurityConfig {
     @Order(1)
     public SecurityFilterChain actuatorSecurityFilterChain(HttpSecurity http) throws Exception {
         http
-            .securityMatcher(EndpointRequest.toAnyEndpoint())
+            .securityMatcher("/actuator/**")
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers(EndpointRequest.to("health", "info", "metrics", "prometheus")).permitAll()
-                .requestMatchers("/actuator/**").permitAll()
+                .requestMatchers(
+                    "/actuator/health",
+                    "/actuator/info", 
+                    "/actuator/metrics/**",
+                    "/actuator/prometheus"
+                ).permitAll()
                 .anyRequest().authenticated()
             )
             .csrf(csrf -> csrf.disable())
