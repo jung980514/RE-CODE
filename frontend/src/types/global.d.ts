@@ -1,17 +1,5 @@
-declare module 'bootstrap-datepicker/dist/locales/bootstrap-datepicker.ko.min.js' {
-  const value: any;
-  export default value;
-}
+// Side-effect only locale module for bootstrap-datepicker (no runtime export used)
+declare module 'bootstrap-datepicker/dist/locales/bootstrap-datepicker.ko.min.js'
 
-declare module 'bootstrap-datepicker' {
-  const value: any;
-  export default value;
-}
-
-// Fallback in case module typing resolution fails in bundler mode
-declare module 'jquery' {
-  const value: any;
-  export default value;
-}
-
-
+// Side-effect only plugin module declaration to satisfy TS module resolution
+declare module 'bootstrap-datepicker'
