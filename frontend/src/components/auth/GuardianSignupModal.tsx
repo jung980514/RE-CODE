@@ -2,11 +2,10 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
-import { UserCircle2, Calendar as CalendarIcon } from 'lucide-react';
+import { UserCircle2 } from 'lucide-react';
 import styles from './GuardianSignupModal.module.css';
 import PrivacyPolicyModal from "@/components/common/PrivacyPolicyModal";
 import SensitivePolicyModal from '@/components/common/SensitivePolicyModal';
-import Datepicker, { DateValueType } from 'react-tailwindcss-datepicker';
 import { register } from '@/api/register';
 import SignUpSuccessModal from './sign-up-success-modal';
 import { VirtualKeyboard } from '@/components/common/VirtualKeyboard';
@@ -41,6 +40,7 @@ const GuardianSignupModal: React.FC<GuardianSignupModalProps> = ({
   const emailInputRef = useRef<HTMLInputElement>(null);
   const passwordInputRef = useRef<HTMLInputElement>(null);
   const confirmPasswordInputRef = useRef<HTMLInputElement>(null);
+  const birthInputRef = useRef<HTMLInputElement>(null);
 
   // 개인정보 동의서 모달 상태
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
@@ -65,12 +65,58 @@ const GuardianSignupModal: React.FC<GuardianSignupModalProps> = ({
     agreeToSensitive: false
   });
 
-  const [birthDateValue, setBirthDateValue] = useState<DateValueType>({
-    startDate: null,
-    endDate: null,
-  });
+  // 부트스트랩 데이트피커 초기화 (입력이 렌더된 뒤 초기화)
+  useEffect(() => {
+    let isMounted = true;
+    const init = async () => {
+      if (!isVisible) return;
+      // 렌더 완료 시점 보장
+      await new Promise((r) => setTimeout(r, 0));
+      if (!birthInputRef.current) return;
+      const jq = await import('jquery');
+      const $: any = (jq as any).default || jq;
+      if (typeof window !== 'undefined') {
+        (window as any).$ = (window as any).jQuery = $;
+        // @ts-ignore bootstrap-datepicker 타입이 모듈로 선언되어 있지 않음
+        await import('bootstrap-datepicker');
+        // @ts-ignore 로케일 파일 타입 선언 없음
+        await import('bootstrap-datepicker/dist/locales/bootstrap-datepicker.ko.min.js');
+      }
+      if (!isMounted || !birthInputRef.current) return;
+      try {
+        // 기존 인스턴스 제거 후 재초기화
+        // @ts-ignore
+        (window as any).$?.(birthInputRef.current)?.datepicker('destroy');
+      } catch {}
+      // @ts-ignore jQuery plugin typings 없음
+      ($(birthInputRef.current) as any)
+        .datepicker({
+          format: 'yyyy-mm-dd',
+          language: 'ko',
+          autoclose: true,
+          endDate: new Date(),
+          todayHighlight: true,
+          orientation: 'bottom auto'
+        })
+        // @ts-ignore
+        .on('changeDate', () => {
+          const value = (birthInputRef.current as HTMLInputElement)?.value || '';
+          handleGuardianInputChange('birthDate', value);
+        });
+    };
+    init();
+    return () => {
+      isMounted = false;
+      try {
+        if (birthInputRef.current) {
+          // @ts-ignore destroy plugin
+          (window as any).$?.(birthInputRef.current)?.datepicker('destroy');
+        }
+      } catch {}
+    };
+  }, [isVisible]);
 
-
+  
   // isOpen 상태 변화에 따른 애니메이션 처리
   useEffect(() => {
     if (isOpen) {
@@ -99,18 +145,7 @@ const GuardianSignupModal: React.FC<GuardianSignupModalProps> = ({
     }));
   };
 
-  const handleBirthDateChange = (newValue: DateValueType) => {
-    setBirthDateValue(newValue);
-    if (newValue?.startDate) {
-      // Date 객체를 YYYY-MM-DD 형식으로 변환
-      const date = new Date(newValue.startDate);
-      const year = date.getFullYear();
-      const month = String(date.getMonth() + 1).padStart(2, '0');
-      const day = String(date.getDate()).padStart(2, '0');
-      const formattedDate = `${year}-${month}-${day}`;
-      handleGuardianInputChange('birthDate', formattedDate);
-    }
-  };
+  // react-tailwindcss-datepicker 사용 제거. 값 업데이트는 changeDate 이벤트에서 처리
 
   // 프로필 이미지 업로드 핸들러
   const handleGuardianImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -368,20 +403,17 @@ const GuardianSignupModal: React.FC<GuardianSignupModalProps> = ({
             </div>
             <div className={styles.inputGroup}>
               <label className={styles.label}>생년월일 *</label>
-              <Datepicker
-                i18n="ko"
-                asSingle={true}
-                useRange={false}
-                value={birthDateValue}
-                onChange={(value) => handleBirthDateChange(value)}
-                placeholder="생년월일을 선택해주세요."
-                inputClassName={styles.input}
-                toggleClassName="absolute right-3 top-1/2 -translate-y-1/2"
-                toggleIcon={() => <CalendarIcon className="h-6 w-6 text-gray-500" />}
-                displayFormat="YYYY/MM/DD"
-                primaryColor="blue"
-                containerClassName="relative w-full"
-              />
+              <div className="relative w-full">
+                <input
+                  type="text"
+                  ref={birthInputRef}
+                  value={guardianFormData.birthDate}
+                  onChange={(e) => handleGuardianInputChange('birthDate', e.target.value)}
+                  placeholder="생년월일을 선택해주세요."
+                  className={styles.input}
+                  readOnly
+                />
+              </div>
             </div>
 
             {/* 3행: 비밀번호(왼) - 이메일(오) */}
