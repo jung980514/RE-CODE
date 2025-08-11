@@ -8,3 +8,19 @@ scrape_configs:
     scheme: http
     static_configs:
       - targets: ['backend:8088']
+
+  - job_name: 'nginx'
+    static_configs:
+      - targets: ['nginx-exporter:9113']
+
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['redis-exporter:9121']
+
+  - job_name: 'mysql'
+    static_configs:
+      - targets: ['mysqld-exporter:9104']
+
+  - job_name: 'node'
+    static_configs:
+      - targets: ['node-exporter:9100']
