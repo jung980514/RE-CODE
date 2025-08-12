@@ -2,29 +2,29 @@
 
 export const isLoggedIn = (): boolean => {
   if (typeof window === 'undefined') return false;
-  const token = localStorage.getItem('userType');
+  const token = localStorage.getItem('role');
   return !!token;
 };
 
-export const getUserType = (): string | null => {
+export const getRole = (): string | null => {
   if (typeof window === 'undefined') return null;
-  return localStorage.getItem('userType');
+  return localStorage.getItem('role');
 };
 
 export const isElderUser = (): boolean => {
-  const userType = getUserType();
-  return userType === '0';
+  const role = getRole();
+  return role === 'ELDER';
 };
 
 export const isGuardianUser = (): boolean => {
-  const userType = getUserType();
-  return userType === '1';
+  const role = getRole();
+  return role === 'GUARDIAN';
 };
 
 export const logout = (): void => {
   if (typeof window === 'undefined') return;
   localStorage.removeItem('token');
-  localStorage.removeItem('userType');
+  localStorage.removeItem('role');
   localStorage.removeItem('userEmail');
 }; 
 

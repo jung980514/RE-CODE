@@ -203,7 +203,7 @@ export default function UserInfoPage() {
 
       if (response.ok) {
         // 로컬 스토리지 정리
-        localStorage.removeItem('userType');
+  localStorage.removeItem('role');
         localStorage.removeItem('name');
         localStorage.removeItem('isLoggedIn');
         localStorage.removeItem('userEmail');
@@ -478,10 +478,10 @@ export default function UserInfoPage() {
             <button
               onClick={() => {
                 // 계정 타입: 0=노인, 1=보호자
-                const userType = localStorage.getItem('userType');
-                if (userType === '0') {
+                const role = localStorage.getItem('role');
+                if (role === 'ELDER') {
                   window.location.href = "/userinfo/link-elder";
-                } else if (userType === '1') {
+                } else if (role === 'GUARDIAN') {
                   window.location.href = "/userinfo/link-guardian";
                 } else {
                   alert('계정 타입을 확인할 수 없습니다.');

@@ -10,7 +10,11 @@ const KakaoCallbackPage: React.FC = () => {
   const [message, setMessage] = useState('카카오 로그인을 처리하고 있습니다...');
 
   useEffect(() => {
+    let mounted = true; // 컴포넌트 마운트 상태 추적
+    
     const processCallback = async () => {
+      if (!mounted) return; // 언마운트된 경우 처리 중단
+      
       try {
         // URL 파라미터 확인 - 에러가 있는지 체크
         const urlParams = new URLSearchParams(window.location.search);
@@ -25,12 +29,14 @@ const KakaoCallbackPage: React.FC = () => {
         // 에러 파라미터가 있으면 에러 처리
         if (errorParam) {
           console.log('❌ OAuth2 에러 감지:', errorParam);
-          setStatus('error');
-          setMessage('카카오 로그인 중 오류가 발생했습니다. 다시 시도해주세요.');
-          
-          setTimeout(() => {
-            router.push('/');
-          }, 3000);
+          if (mounted) {
+            setStatus('error');
+            setMessage('카카오 로그인 중 오류가 발생했습니다. 다시 시도해주세요.');
+            
+            setTimeout(() => {
+              if (mounted) router.push('/');
+            }, 3000);
+          }
           return;
         }
 
@@ -39,50 +45,63 @@ const KakaoCallbackPage: React.FC = () => {
 
         console.log('🔥 콜백 결과:', result);
 
+        if (!mounted) return; // API 호출 후 언마운트 체크
+
         if (result.success && result.user) {
           console.log('🎯 사용자 정보:', result.user);
-          console.log('🎯 사용자 타입:', result.user.userType);
+          console.log('🎯 사용자 역할:', result.user.role);
           
           // 즉시 페이지 이동 (딜레이 없음)
-          console.log('🚀 페이지 이동 시작, userType:', result.user?.userType);
+          console.log('🚀 페이지 이동 시작, role:', result.user?.role);
           
-          if (result.user?.userType === 0) {
+          if (result.user?.role === 'ELDER') {
             console.log('👴 노인 사용자 → /main-elder로 이동');
             router.replace('/main-elder');
-          } else if (result.user?.userType === 1) {
+          } else if (result.user?.role === 'GUARDIAN') {
             console.log('👨‍👩‍👧‍👦 보호자 사용자 → /main-guardian로 이동');
             router.replace('/main-guardian');
-          } else if (result.user?.userType === 2) {
+          } else if (result.user?.role === 'USER' || !result.user?.role) {
             console.log('📋 최초 로그인 사용자 → /auth/kakao/setup로 이동');
             // 최초 로그인 - 설문조사 페이지로 이동
             router.replace('/auth/kakao/setup');
           } else {
-            console.log('❓ 알 수 없는 사용자 타입 → /로 이동');
+            console.log('❓ 알 수 없는 사용자 역할 → /로 이동');
             router.replace('/');
           }
         } else {
           const errorMsg = result.error || '로그인에 실패했습니다.';
+          console.error('🚨 카카오 로그인 실패:', errorMsg);
           setStatus('error');
           setMessage(errorMsg);
           
+          // 500 에러인 경우 더 긴 대기 시간
+          const waitTime = errorMsg.includes('내부 오류') || errorMsg.includes('500') ? 5000 : 3000;
+          
           setTimeout(() => {
-            router.push('/');
-          }, 3000);
+            if (mounted) router.push('/');
+          }, waitTime);
         }
       } catch (error) {
-        console.error('카카오 콜백 처리 오류:', error);
-        const errorMsg = error instanceof Error ? error.message : '로그인 처리 중 오류가 발생했습니다.';
-        setStatus('error');
-        setMessage(errorMsg);
+        console.error('🚨 카카오 콜백 처리 오류:', error);
         
-        setTimeout(() => {
-          router.push('/');
-        }, 3000);
+        if (mounted) {
+          setStatus('error');
+          setMessage('카카오 로그인 처리 중 문제가 발생했습니다. 잠시 후 다시 시도해주세요.');
+          
+          setTimeout(() => {
+            if (mounted) router.push('/');
+          }, 4000);
+        }
       }
     };
 
     processCallback();
-  }, [router]);
+    
+    // 클린업 함수로 마운트 상태 변경
+    return () => {
+      mounted = false;
+    };
+  }, [router]); // router를 dependency에 포함
 
   return (
     <div style={{

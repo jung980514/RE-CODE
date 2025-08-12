@@ -88,23 +88,23 @@ public class CognitiveService {
     }
   }
   /**
-   * 유저가 마지막으로 답변한 questionId 이후의 질문 3개를 반환.
-   * (답변이 없으면 처음 3개, 모자랄 경우 앞에서 채움)
+   * 유저가 마지막으로 답변한 questionId(해당 mediaType 기준) 이후의 질문 3개 반환.
+   * 부족하면 같은 mediaType의 앞부분에서 채움.
    */
-  public List<CognitiveQuestion> getNextQuestions(Long userId) {
-    // 유저가 마지막으로 답변한 questionId (답변 없으면 0)
-    Long lastQuestionId = answerRepo.findMaxQuestionIdByUserId(userId);
+  public List<CognitiveQuestion> getNextQuestionsByType(Long userId, String mediaType) {
+    Long lastQuestionId = answerRepo.findMaxQuestionIdByUserIdAndMediaType(userId, mediaType);
 
-    // 마지막 이후의 3개 질문 조회
-    List<CognitiveQuestion> next = questionRepo.findTop3ByQuestionIdGreaterThanOrderByQuestionIdAsc(lastQuestionId);
+    List<CognitiveQuestion> next =
+        questionRepo.findTop3ByQuestionIdGreaterThanAndMediaTypeOrderByQuestionIdAsc(
+            lastQuestionId, mediaType
+        );
 
-    // 3개 미만이라면 처음부터 이어 붙이기
     if (next.size() < 3) {
       int needed = 3 - next.size();
-      List<CognitiveQuestion> head = questionRepo.findTop3ByOrderByQuestionIdAsc();
+      List<CognitiveQuestion> head =
+          questionRepo.findTop3ByMediaTypeOrderByQuestionIdAsc(mediaType);
       next.addAll(head.subList(0, Math.min(needed, head.size())));
     }
-
     return next;
   }
   public boolean isCognitiveCompleted(Long userId, String mediaType) {

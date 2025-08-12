@@ -64,18 +64,19 @@ public class CognitiveController {
   }
 
   @Operation(
-      summary     = "인지 질문 조회",
-      description = "유저가 마지막으로 답변한 questionId 이후부터 3개씩 순차 조회합니다. "
-          + "답변이 한 번도 없으면 처음 3개, 끝까지 다 읽으면 처음부터 다시 제공합니다."
+      summary = "인지 질문 조회(타입별)",
+      description = "mediaType('audio'|'image') 기준으로, 유저가 마지막으로 답한 question_id 이후부터 3개를 반환합니다."
   )
   @GetMapping(
-      path     = "/questions",
+      path = "/questions/{mediaType}",
       produces = MediaType.APPLICATION_JSON_VALUE
   )
-  public ApiResponse<?> getQuestions(
-      @Parameter(hidden = true) @LoginUser User user
+  public ApiResponse<?> getQuestionsByType(
+      @Parameter(hidden = true) @LoginUser User user,
+      @PathVariable String mediaType
   ) {
-    List<CognitiveQuestion> questions = answerService.getNextQuestions(user.getId());
+    List<CognitiveQuestion> questions =
+        answerService.getNextQuestionsByType(user.getId(), mediaType);
     return ApiResponse.successResponse(questions);
   }
 }
