@@ -45,7 +45,7 @@ export interface LoginRequest {
 // API 클라이언트 생성
 const createApiClient = (): AxiosInstance => {
   const client = axios.create({
-    baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080',
+    baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8088',
     withCredentials: true, // 쿠키 포함
     headers: {
       'Content-Type': 'application/json',
@@ -148,6 +148,12 @@ export const authApi = {
   // 토큰 갱신
   reissue: async (): Promise<ApiResponse<TokenResponse>> => {
     const response = await apiClient.post<ApiResponse<TokenResponse>>('/api/user/reissue');
+    return response.data;
+  },
+
+  // 사용자 정보 업데이트
+  updateUser: async (data: unknown): Promise<ApiResponse<User>> => {
+    const response = await apiClient.patch<ApiResponse<User>>('/api/user/update', data);
     return response.data;
   },
 };
