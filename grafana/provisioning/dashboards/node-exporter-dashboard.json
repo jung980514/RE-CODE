@@ -103,7 +103,7 @@
         },
         "datasource": {
           "type": "prometheus",
-          "uid": "Prometheus"
+          "uid": "${DS_PROMETHEUS}"
         },
         "definition": "label_values(node_uname_info, nodename)",
         "hide": 0,
@@ -129,7 +129,7 @@
         },
         "datasource": {
           "type": "prometheus",
-          "uid": "Prometheus"
+          "uid": "${DS_PROMETHEUS}"
         },
         "definition": "label_values(node_uname_info{nodename=~\"$node\"}, instance)",
         "hide": 0,
