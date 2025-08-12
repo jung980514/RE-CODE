@@ -152,54 +152,6 @@ services:
       timeout: 5s
       retries: 3
       start_period: 10s
-
-  nginx-exporter:
-    image: nginx/nginx-prometheus-exporter:1.1.0
-    container_name: nginx-exporter
-    command: -nginx.scrape-uri=http://nginx:9113/stub_status
-    ports:
-      - "9113:9113"
-    depends_on:
-      nginx:
-        condition: service_healthy
-    restart: unless-stopped
-    networks:
-      - app-network
-
-  redis-exporter:
-    image: oliver006/redis_exporter:latest
-    container_name: redis-exporter
-    environment:
-      - REDIS_ADDR=redis:6379
-      - REDIS_PASSWORD=${REDIS_PASSWORD}
-    ports:
-      - "9121:9121"
-    depends_on:
-      redis:
-        condition: service_healthy
-    restart: unless-stopped
-    networks:
-      - app-network
-
-  node-exporter:
-    image: prom/node-exporter:latest
-    container_name: node-exporter
-    pid: host
-    volumes:
-      - /proc:/host/proc:ro
-      - /sys:/host/sys:ro
-      - /:/rootfs:ro
-    command:
-      - '--path.procfs=/host/proc'
-      - '--path.sysfs=/host/sys'
-      - '--path.rootfs=/rootfs'
-      - '--collector.filesystem.ignored-mount-points=^/(sys|proc|dev|host|etc)($|/)'
-    ports:
-      - "9100:9100"
-    restart: unless-stopped
-    networks:
-      - app-network
-
 volumes:
   grafana-data:
     driver: local
