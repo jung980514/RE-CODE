@@ -202,9 +202,8 @@ export default function UserInfoPage() {
 
   const handleConfirmWithdrawal = async () => {
     try {
-      // 비밀번호가 없으면 에러
+      // 비밀번호가 없으면 아무 동작하지 않음 (모달에서 이미 처리)
       if (!deletePassword || deletePassword.trim() === '') {
-        alert('비밀번호를 입력해주세요.');
         return;
       }
 
