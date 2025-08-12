@@ -8,6 +8,7 @@ import { ArrowLeft, RotateCcw, Mic, ChevronRight, Camera, Clock } from "lucide-r
 import TrainingCompleteModal from "@/app/main-elder/recall-training/components/TrainingCompleteModal"
 import { useRouter } from "next/navigation"
 import { synthesizeSpeech, playAudio, stopCurrentAudio } from "@/api/googleTTS/googleTTSService"
+import { markRecallTrainingSessionAsCompleted } from "@/lib/auth"
 
 interface VoiceSessionProps {
   onBack: () => void
@@ -558,6 +559,8 @@ export function VoiceMemoryTrainingSession({ onBack }: VoiceSessionProps) {
       }
       // 완료 버튼 시점에 감정 측정 중단
       setSessionActive(false)
+      // 메모리 세션 완료 플래그 저장
+      markRecallTrainingSessionAsCompleted('memory')
       handleComplete()
     } else {
       await handleNextQuestion()
