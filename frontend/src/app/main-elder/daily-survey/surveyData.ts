@@ -8,7 +8,7 @@ const CATEGORY_BY_INDEX = ["일일 설문", "기억 및 인지", "관심사 및 
 const ICON_BY_INDEX = ["😊", "🧠", "❤️"] as const;
 const COLOR_BY_INDEX = ["#E3F2FD", "#E8F5E8", "#F3E5F5"] as const;
 const BORDER_COLOR_BY_INDEX = ["#2196F3", "#4CAF50", "#9C27B0"] as const;
-const DEFAULT_DESCRIPTION = "준비가 원료되면 답변하기 버튼을 눌러 대답해주세요.";
+const DEFAULT_DESCRIPTION = "준비가 완료되면 답변하기 버튼을 눌러 대답해주세요.";
 
 export const surveyInfo = {
   estimatedTime: "약 5분",

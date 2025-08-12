@@ -7,22 +7,30 @@ interface WebcamViewProps {
   isRecording?: boolean
   onStreamReady?: (stream: MediaStream) => void
   videoRef?: React.RefObject<HTMLVideoElement | null>
+  voiceGifMode?: boolean
 }
 const username2 = typeof window !== 'undefined' ? localStorage.getItem('name') : null
 export function WebcamView({ 
   userName = username2 || "김싸피", 
   isRecording = false, 
   onStreamReady,
-  videoRef: externalVideoRef
+  videoRef: externalVideoRef,
+  voiceGifMode = false
 }: WebcamViewProps) {
   const [isWebcamActive, setIsWebcamActive] = useState(false)
   const [autoplayBlocked, setAutoplayBlocked] = useState(false)
   const [hasFrames, setHasFrames] = useState(false)
+  const [isSpeaking, setIsSpeaking] = useState(false)
   const internalVideoRef = useRef<HTMLVideoElement>(null)
   const finalVideoRef = externalVideoRef || internalVideoRef
   const currentStreamRef = useRef<MediaStream | null>(null)
   // 캔버스 미러링은 호환성 이슈가 있어 비활성화
   const framePollRef = useRef<number | null>(null)
+  const audioContextRef = useRef<AudioContext | null>(null)
+  const analyserRef = useRef<AnalyserNode | null>(null)
+  const micStreamRef = useRef<MediaStream | null>(null)
+  const rafRef = useRef<number | null>(null)
+  const lastAboveThresholdMsRef = useRef<number>(0)
 
   type ExtendedVideoEl = HTMLVideoElement & {
     srcObject?: MediaStream | null
@@ -125,6 +133,101 @@ export function WebcamView({
       }
     }
   }
+
+  // 음성 인식(발화 감지) 초기화
+  useEffect(() => {
+    if (!voiceGifMode) return
+    let cancelled = false
+    const initAudioDetection = async () => {
+      try {
+        const micStream = await navigator.mediaDevices.getUserMedia({ audio: true })
+        if (cancelled) {
+          micStream.getTracks().forEach(t => t.stop())
+          return
+        }
+        micStreamRef.current = micStream
+        // 호환: 표준 AudioContext 우선, 없으면 webkitAudioContext 사용
+        let audioContext: AudioContext
+        if ('AudioContext' in window) {
+          const Ctor = window.AudioContext as {
+            new (contextOptions?: AudioContextOptions): AudioContext
+          }
+          audioContext = new Ctor()
+        } else if ('webkitAudioContext' in window) {
+          const Ctor = (window as unknown as {
+            webkitAudioContext: { new (contextOptions?: AudioContextOptions): AudioContext }
+          }).webkitAudioContext
+          audioContext = new Ctor()
+        } else {
+          throw new Error('Web Audio API not supported')
+        }
+        audioContextRef.current = audioContext
+        const source = audioContext.createMediaStreamSource(micStream)
+        const analyser = audioContext.createAnalyser()
+        analyser.fftSize = 2048
+        analyser.smoothingTimeConstant = 0.8
+        analyserRef.current = analyser
+        source.connect(analyser)
+
+        const data = new Uint8Array(analyser.frequencyBinCount)
+        const SPEAKING_THRESHOLD = 12 // 임계값(조정 가능)
+        const SILENCE_HOLD_MS = 3000  // 무음 3초 유지 시에만 비발화로 전환
+
+        const loop = () => {
+          if (!analyserRef.current) return
+          analyserRef.current.getByteTimeDomainData(data)
+          // 128 기준으로 편차 RMS 계산
+          let sumSquares = 0
+          for (let i = 0; i < data.length; i++) {
+            const v = data[i] - 128
+            sumSquares += v * v
+          }
+          const rms = Math.sqrt(sumSquares / data.length)
+          const isNowSpeaking = rms > SPEAKING_THRESHOLD
+          const now = performance.now()
+          if (isNowSpeaking) {
+            // 발화 감지: 즉시 speaking 전환, 타임스탬프 갱신
+            if (!isSpeaking) {
+              setIsSpeaking(true)
+            }
+            lastAboveThresholdMsRef.current = now
+          } else {
+            // 무음: 마지막 발화 시점으로부터 3초 경과 시에만 speaking 해제
+            if (isSpeaking) {
+              if (now - lastAboveThresholdMsRef.current >= SILENCE_HOLD_MS) {
+                setIsSpeaking(false)
+              }
+            }
+          }
+          rafRef.current = requestAnimationFrame(loop)
+        }
+        rafRef.current = requestAnimationFrame(loop)
+      } catch (e) {
+        console.warn('마이크 접근/분석 초기화 실패:', e)
+      }
+    }
+
+    initAudioDetection()
+    return () => {
+      cancelled = true
+      if (rafRef.current) {
+        cancelAnimationFrame(rafRef.current)
+        rafRef.current = null
+      }
+      if (analyserRef.current) {
+        try { analyserRef.current.disconnect() } catch {}
+        analyserRef.current = null
+      }
+      if (audioContextRef.current) {
+        try { audioContextRef.current.close() } catch {}
+        audioContextRef.current = null
+      }
+      if (micStreamRef.current) {
+        try { micStreamRef.current.getTracks().forEach(t => t.stop()) } catch {}
+        micStreamRef.current = null
+      }
+    }
+  }, [voiceGifMode, isSpeaking])
 
   const openWebcam = async (): Promise<MediaStream> => {
     // 1차: 권장 해상도 + 전면 카메라
@@ -235,7 +338,7 @@ export function WebcamView({
 
   return (
     <div className="text-center">
-      <h3 className="text-lg font-semibold text-gray-800 mb-4">내 화면({userName})</h3>
+      <h3 className="text-lg font-semibold text-gray-800 mb-4">AI상담사</h3>
 
       {/* 웹캠 화면 */}
       <div className="relative bg-gray-900 aspect-square rounded-xl overflow-hidden mb-6">
@@ -245,18 +348,26 @@ export function WebcamView({
               <div className="w-16 h-16 bg-gray-600 rounded-full flex items-center justify-center mx-auto mb-3">
                 <span className="text-2xl"><Camera /></span>
               </div>
-              <p className="text-sm">카메라를 불러오는 중...</p>
+              <p className="text-sm">상담사를 불러오는 중...</p>
             </div>
           </div>
         ) : (
           <>
-            <video
-              ref={finalVideoRef}
-              autoPlay
-              playsInline
-              muted
-              className="w-full h-full object-cover"
-            />
+            {voiceGifMode ? (
+              <img
+                src={isSpeaking ? "/images/hearfox.gif" : "/images/speepfox.gif"}
+                alt={isSpeaking ? "말하는 중" : "대기 중"}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <video
+                ref={finalVideoRef}
+                autoPlay
+                playsInline
+                muted
+                className="w-full h-full object-cover"
+              />
+            )}
           </>
         )}
 
@@ -279,57 +390,7 @@ export function WebcamView({
             탭하여 웹캠 재생
           </button>
         )}
-
-        {/* 재시도 버튼 (디버그/폴백) */}
-        {(!isWebcamActive || autoplayBlocked || (isWebcamActive && !hasFrames)) && (
-          <div className="absolute bottom-3 left-3">
-            <button
-              type="button"
-              onClick={async () => {
-                // 우선 비디오 재생 재시도
-                if (finalVideoRef.current && currentStreamRef.current) {
-                  try {
-                    finalVideoRef.current.srcObject = currentStreamRef.current
-                    await finalVideoRef.current.play()
-                    setAutoplayBlocked(false)
-                    if (finalVideoRef.current.videoWidth > 0) setHasFrames(true)
-                  } catch {
-                    setAutoplayBlocked(true)
-                  }
-                }
-                // 여전히 비활성화면 사용자 제스처로 스트림 재요청
-                if (!isWebcamActive) {
-                  try {
-                    // 기존 스트림 정지
-                    if (currentStreamRef.current) {
-                      currentStreamRef.current.getTracks().forEach(t => t.stop())
-                      currentStreamRef.current = null
-                    }
-                    await startWebcam()
-                  } catch {}
-                }
-              }}
-              className="px-2 py-1 text-xs bg-white/80 text-gray-800 rounded"
-            >
-              웹캠 시작/재시도
-            </button>
-          </div>
-        )}
-
-        {/* 프레임 없음 안내 */}
-        {isWebcamActive && !hasFrames && !autoplayBlocked && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black/30">
-            <p className="text-white text-xs">카메라 신호 대기 중...</p>
-          </div>
-        )}
-
-        {/* 녹음 상태 표시 */}
-        {isRecording && (
-          <div className="absolute top-4 right-4 bg-red-500 text-white px-3 py-1 rounded-full text-sm flex items-center gap-2">
-            <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
-            녹음 중...
-          </div>
-        )}
+    
       </div>
 
 
