@@ -690,13 +690,13 @@ export function VoiceMemoryTrainingSession({ onBack }: VoiceSessionProps) {
             <Button
               onClick={handleAnswerClick}
               aria-pressed={isRecording}
-              aria-label={isRecording ? '녹화 중지' : '녹화 시작'}
+              aria-label={isRecording ? '녹화중지' : (hasRecorded ? '다시답변' : '답변하기기')}
               className={`flex-1 h-16 text-2xl text-white focus-visible:ring-4 focus-visible:ring-emerald-300 ${
                 isRecording ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'
               }`}
             >
               <Mic className="w-6 h-6 mr-3" aria-hidden="true" />
-              {isRecording ? '녹화 중지' : '답변하기'}
+              {isRecording ? '녹화중지' : (hasRecorded ? '다시답변' : '답변하기')}
             </Button>
 
             <Button
