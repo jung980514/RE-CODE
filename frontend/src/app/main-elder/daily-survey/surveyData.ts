@@ -25,7 +25,7 @@ interface ServerSurveyQuestion {
   createdAt?: string;
 }
 // export const SURVEY_API_URL = 'https://recode-my-life.site/api/survey/questions';
-export const SURVEY_API_URL = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8088'}/api/survey/questions`;
+export const SURVEY_API_URL = `${process.env.NEXT_PUBLIC_API_URL || 'https://recode-my-life.site'}/api/survey/questions`;
 
 // 서버에서 질문을 가져오되, 쿠키 세션을 포함해 요청
 export async function fetchSurveyQuestionsWithCredentials(): Promise<ServerSurveyQuestion[]> {
