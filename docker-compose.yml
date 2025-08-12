@@ -8,12 +8,19 @@ services:
       - REDIS_PASSWORD=${REDIS_PASSWORD}
     ports:
       - "6379:6379"
-    restart: always
+    restart: unless-stopped
     networks:
       - app-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 30s
 
   backend:
     build: ./backend
+    container_name: backend
     environment:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
@@ -31,25 +38,36 @@ services:
       - DB_NAME=${DB_NAME}
       - DB_USERNAME=${DB_USERNAME}
     depends_on:
-      - redis
+      redis:
+        condition: service_healthy
     expose:
       - "8088"
+    restart: unless-stopped
     networks:
       - app-network
     healthcheck:
-        test: [ "CMD", "wget", "-qO-", "http://localhost:8088/actuator/health" ]
-        interval: 15s
-        timeout: 3s
-        retries: 3
+      test: ["CMD", "wget", "-qO-", "http://localhost:8088/actuator/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
 
   frontend:
     build: ./frontend
+    container_name: frontend
     expose:
       - "3030"
     environment:
       - PORT=3030
+    restart: unless-stopped
     networks:
       - app-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3030"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
   prometheus:
     user: "65534:65534"
@@ -65,12 +83,21 @@ services:
       - --storage.tsdb.path=/prometheus
       - --storage.tsdb.retention.time=15d
       - --storage.tsdb.retention.size=5GB
-      - --web.enable-lifecycle      # /-/reload 로 무중단 리로드
+      - --web.enable-lifecycle
+      - --web.enable-admin-api
     restart: unless-stopped
     networks:
       - app-network
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:9090/-/healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
   grafana:
     build: ./grafana
+    container_name: grafana
     ports:
       - "3000:3000"
     volumes:
@@ -87,25 +114,44 @@ services:
       - GF_SECURITY_COOKIE_SAMESITE=lax
       - GF_SERVER_ENABLE_GZIP=true
     depends_on:
-      - prometheus
+      prometheus:
+        condition: service_healthy
     restart: unless-stopped
     networks:
       - app-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
 
   nginx:
     build: ./nginx
+    container_name: nginx
     ports:
       - "80:80"
       - "443:443"
     volumes:
       - /etc/letsencrypt:/etc/letsencrypt:ro
     depends_on:
-      - frontend
-      - backend
-      - prometheus
-      - grafana
+      frontend:
+        condition: service_healthy
+      backend:
+        condition: service_healthy
+      prometheus:
+        condition: service_healthy
+      grafana:
+        condition: service_healthy
+    restart: unless-stopped
     networks:
       - app-network
+    healthcheck:
+      test: ["CMD", "nginx", "-t"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
 
   nginx-exporter:
     image: nginx/nginx-prometheus-exporter:1.1.0
@@ -114,7 +160,9 @@ services:
     ports:
       - "9113:9113"
     depends_on:
-      - nginx
+      nginx:
+        condition: service_healthy
+    restart: unless-stopped
     networks:
       - app-network
 
@@ -127,7 +175,9 @@ services:
     ports:
       - "9121:9121"
     depends_on:
-      - redis
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
     networks:
       - app-network
 
@@ -138,6 +188,7 @@ services:
       - DATA_SOURCE_NAME=${DB_USERNAME}:${DB_PASSWORD}@(${DB_IP}:3306)/${DB_NAME}
     ports:
       - "9104:9104"
+    restart: unless-stopped
     networks:
       - app-network
 
@@ -149,21 +200,24 @@ services:
       - /proc:/host/proc:ro
       - /sys:/host/sys:ro
       - /:/rootfs:ro
-    command: 
+    command:
       - '--path.procfs=/host/proc'
       - '--path.sysfs=/host/sys'
       - '--path.rootfs=/rootfs'
       - '--collector.filesystem.ignored-mount-points=^/(sys|proc|dev|host|etc)($|/)'
     ports:
       - "9100:9100"
+    restart: unless-stopped
     networks:
       - app-network
 
 volumes:
   grafana-data:
+    driver: local
   prometheus-data:
+    driver: local
+
 networks:
   app-network:
     driver: bridge
-
-
+    name: app-network
