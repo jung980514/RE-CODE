@@ -181,17 +181,6 @@ services:
     networks:
       - app-network
 
-  mysqld-exporter:
-    image: prom/mysqld-exporter:latest
-    container_name: mysqld-exporter
-    environment:
-      - DATA_SOURCE_NAME=${DB_USERNAME}:${DB_PASSWORD}@(${DB_IP}:3306)/project
-    ports:
-      - "9104:9104"
-    restart: unless-stopped
-    networks:
-      - app-network
-
   node-exporter:
     image: prom/node-exporter:latest
     container_name: node-exporter
