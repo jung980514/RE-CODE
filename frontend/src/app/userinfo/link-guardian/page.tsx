@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Link, Users, Send, Eye, X } from "lucide-react";
+import { AlertModal, ConfirmModal } from "@/components/ui/modal";
 
 interface LinkedElder {
   id: number;
@@ -19,6 +20,27 @@ export default function GuardianLinkPage() {
   const [isLoadingLinked, setIsLoadingLinked] = useState<boolean>(false);
   const [linkedError, setLinkedError] = useState<string | null>(null);
   const [unlinkingId, setUnlinkingId] = useState<number | null>(null);
+
+  // 모달 상태
+  const [alertModal, setAlertModal] = useState<{
+    isOpen: boolean;
+    message: string;
+    type: 'success' | 'error' | 'info' | 'warning';
+  }>({
+    isOpen: false,
+    message: '',
+    type: 'info'
+  });
+
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    message: string;
+    onConfirm: () => void;
+  }>({
+    isOpen: false,
+    message: '',
+    onConfirm: () => {}
+  });
 
   useEffect(() => {
     const fetchLinkedElders = async () => {
@@ -57,7 +79,11 @@ export default function GuardianLinkPage() {
     e.preventDefault();
     const trimmed = token.trim();
     if (!trimmed) {
-      alert('토큰을 입력해주세요.');
+      setAlertModal({
+        isOpen: true,
+        message: '토큰을 입력해주세요.',
+        type: 'warning'
+      });
       return;
     }
     try {
@@ -77,43 +103,63 @@ export default function GuardianLinkPage() {
         } catch (_) {}
         throw new Error(message);
       }
-      alert('연동 요청이 전송되었습니다. 어르신의 승인을 기다려주세요.');
+      setAlertModal({
+        isOpen: true,
+        message: '연동 요청이 전송되었습니다. 어르신의 승인을 기다려주세요.',
+        type: 'success'
+      });
       setToken('');
     } catch (error) {
       console.error(error);
-      alert(error instanceof Error ? error.message : '연동 요청 전송에 실패했습니다.');
+      setAlertModal({
+        isOpen: true,
+        message: error instanceof Error ? error.message : '연동 요청 전송에 실패했습니다.',
+        type: 'error'
+      });
     }
   };
 
   const handleUnlink = async (id: number) => {
-    const proceed = confirm('정말로 이 어르신과의 연동을 해제하시겠습니까?');
-    if (!proceed) return;
-    try {
-      setUnlinkingId(id);
-      const response = await fetch('https://recode-my-life.site/api/link/unlink', {
-        method: 'DELETE',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ targetUserId: id }),
-      });
-      if (!response.ok) {
-        let message = '연동 해제에 실패했습니다.';
+    setConfirmModal({
+      isOpen: true,
+      message: '정말로 이 어르신과의 연동을 해제하시겠습니까?',
+      onConfirm: async () => {
         try {
-          const err = await response.json();
-          message = err?.message || message;
-        } catch (_) {}
-        throw new Error(message);
+          setUnlinkingId(id);
+          const response = await fetch('https://recode-my-life.site/api/link/unlink', {
+            method: 'DELETE',
+            credentials: 'include',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ targetUserId: id }),
+          });
+          if (!response.ok) {
+            let message = '연동 해제에 실패했습니다.';
+            try {
+              const err = await response.json();
+              message = err?.message || message;
+            } catch (_) {}
+            throw new Error(message);
+          }
+          setLinkedElders(prev => prev.filter(elder => elder.id !== id));
+          setAlertModal({
+            isOpen: true,
+            message: '연동이 해제되었습니다.',
+            type: 'success'
+          });
+        } catch (error) {
+          console.error(error);
+          setAlertModal({
+            isOpen: true,
+            message: error instanceof Error ? error.message : '연동 해제 중 오류가 발생했습니다.',
+            type: 'error'
+          });
+        } finally {
+          setUnlinkingId(null);
+        }
       }
-      setLinkedElders(prev => prev.filter(elder => elder.id !== id));
-      alert('연동이 해제되었습니다.');
-    } catch (error) {
-      console.error(error);
-      alert(error instanceof Error ? error.message : '연동 해제 중 오류가 발생했습니다.');
-    } finally {
-      setUnlinkingId(null);
-    }
+    });
   };
 
   return (
@@ -223,6 +269,22 @@ export default function GuardianLinkPage() {
           )}
         </div>
       </main>
+
+      {/* 모달들 */}
+      <AlertModal
+        isOpen={alertModal.isOpen}
+        onClose={() => setAlertModal(prev => ({ ...prev, isOpen: false }))}
+        message={alertModal.message}
+        type={alertModal.type}
+      />
+
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        onClose={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+        message={confirmModal.message}
+        onConfirm={confirmModal.onConfirm}
+        type="warning"
+      />
     </div>
   );
 } 

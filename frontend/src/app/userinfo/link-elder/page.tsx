@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Key, Clock, Copy, Check, X } from 'lucide-react';
+import { AlertModal, ConfirmModal } from '@/components/ui/modal';
 
 export default function GuardianLinkPage() {
   const router = useRouter();
@@ -11,6 +12,27 @@ export default function GuardianLinkPage() {
   const [generatedToken, setGeneratedToken] = useState<string>('');
   const [tokenExpiry, setTokenExpiry] = useState<number>(0);
   const [isTokenGenerated, setIsTokenGenerated] = useState(false);
+
+  // 모달 상태
+  const [alertModal, setAlertModal] = useState<{
+    isOpen: boolean;
+    message: string;
+    type: 'success' | 'error' | 'info' | 'warning';
+  }>({
+    isOpen: false,
+    message: '',
+    type: 'info'
+  });
+
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    message: string;
+    onConfirm: () => void;
+  }>({
+    isOpen: false,
+    message: '',
+    onConfirm: () => {}
+  });
 
   type LinkRequestItem = {
     guardianId: number;
@@ -77,7 +99,11 @@ export default function GuardianLinkPage() {
       setTokenExpiry(expiresIn);
       setIsTokenGenerated(true);
     } catch (error) {
-      alert('토큰 생성에 실패했습니다. 다시 시도해 주세요.');
+      setAlertModal({
+        isOpen: true,
+        message: '토큰 생성에 실패했습니다. 다시 시도해 주세요.',
+        type: 'error'
+      });
       setIsTokenGenerated(false);
       setGeneratedToken('');
       setTokenExpiry(0);
@@ -88,9 +114,17 @@ export default function GuardianLinkPage() {
   const copyToken = async () => {
     try {
       await navigator.clipboard.writeText(generatedToken);
-      alert('토큰이 클립보드에 복사되었습니다.');
+      setAlertModal({
+        isOpen: true,
+        message: '토큰이 클립보드에 복사되었습니다.',
+        type: 'success'
+      });
     } catch (err) {
-      alert('복사에 실패했습니다.');
+      setAlertModal({
+        isOpen: true,
+        message: '복사에 실패했습니다.',
+        type: 'error'
+      });
     }
   };
 
@@ -176,12 +210,20 @@ export default function GuardianLinkPage() {
       }
 
       const message = result?.message ?? (approve ? '연동 요청이 승인되었습니다.' : '연동 요청이 거절되었습니다.');
-      alert(message);
+      setAlertModal({
+        isOpen: true,
+        message: message,
+        type: 'success'
+      });
       setPendingRequests((prev: LinkRequestItem[]) => prev.filter((r: LinkRequestItem) => r.guardianId !== guardianId));
     } catch (error: unknown) {
       const fallback = approve ? '승인에 실패했습니다. 다시 시도해 주세요.' : '거절에 실패했습니다. 다시 시도해 주세요.';
       const msg = error instanceof Error ? error.message : fallback;
-      alert(msg);
+      setAlertModal({
+        isOpen: true,
+        message: msg,
+        type: 'error'
+      });
     } finally {
       setProcessingIds((prev: number[]) => prev.filter((id: number) => id !== guardianId));
     }
@@ -196,8 +238,11 @@ export default function GuardianLinkPage() {
 
   // 연동 요청 거절
   const rejectRequest = (guardianId: number) => {
-    if (!confirm('정말로 이 연동 요청을 거절하시겠습니까?')) return;
-    respondLinkRequest(guardianId, false);
+    setConfirmModal({
+      isOpen: true,
+      message: '정말로 이 연동 요청을 거절하시겠습니까?',
+      onConfirm: () => respondLinkRequest(guardianId, false)
+    });
   };
 
   // 시간 포맷팅
@@ -338,6 +383,22 @@ export default function GuardianLinkPage() {
           )}
         </div>
       </main>
+
+      {/* 모달들 */}
+      <AlertModal
+        isOpen={alertModal.isOpen}
+        onClose={() => setAlertModal(prev => ({ ...prev, isOpen: false }))}
+        message={alertModal.message}
+        type={alertModal.type}
+      />
+
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        onClose={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+        message={confirmModal.message}
+        onConfirm={confirmModal.onConfirm}
+        type="warning"
+      />
     </div>
   );
 } 

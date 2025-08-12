@@ -8,6 +8,7 @@ import { AccountDeletionModal } from './account-deletion-modal';
 import { WithdrawalSuccessModal } from './withdrawal-success-modal';
 import { ProfileSaveSuccessModal } from './profile-save-success-modal';
 import { VirtualKeyboard } from '@/components/common/VirtualKeyboard';
+import { AlertModal } from '@/components/ui/modal';
 
 export default function UserInfoPage() {
   const router = useRouter();
@@ -49,7 +50,16 @@ export default function UserInfoPage() {
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-
+  // 모달 상태
+  const [alertModal, setAlertModal] = useState<{
+    isOpen: boolean;
+    message: string;
+    type: 'success' | 'error' | 'info' | 'warning';
+  }>({
+    isOpen: false,
+    message: '',
+    type: 'info'
+  });
 
   const [showWithdrawalSuccess, setShowWithdrawalSuccess] = useState(false);
   const [showSaveSuccess, setShowSaveSuccess] = useState(false);
@@ -93,7 +103,11 @@ export default function UserInfoPage() {
           }
         } else {
           console.error('Failed to fetch user info');
-          alert('사용자 정보를 불러오는데 실패했습니다. 다시 로그인해주세요.');
+          setAlertModal({
+            isOpen: true,
+            message: '사용자 정보를 불러오는데 실패했습니다. 다시 로그인해주세요.',
+            type: 'error'
+          });
           router.push('/');
         }
       } catch (error) {
@@ -694,7 +708,11 @@ export default function UserInfoPage() {
                 } else if (role === 'GUARDIAN') {
                   window.location.href = "/userinfo/link-guardian";
                 } else {
-                  alert('계정 타입을 확인할 수 없습니다.');
+                  setAlertModal({
+                    isOpen: true,
+                    message: '계정 타입을 확인할 수 없습니다.',
+                    type: 'error'
+                  });
                 }
               }}
               className="w-full sm:w-auto px-6 py-3 bg-green-600 text-white rounded-md hover:bg-green-700"
@@ -735,6 +753,14 @@ export default function UserInfoPage() {
          isOpen={showSaveSuccess}
          onClose={handleSaveSuccessClose}
        />
+
+       {/* 모달들 */}
+      <AlertModal
+        isOpen={alertModal.isOpen}
+        onClose={() => setAlertModal(prev => ({ ...prev, isOpen: false }))}
+        message={alertModal.message}
+        type={alertModal.type}
+      />
     </div>
   );
 }
