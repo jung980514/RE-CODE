@@ -322,7 +322,7 @@ export default function GuardianLinkPage() {
                       </div>
                       <div>
                         <div className="font-semibold text-gray-800">{guardian.name}</div>
-                        <div className="text-sm text-gray-500">{guardian.phoneNumber}</div>
+                        <div className="text-sm text-gray-500">{guardian.phone}</div>
                       </div>
                     </div>
                     <div className="flex items-center space-x-3">
