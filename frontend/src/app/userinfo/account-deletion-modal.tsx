@@ -1,6 +1,6 @@
 "use client"
 
-import type React from "react"
+import React from "react"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -30,8 +30,40 @@ interface AccountDeletionModalProps {
  * 사용자가 계정 탈퇴를 시도할 때 경고 메시지와 함께 최종 확인을 요청합니다.
  */
 export function AccountDeletionModal({ children, onConfirm }: AccountDeletionModalProps) {
+  const [password, setPassword] = React.useState("");
+  const [error, setError] = React.useState("");
+  const [isOpen, setIsOpen] = React.useState(false);
+
+  // 모달이 닫힐 때 필드 초기화
+  const handleOpenChange = (open: boolean) => {
+    setIsOpen(open);
+    if (!open) {
+      setPassword("");
+      setError("");
+    }
+  };
+
+  const handleDelete = () => {
+    if (!password || password.trim() === '') {
+      setError("비밀번호를 입력해주세요.");
+      return;
+    }
+    
+    if (password.trim().length < 8) {
+      setError("비밀번호는 8자 이상이어야 합니다.");
+      return;
+    }
+    
+    setError("");
+    // 비밀번호를 전역 이벤트로 전달
+    window.dispatchEvent(new CustomEvent("account-delete-password", { detail: password.trim() }));
+    onConfirm();
+    // 탈퇴 처리 후 모달 닫기
+    setIsOpen(false);
+  };
+
   return (
-    <Dialog>
+    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
@@ -52,13 +84,30 @@ export function AccountDeletionModal({ children, onConfirm }: AccountDeletionMod
             혹시 일시적인 휴식이 필요하시다면, 대신 알림을 끄거나 앱 사용을 잠시 멈춰보시는 것은 어떨까요?
           </p>
         </div>
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-gray-700 mb-2">비밀번호 입력</label>
+          <input
+            type="password"
+            value={password}
+            onChange={e => setPassword(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                handleDelete();
+              }
+            }}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
+            placeholder="비밀번호를 입력하세요"
+            autoFocus
+          />
+          {error && <p className="text-xs text-red-500 mt-1">{error}</p>}
+        </div>
         <DialogFooter className="sm:justify-start">
           <DialogClose asChild>
             <Button type="button" variant="secondary">
               취소
             </Button>
           </DialogClose>
-          <Button type="button" variant="destructive" onClick={onConfirm}>
+          <Button type="button" variant="destructive" onClick={handleDelete}>
             탈퇴
           </Button>
         </DialogFooter>

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Camera, Users } from 'lucide-react';
 import Image from 'next/image';
 import { AccountDeletionModal } from './account-deletion-modal';
+import { WithdrawalSuccessModal } from './withdrawal-success-modal';
 import { VirtualKeyboard } from '@/components/common/VirtualKeyboard';
 
 export default function UserInfoPage() {
@@ -24,6 +25,11 @@ export default function UserInfoPage() {
     confirmPassword: '',
     email: '',
   });
+
+
+
+  const [deletePassword, setDeletePassword] = useState('');
+  const [showWithdrawalSuccess, setShowWithdrawalSuccess] = useState(false);
 
   useEffect(() => {
     const fetchUserInfo = async () => {
@@ -56,7 +62,19 @@ export default function UserInfoPage() {
         console.error('Error fetching user info:', error);
       }
     };
+    
+    // 회원탈퇴 비밀번호 이벤트 리스너
+    const handleDeletePasswordEvent = (event: Event) => {
+      const customEvent = event as CustomEvent<string>;
+      setDeletePassword(customEvent.detail);
+    };
+    
+    window.addEventListener('account-delete-password', handleDeletePasswordEvent);
     fetchUserInfo();
+    
+    return () => {
+      window.removeEventListener('account-delete-password', handleDeletePasswordEvent);
+    };
   }, [router]);
 
   const handleInputChange = (field: string, value: string) => {
@@ -66,49 +84,184 @@ export default function UserInfoPage() {
     }));
   };
 
-  const handleSaveProfile = () => {
-    // 프로필 저장 로직
-    console.log('프로필 저장:', formData);
-    alert('프로필이 저장되었습니다.');
-  };
+  // const handleSaveProfile = () => {
+  //   // 프로필 저장 로직
+  //   console.log('프로필 저장:', formData);
+  //   alert('프로필이 저장되었습니다.');
+  // };
 
-  const handleGuardianLink = () => {
-    // 보호자 연동 관리 로직
-    console.log('보호자 연동 관리');
-    alert('보호자 연동 관리 기능입니다.');
+
+
+  const handleSaveProfile = async () => {
+    try {
+      // 비밀번호 변경 여부 확인 (실제로 새 비밀번호를 입력했을 때만)
+      const isChangingPassword = formData.newPassword && formData.newPassword.trim().length > 0;
+      
+      if (isChangingPassword) {
+        // 현재 비밀번호 확인
+        if (!formData.currentPassword || formData.currentPassword.trim() === '') {
+          alert('비밀번호를 변경하려면 현재 비밀번호를 입력해주세요.');
+          return;
+        }
+
+        // 새 비밀번호 길이 확인
+        if (formData.newPassword.trim().length < 8) {
+          alert('새 비밀번호는 8자 이상이어야 합니다.');
+          return;
+        }
+
+        // 비밀번호 확인 체크
+        if (formData.newPassword.trim() !== formData.confirmPassword.trim()) {
+          alert('새 비밀번호와 비밀번호 확인이 일치하지 않습니다.');
+          return;
+        }
+      }
+
+      // API 요청 데이터 구성
+      const updateData: {
+        name?: string;
+        phone?: string;
+        currentPassword?: string;
+        newPassword?: string;
+      } = {};
+      
+      // 이름이 변경된 경우
+      if (formData.name && formData.name.trim() !== '') {
+        updateData.name = formData.name.trim();
+      }
+
+      // 전화번호가 변경된 경우  
+      if (formData.phoneNumber && formData.phoneNumber.trim() !== '') {
+        const phoneNumber = formData.phoneNumber.trim();
+        
+        // 전화번호 형식 검증
+        const phoneRegex = /^[0-9]{10,11}$/;
+        if (!phoneRegex.test(phoneNumber.replace(/[^0-9]/g, ''))) {
+          alert('올바른 휴대전화 번호를 입력해주세요. (10-11자리 숫자)');
+          return;
+        }
+        
+        updateData.phone = phoneNumber;
+      }
+
+      // 비밀번호 변경이 요청된 경우 (실제로 비밀번호를 변경할 때만)
+      if (isChangingPassword) {
+        updateData.currentPassword = formData.currentPassword.trim();
+        updateData.newPassword = formData.newPassword.trim();
+      }
+
+      // API 호출
+      const response = await fetch('https://recode-my-life.site/api/user/update', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify(updateData),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        if (result.status === 'success') {
+          alert('프로필이 성공적으로 저장되었습니다.');
+          
+          // 비밀번호 변경이 성공한 경우 필드 초기화
+          if (isChangingPassword) {
+            setFormData(prev => ({
+              ...prev,
+              currentPassword: '',
+              newPassword: '',
+              confirmPassword: '',
+            }));
+          }
+        } else {
+          alert(`프로필 저장에 실패했습니다: ${result.message || '알 수 없는 오류'}`);
+        }
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        
+        // 에러 메시지 처리
+        let errorMessage = '프로필 저장에 실패했습니다.';
+        if (errorData.message) {
+          errorMessage += ` ${errorData.message}`;
+        } else if (response.status === 400) {
+          errorMessage += ' 입력값을 확인해주세요.';
+        } else if (response.status === 401) {
+          errorMessage += ' 인증이 필요합니다. 다시 로그인해주세요.';
+        } else if (response.status === 403) {
+          errorMessage += ' 현재 비밀번호가 올바르지 않습니다.';
+        }
+        
+        alert(errorMessage);
+      }
+    } catch (error) {
+      console.error('Error saving profile:', error);
+      alert('프로필 저장 중 오류가 발생했습니다. 네트워크 연결을 확인해주세요.');
+    }
   };
 
   const handleConfirmWithdrawal = async () => {
     try {
-      const response = await fetch('http://localhost:8088/api/user/', {
+      // 비밀번호가 없으면 에러
+      if (!deletePassword || deletePassword.trim() === '') {
+        alert('비밀번호를 입력해주세요.');
+        return;
+      }
+
+      const requestBody = { password: deletePassword };
+      
+      const response = await fetch('https://recode-my-life.site/api/user/', {
         method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
         credentials: 'include',
+        body: JSON.stringify(requestBody),
       });
 
       if (response.ok) {
-        alert('회원 탈퇴가 완료되었습니다. 이용해주셔서 감사합니다.');
         // 로컬 스토리지 정리
   localStorage.removeItem('role');
         localStorage.removeItem('name');
-        // 다른 정보도 필요 시 삭제
-        router.replace('/'); // 메인 페이지로 리디렉션
+        localStorage.removeItem('isLoggedIn');
+        localStorage.removeItem('userEmail');
+        localStorage.removeItem('phone');
+        localStorage.removeItem('birthDate');
+        
+        // 성공 모달 표시
+        setShowWithdrawalSuccess(true);
       } else {
         const errorData = await response.json().catch(() => ({}));
-        alert(`회원 탈퇴에 실패했습니다: ${errorData.message || '서버 오류가 발생했습니다.'}`);
+        
+        // 상태 코드별 에러 메시지 처리 (백엔드 API 스펙에 맞춤)
+        let errorMessage = '회원 탈퇴에 실패했습니다.';
+        if (response.status === 401) {
+          errorMessage = '입력하신 비밀번호가 올바르지 않습니다. 다시 확인해주세요.';
+        } else if (response.status === 404) {
+          errorMessage = '사용자 정보를 찾을 수 없습니다. 다시 로그인해주세요.';
+        } else if (response.status === 400) {
+          errorMessage = '잘못된 요청입니다. 비밀번호를 확인해주세요.';
+        } else if (errorData.message) {
+          errorMessage = errorData.message;
+        }
+        
+        alert(errorMessage);
       }
     } catch (error) {
       console.error('Error during account withdrawal:', error);
-      alert('회원 탈퇴 중 오류가 발생했습니다.');
+      alert('네트워크 오류가 발생했습니다. 인터넷 연결을 확인해주세요.');
     }
   };
 
-  const handlePhoneChange = () => {
-    // 휴대전화 번호 변경 로직
-    alert('휴대전화 번호 변경 기능입니다.');
-  };
+
 
   const handleToggleKeyboard = () => {
     setIsKeyboardVisible((prev) => !prev);
+  };
+
+  const handleWithdrawalSuccessClose = () => {
+    setShowWithdrawalSuccess(false);
+    router.replace('/'); // 홈으로 이동
   };
 
   const focusActiveInput = () => {
@@ -215,40 +368,34 @@ export default function UserInfoPage() {
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     휴대전화 번호 *
                   </label>
-                  <div className="flex space-x-2">
-                    <input
-                      type="text"
-                      value={formData.phoneNumber}
-                      disabled
-                      className="flex-1 px-3 py-2 border border-gray-300 rounded-md bg-gray-50"
-                    />
-                    <button
-                      onClick={handlePhoneChange}
-                      className="px-4 py-2 bg-orange-500 text-white rounded-md hover:bg-orange-600"
-                    >
-                      변경하기
-                    </button>
-                  </div>
+                  <input
+                    type="tel"
+                    value={formData.phoneNumber}
+                    onChange={(e) => handleInputChange('phoneNumber', e.target.value)}
+                    placeholder="'-' 없이 입력해주세요"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                  />
                 </div>
                 
-                {/* Confirm Password */}
+                {/* Current Password */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    비밀번호 확인
+                    현재 비밀번호
                   </label>
                   <div className="relative">
                     <input
-                      ref={confirmPasswordRef}
+                      ref={currentPasswordRef}
                       type="password"
-                      placeholder="비밀번호를 다시 입력하세요"
-                      value={formData.confirmPassword}
-                      onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
-                      onFocus={() => setActiveInput('confirmPassword')}
+                      placeholder="현재 비밀번호를 입력하세요"
+                      value={formData.currentPassword}
+                      onChange={(e) => handleInputChange('currentPassword', e.target.value)}
+                      onFocus={() => setActiveInput('currentPassword')}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
                     />  
                   </div>
+                  <p className="text-sm text-gray-500 mt-1">비밀번호 변경 시에만 입력</p>
                 </div>
-              </div>
+            </div>
 
               {/* Right Column */}
               <div className="space-y-6">
@@ -286,14 +433,37 @@ export default function UserInfoPage() {
                     <input
                       ref={newPasswordRef}
                       type="password"
-                      placeholder="새 비밀번호를 입력하세요"
+                      placeholder="새 비밀번호를 입력하세요 (8자 이상)"
                       value={formData.newPassword}
                       onChange={(e) => handleInputChange('newPassword', e.target.value)}
                       onFocus={() => setActiveInput('newPassword')}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
                     />
                   </div>
+                  <p className="text-sm text-gray-500 mt-1">8자 이상의 비밀번호</p>
                 </div>
+
+                {/* Confirm Password */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    비밀번호 확인
+                  </label>
+                  <div className="relative">
+                    <input
+                      ref={confirmPasswordRef}
+                      type="password"
+                      placeholder="비밀번호를 다시 입력하세요"
+                      value={formData.confirmPassword}
+                      onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
+                      onFocus={() => setActiveInput('confirmPassword')}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                    />  
+                  </div>
+                </div>
+
+
+            
+
               </div>
             </div>
           </div>
@@ -356,6 +526,12 @@ export default function UserInfoPage() {
         onSpace={handleVirtualSpace}
         onEnter={handleVirtualEnter}
         currentInputValue={activeInput ? formData[activeInput] : ''}
+      />
+
+      {/* 회원탈퇴 성공 모달 */}
+      <WithdrawalSuccessModal
+        isOpen={showWithdrawalSuccess}
+        onClose={handleWithdrawalSuccessClose}
       />
     </div>
   );

@@ -21,6 +21,7 @@ export const register = async (data: RegisterData): Promise<RegisterResponse> =>
   try {
     // const response = await fetch('https://recode-my-life.site/api/user/login', {
     const response = await fetch('https://recode-my-life.site/api/user/register', {
+    // const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8088'}/api/user/register`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
