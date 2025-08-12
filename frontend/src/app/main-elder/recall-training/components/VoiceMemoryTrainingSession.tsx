@@ -46,6 +46,7 @@ export function VoiceMemoryTrainingSession({ onBack }: VoiceSessionProps) {
   const [questionsError, setQuestionsError] = useState<string | null>(null)
   const [showCompleteModal, setShowCompleteModal] = useState<boolean>(false)
   const [hasRecorded, setHasRecorded] = useState<boolean>(false)
+  const [finalEmotion, setFinalEmotion] = useState<string>('NEUTRAL')
 
   // 감정 분석 훅 (VoiceStoryTellingSession과 동일한 방식, face-api 사용)
   interface EmotionRecord {
@@ -539,20 +540,21 @@ export function VoiceMemoryTrainingSession({ onBack }: VoiceSessionProps) {
             })
           }
           const koToEn: Record<string, string> = {
-            '중립': 'neutral',
-            '행복': 'happy',
-            '슬픔': 'sad',
-            '화남': 'angry',
-            '두려움': 'fearful',
-            '혐오': 'disgusted',
-            '놀람': 'surprised',
+            '중립': 'NEUTRAL',
+            '행복': 'HAPPY',
+            '슬픔': 'SAD',
+            '화남': 'ANGRY',
+            '두려움': 'FEAR',
+            '혐오': 'DISGUST',
+            '놀람': 'SURPRISED',
           }
-          let finalEmotionEn = 'neutral'
+          let finalEmotionEn = 'NEUTRAL'
           if (dominant && typeof (dominant as Dominant).emo === 'string') {
             const key = (dominant as Dominant).emo
-            finalEmotionEn = koToEn[key] || 'neutral'
+            finalEmotionEn = koToEn[key] || 'NEUTRAL'
           }
           console.log(`[세션 감정 요약] 총 ${totalDurationSec}s, 임계 ${thresholdSec}s, 최종 감정: ${finalEmotionEn}`)
+          setFinalEmotion(finalEmotionEn)
         }
       } catch (e) {
         console.error('세션 감정 요약 오류:', e)
@@ -564,6 +566,22 @@ export function VoiceMemoryTrainingSession({ onBack }: VoiceSessionProps) {
       handleComplete()
     } else {
       await handleNextQuestion()
+    }
+  }
+
+  const handleCompleteAndSubmitEmotion = async () => {
+    try {
+      const payload = { emotion: (finalEmotion || 'NEUTRAL').toUpperCase() }
+      await fetch('https://recode-my-life.site/api/cognitive/emotions', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+    } catch (e) {
+      console.error('감정 전송 실패:', e)
+    } finally {
+      router.push('/main-elder/recall-training')
     }
   }
 
@@ -784,7 +802,7 @@ export function VoiceMemoryTrainingSession({ onBack }: VoiceSessionProps) {
         title="훈련이 완료되었습니다"
         description="수고하셨어요! 다음 단계로 진행하시거나 창을 닫아주세요."
         primaryActionLabel="확인"
-        onPrimaryAction={() => router.push('/main-elder/recall-training')}
+        onPrimaryAction={handleCompleteAndSubmitEmotion}
       />
         </div>
       </div>
