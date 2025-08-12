@@ -32,12 +32,11 @@ export default function GuardianLinkPage() {
           throw new Error("연동된 노인 목록을 가져오지 못했습니다.");
         }
         const result = await response.json();
-        const list: Array<{ userId: number; name: string; email: string; phone: string }> =
+        const list: Array<{ id: number; name: string; phone: string; createdAt: string }> =
           Array.isArray(result?.data) ? result.data : [];
         const mapped: LinkedElder[] = list.map((item) => ({
-          id: item.userId,
+          id: item.id,
           name: item.name,
-          email: item.email,
           phone: item.phone,
         }));
         setLinkedElders(mapped);
@@ -199,7 +198,7 @@ export default function GuardianLinkPage() {
                           <span className="bg-green-100 text-green-700 px-2 py-1 rounded text-xs">연동됨</span>
                         </div>
                         <div className="space-y-1 text-sm text-gray-600">
-                          <div>이메일: {elder.email}</div>
+                          <div>생년월일: {elder.birthDate}</div>
                           <div>연락처: {elder.phone}</div>
                         </div>
                       </div>
