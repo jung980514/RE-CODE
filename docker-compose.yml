@@ -58,7 +58,7 @@ services:
       dockerfile: Dockerfile
     container_name: frontend
     networks:
-      - backend_network
+      - app-network
     restart: always
     depends_on:
       - backend
