@@ -3,8 +3,8 @@
 import { useParams, useRouter } from "next/navigation"
 import { VoiceMemoryTrainingSession } from "../components/VoiceMemoryTrainingSession"
 import { VoicePhotoReminiscenceSession } from "../components/VoicePhotoReminiscenceSession"
-import { VoiceStoryTellingSession } from "../components/VoiceStoryTellingSession"
 import { VoiceMusicTherapySession } from "../components/VoiceMusicTherapySession"
+import { VoiceStoryTellingSession } from "../components/VoiceStoryTellingSession"
 
 export default function SessionPage() {
   const params = useParams()
