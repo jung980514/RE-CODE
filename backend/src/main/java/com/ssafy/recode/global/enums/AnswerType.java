@@ -7,5 +7,5 @@ public enum AnswerType {
   BASIC,
   PERSONAL,
   COGNITIVE_AUDIO,
-  COGNITIVE_VIDEO
+  COGNITIVE_IMAGE
 }

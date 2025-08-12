@@ -98,6 +98,7 @@ public class AuthController {
         // 이 컨트롤러는 클라이언트에게 정상적인 로그아웃 응답을 보내는 역할만 함
         return ResponseEntity.ok(ApiResponse.successResponse("로그아웃이 성공적으로 처리되었습니다."));
     }
+
     @PatchMapping("/update")
     public ResponseEntity<?> updateUser(
         @LoginUser User user,

@@ -1,20 +1,28 @@
 package com.ssafy.recode.domain.cognitive.service;
 
+import com.ssafy.recode.domain.auth.entity.User;
+import com.ssafy.recode.domain.calender.entity.DailyEmotionSummary;
+import com.ssafy.recode.domain.calender.repository.DailyEmotionSummaryRepository;
 import com.ssafy.recode.domain.cognitive.entity.CognitiveAnswer;
 import com.ssafy.recode.domain.cognitive.entity.CognitiveQuestion;
 import com.ssafy.recode.domain.cognitive.repository.CognitiveAnswerRepository;
+import com.ssafy.recode.domain.cognitive.repository.CognitiveAnswerRepository.CognitiveVideoRow;
 import com.ssafy.recode.domain.cognitive.repository.CognitiveQuestionRepository;
 import com.ssafy.recode.domain.common.service.AiPromptService;
 import com.ssafy.recode.domain.common.service.GenericPersistenceService;
 import com.ssafy.recode.domain.common.service.S3UploaderService;
 import com.ssafy.recode.domain.common.service.VideoTranscriptionService;
-
+import com.ssafy.recode.global.dto.request.EmotionRequset;
+import com.ssafy.recode.global.dto.response.calender.VideoListResponse;
+import com.ssafy.recode.global.dto.response.calender.VideoUrlItem;
+import com.ssafy.recode.global.enums.AnswerType;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 @Service
@@ -32,6 +40,7 @@ public class CognitiveService {
   private final CognitiveAnswerRepository   answerRepo;
   private final GenericPersistenceService   genericPersistenceService;
   private final CognitiveAnswerRepository cognitiveAnswerRepository;
+  private final DailyEmotionSummaryRepository dailyEmotionSummaryRepository;
 
   /**
    * mediaType에 따라 audio/mp4 또는 이미지 파일을 S3에 업로드
@@ -115,5 +124,41 @@ public class CognitiveService {
     return cognitiveAnswerRepository.existsByUserIdAndCreatedAtBetweenAndMediaType(
             userId, startOfDay, endOfDay, mediaType
     );
+  }
+
+  @Transactional
+  public void addEmotions(User user, EmotionRequset requset, AnswerType answerType){
+    DailyEmotionSummary dailyEmotionSummary = DailyEmotionSummary
+        .builder()
+        .userId(user.getId())
+        .summaryDate(LocalDate.now())
+        .answerType(answerType)
+        .dominantEmotion(requset.emotion())
+        .createdAt(LocalDateTime.now())
+        .build();
+
+    dailyEmotionSummaryRepository.save(dailyEmotionSummary);
+  }
+
+  public VideoListResponse getCognitiveVideosByDate(User user, LocalDate date, AnswerType answerType) {
+    String answerTypeStr = answerType.equals(AnswerType.COGNITIVE_AUDIO) ? "audio" : "image";
+    // 1) DB에서 저장된 video_path(키 또는 URL) 조회
+    List<CognitiveVideoRow> rows = cognitiveAnswerRepository.findVideoPathsByDate(user.getId(), date, answerTypeStr);
+
+    // 2) videoPath → S3 key 정규화 후 presign, answerId와 함께 DTO로
+    List<VideoUrlItem> items = rows.stream()
+        .filter(r -> r.getVideoPath() != null)
+        .map(r -> new VideoUrlItem(
+            r.getAnswerId(),
+            r.getQuestionId(),
+            r.getContent(),
+            transcriptionService.presign(transcriptionService.toS3Key(r.getVideoPath())),
+            r.getScore(),
+            r.getIsMatch(),
+            r.getCreatedAt()
+        ))
+        .toList();
+
+    return new VideoListResponse(date, !items.isEmpty(), items);
   }
 }

@@ -128,7 +128,7 @@ public class PersonalService {
     dailyEmotionSummaryRepository.save(dailyEmotionSummary);
   }
 
-  public VideoListResponse getBasicVideosByDate(User user, LocalDate date) {
+  public VideoListResponse getPersonalVideosByDate(User user, LocalDate date) {
     // 1) DB에서 저장된 video_path(키 또는 URL) 조회
     List<PersonalVideoRow> rows = personalAnswerRepository.findVideoPathsByDate(user.getId(), date);
 
