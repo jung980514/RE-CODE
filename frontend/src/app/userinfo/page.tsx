@@ -28,7 +28,6 @@ export default function UserInfoPage() {
 
 
 
-  const [deletePassword, setDeletePassword] = useState('');
   const [showWithdrawalSuccess, setShowWithdrawalSuccess] = useState(false);
 
   useEffect(() => {
@@ -63,18 +62,7 @@ export default function UserInfoPage() {
       }
     };
     
-    // 회원탈퇴 비밀번호 이벤트 리스너
-    const handleDeletePasswordEvent = (event: Event) => {
-      const customEvent = event as CustomEvent<string>;
-      setDeletePassword(customEvent.detail);
-    };
-    
-    window.addEventListener('account-delete-password', handleDeletePasswordEvent);
     fetchUserInfo();
-    
-    return () => {
-      window.removeEventListener('account-delete-password', handleDeletePasswordEvent);
-    };
   }, [router]);
 
   const handleInputChange = (field: string, value: string) => {
@@ -200,14 +188,9 @@ export default function UserInfoPage() {
     }
   };
 
-  const handleConfirmWithdrawal = async () => {
+  const handleConfirmWithdrawal = async (password: string) => {
     try {
-      // 비밀번호가 없으면 아무 동작하지 않음 (모달에서 이미 처리)
-      if (!deletePassword || deletePassword.trim() === '') {
-        return;
-      }
-
-      const requestBody = { password: deletePassword };
+      const requestBody = { password: password };
       
       const response = await fetch('https://recode-my-life.site/api/user/', {
         method: 'DELETE',
@@ -244,11 +227,15 @@ export default function UserInfoPage() {
           errorMessage = errorData.message;
         }
         
-        alert(errorMessage);
+        throw new Error(errorMessage);
       }
     } catch (error) {
       console.error('Error during account withdrawal:', error);
-      alert('네트워크 오류가 발생했습니다. 인터넷 연결을 확인해주세요.');
+      if (error instanceof Error) {
+        throw error;
+      } else {
+        throw new Error('네트워크 오류가 발생했습니다. 인터넷 연결을 확인해주세요.');
+      }
     }
   };
 
