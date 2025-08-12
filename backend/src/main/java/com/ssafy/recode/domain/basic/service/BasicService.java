@@ -1,21 +1,29 @@
 package com.ssafy.recode.domain.basic.service;
 
+import com.ssafy.recode.domain.auth.entity.User;
 import com.ssafy.recode.domain.basic.entity.BasicAnswer;
 import com.ssafy.recode.domain.basic.entity.BasicQuestion;
 import com.ssafy.recode.domain.basic.repository.BasicAnswerRepository;
+import com.ssafy.recode.domain.basic.repository.BasicAnswerRepository.BasicVideoRow;
 import com.ssafy.recode.domain.basic.repository.BasicQuestionRepository;
+import com.ssafy.recode.domain.calender.entity.DailyEmotionSummary;
+import com.ssafy.recode.domain.calender.repository.DailyEmotionSummaryRepository;
 import com.ssafy.recode.domain.common.service.AiPromptService;
 import com.ssafy.recode.domain.common.service.GenericPersistenceService;
 import com.ssafy.recode.domain.common.service.S3UploaderService;
 import com.ssafy.recode.domain.common.service.VideoTranscriptionService;
-import lombok.RequiredArgsConstructor;
-import org.springframework.scheduling.annotation.Async;
-import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile;
-
+import com.ssafy.recode.global.dto.request.EmotionRequset;
+import com.ssafy.recode.global.dto.response.calender.VideoListResponse;
+import com.ssafy.recode.global.dto.response.calender.VideoUrlItem;
+import com.ssafy.recode.global.enums.AnswerType;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import lombok.RequiredArgsConstructor;
+import org.springframework.scheduling.annotation.Async;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 @Service
 @RequiredArgsConstructor
@@ -30,7 +38,8 @@ public class BasicService {
   private final BasicQuestionRepository      questionRepo;
   private final BasicAnswerRepository        answerRepo;
   private final GenericPersistenceService    genericPersistenceService;
-  private final BasicAnswerRepository basicAnswerRepository;
+  private final BasicAnswerRepository        basicAnswerRepository;
+  private final DailyEmotionSummaryRepository dailyEmotionSummaryRepository;
 
   /** MP4 파일을 S3에 업로드하고 key 반환 */
   public String uploadMedia(MultipartFile file) {
@@ -99,4 +108,40 @@ public class BasicService {
             userId, startOfDay, endOfDay
     );
   }
+
+  @Transactional
+  public void addEmotions(User user, EmotionRequset requset){
+    DailyEmotionSummary dailyEmotionSummary = DailyEmotionSummary
+        .builder()
+        .userId(user.getId())
+        .summaryDate(LocalDate.now())
+        .answerType(AnswerType.BASIC)
+        .dominantEmotion(requset.emotion())
+        .createdAt(LocalDateTime.now())
+        .build();
+
+    dailyEmotionSummaryRepository.save(dailyEmotionSummary);
+  }
+
+  public VideoListResponse getBasicVideosByDate(User user, LocalDate date) {
+    // 1) DB에서 저장된 video_path(키 또는 URL) 조회
+    List<BasicVideoRow> rows = basicAnswerRepository.findVideoPathsByDate(user.getId(), date);
+
+    // 2) videoPath → S3 key 정규화 후 presign, answerId와 함께 DTO로
+    List<VideoUrlItem> items = rows.stream()
+        .filter(r -> r.getVideoPath() != null)
+        .map(r -> new VideoUrlItem(
+            r.getAnswerId(),
+            r.getQuestionId(),
+            r.getContent(),
+            transcriptionService.presign(transcriptionService.toS3Key(r.getVideoPath())),
+            r.getScore(),
+            r.getIsMatch(),
+            r.getCreatedAt()
+        ))
+        .toList();
+
+    return new VideoListResponse(date, !items.isEmpty(), items);
+  }
+
 }

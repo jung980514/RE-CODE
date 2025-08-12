@@ -1,6 +1,11 @@
 package com.ssafy.recode.domain.common.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.net.URI;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
+import java.time.Duration;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -8,11 +13,10 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest;
-
-import java.time.Duration;
-import java.util.Map;
+import software.amazon.awssdk.services.s3.presigner.model.PresignedGetObjectRequest;
 
 @Service
 @RequiredArgsConstructor
@@ -74,5 +78,48 @@ public class VideoTranscriptionService {
     } catch (Exception e) {
       throw new RuntimeException("Clova STT 동기 요청 실패: " + e.getMessage(), e);
     }
+  }
+
+  // Presigned URL 생성 (GET 전용)
+  public String presign(String key) {
+    GetObjectRequest get = GetObjectRequest.builder()
+        .bucket(bucket)
+        .key(key)
+        // 콘텐츠 타입을 설정해주면 브라우저가 더 잘 인식합니다.
+        .responseContentType("video/mp4")
+        .build();
+
+    PresignedGetObjectRequest pre = s3Presigner.presignGetObject(b -> b
+        .signatureDuration(Duration.ofMinutes(60)) // 만료 시간
+        .getObjectRequest(get)
+    );
+
+    return pre.url().toString();
+  }
+
+  /**
+   * URL 또는 키 문자열을 안전하게 "S3 키"로 변환
+   * - 풀 URL: https://bucket.s3.region.amazonaws.com/<encoded path>
+   *          → host 제거 + URL 디코딩 → "폴더1/폴더2/파일명.mp4"
+   * - 이미 키인 경우: 그대로 반환
+   */
+  public String toS3Key(String urlOrKey) {
+    if (urlOrKey == null) return null;
+
+    String lower = urlOrKey.toLowerCase();
+    if (lower.startsWith("http://") || lower.startsWith("https://")) {
+      try {
+        URI uri = URI.create(urlOrKey);
+        String path = uri.getPath();     // "/folder1/folder2/file.mp4"
+        if (path.startsWith("/")) path = path.substring(1);
+        // 퍼센트 인코딩 해제 (예: %2C → ,)
+        return URLDecoder.decode(path, StandardCharsets.UTF_8);
+      } catch (Exception e) {
+        // 파싱 실패 시, 최대한 호스트만 제거
+        return urlOrKey.replaceFirst("^https?://[^/]+/", "");
+      }
+    }
+    // 이미 키 형태
+    return urlOrKey;
   }
 }

@@ -1,11 +1,12 @@
 package com.ssafy.recode.domain.basic.repository;
 
 import com.ssafy.recode.domain.basic.entity.BasicAnswer;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
-
-import java.time.LocalDateTime;
 
 public interface BasicAnswerRepository extends JpaRepository<BasicAnswer, Long> {
 
@@ -24,4 +25,34 @@ public interface BasicAnswerRepository extends JpaRepository<BasicAnswer, Long> 
    */
   boolean existsByUserIdAndCreatedAtBetween(Long userId, LocalDateTime start, LocalDateTime end);
 
+  public interface BasicVideoRow {
+    Long getAnswerId();
+    Long getQuestionId();
+    String getContent();
+    String getVideoPath();
+    int getScore();
+    boolean getIsMatch();
+    LocalDateTime getCreatedAt();
+  }
+
+  @Query(value = """
+        SELECT ba.answer_id AS answerId,
+               bq.question_id AS questionId,
+               bq.content AS content,
+               ba.video_path  AS videoPath,
+               ba.score AS score,
+               ba.is_match AS isMatch,
+               ba.created_at AS createdAt
+         FROM basic_answers ba
+         JOIN basic_questions bq 
+           ON bq.question_id = ba.question_id
+        WHERE ba.user_id = :userId
+          AND ba.created_at >= DATE(:date)
+          AND ba.created_at <  DATE(:date) + INTERVAL 1 DAY
+        ORDER BY ba.created_at ASC
+        """, nativeQuery = true)
+  List<BasicVideoRow> findVideoPathsByDate(
+      @Param("userId") Long userId,
+      @Param("date") LocalDate dateR
+  );
 }
