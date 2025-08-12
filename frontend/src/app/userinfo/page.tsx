@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { Camera, Users } from 'lucide-react';
+import { Camera, Users, Eye, EyeOff } from 'lucide-react';
 import Image from 'next/image';
 import { AccountDeletionModal } from './account-deletion-modal';
 import { WithdrawalSuccessModal } from './withdrawal-success-modal';
@@ -16,6 +16,13 @@ export default function UserInfoPage() {
   const newPasswordRef = useRef<HTMLInputElement>(null);
   const confirmPasswordRef = useRef<HTMLInputElement>(null);
   
+  // 비밀번호 가시성 상태
+  const [showPasswords, setShowPasswords] = useState({
+    current: false,
+    new: false,
+    confirm: false,
+  });
+  
   const [formData, setFormData] = useState({
     name: '',
     phoneNumber: '',
@@ -24,7 +31,13 @@ export default function UserInfoPage() {
     newPassword: '',
     confirmPassword: '',
     email: '',
+    profileImageUrl: '',
   });
+
+  // 프로필 이미지 관련 상태
+  const [profileImageFile, setProfileImageFile] = useState<File | null>(null);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
 
 
@@ -49,8 +62,14 @@ export default function UserInfoPage() {
               name: result.data.name || '',
               phoneNumber: result.data.phone || '',
               birthDate: result.data.birthDate || '',
-              email:result.data.email || '',
+              email: result.data.email || '',
+              profileImageUrl: result.data.profileImageUrl || '',
             }));
+            
+            // 기존 프로필 이미지가 있으면 미리보기 설정
+            if (result.data.profileImageUrl) {
+              setPreviewImage(result.data.profileImageUrl);
+            }
           }
         } else {
           console.error('Failed to fetch user info');
@@ -72,6 +91,46 @@ export default function UserInfoPage() {
     }));
   };
 
+  // 비밀번호 가시성 토글 함수
+  const togglePasswordVisibility = (field: 'current' | 'new' | 'confirm') => {
+    setShowPasswords(prev => ({
+      ...prev,
+      [field]: !prev[field]
+    }));
+  };
+
+  // 프로필 이미지 선택 처리
+  const handleImageSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      // 파일 크기 체크 (2MB 제한 - Base64로 변환 시 크기 증가를 고려)
+      if (file.size > 2 * 1024 * 1024) {
+        alert('파일 크기는 2MB 이하여야 합니다.');
+        return;
+      }
+
+      // 파일 타입 체크
+      if (!file.type.startsWith('image/')) {
+        alert('이미지 파일만 업로드 가능합니다.');
+        return;
+      }
+
+      setProfileImageFile(file);
+      
+      // 미리보기 생성
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setPreviewImage(e.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  // 프로필 이미지 클릭 핸들러
+  const handleProfileImageClick = () => {
+    fileInputRef.current?.click();
+  };
+
   // const handleSaveProfile = () => {
   //   // 프로필 저장 로직
   //   console.log('프로필 저장:', formData);
@@ -82,6 +141,25 @@ export default function UserInfoPage() {
 
   const handleSaveProfile = async () => {
     try {
+      // 프로필 이미지 업로드 처리
+      let profileImageUrl = formData.profileImageUrl;
+      if (profileImageFile) {
+        // TODO: 실제 파일 업로드를 위해서는 별도의 이미지 업로드 API 엔드포인트가 필요합니다.
+        // 현재는 base64 데이터로 처리 (개발 목적)
+        // 실제 운영환경에서는 multipart/form-data로 파일을 업로드하고 URL을 받아야 합니다.
+        
+        // Base64 이미지는 크기가 크므로 실제로는 파일 서버에 업로드 후 URL을 받아야 함
+        if (previewImage && previewImage.startsWith('data:')) {
+          // 파일 크기 제한 체크 (Base64는 원본보다 약 33% 크므로)
+          if (previewImage.length > 500000) { // 약 375KB 원본 크기 제한
+            alert('이미지 파일이 너무 큽니다. 더 작은 이미지를 선택해주세요.');
+            return;
+          }
+        }
+        
+        profileImageUrl = previewImage || '';
+      }
+
       // 비밀번호 변경 여부 확인 (실제로 새 비밀번호를 입력했을 때만)
       const isChangingPassword = formData.newPassword && formData.newPassword.trim().length > 0;
       
@@ -109,16 +187,22 @@ export default function UserInfoPage() {
       const updateData: {
         name?: string;
         phone?: string;
+        profileImageUrl?: string;
         currentPassword?: string;
         newPassword?: string;
       } = {};
       
-      // 이름이 변경된 경우
+      // 이름이 입력된 경우 (백엔드에서 빈 값 처리)
       if (formData.name && formData.name.trim() !== '') {
         updateData.name = formData.name.trim();
       }
 
-      // 전화번호가 변경된 경우  
+      // 프로필 이미지가 변경된 경우
+      if (profileImageUrl && profileImageUrl !== formData.profileImageUrl) {
+        updateData.profileImageUrl = profileImageUrl;
+      }
+
+      // 전화번호가 입력된 경우
       if (formData.phoneNumber && formData.phoneNumber.trim() !== '') {
         const phoneNumber = formData.phoneNumber.trim();
         
@@ -136,6 +220,12 @@ export default function UserInfoPage() {
       if (isChangingPassword) {
         updateData.currentPassword = formData.currentPassword.trim();
         updateData.newPassword = formData.newPassword.trim();
+      }
+
+      // 업데이트할 데이터가 있는지 확인
+      if (Object.keys(updateData).length === 0) {
+        alert('변경된 정보가 없습니다.');
+        return;
       }
 
       // API 호출
@@ -160,6 +250,15 @@ export default function UserInfoPage() {
               currentPassword: '',
               newPassword: '',
               confirmPassword: '',
+            }));
+          }
+          
+          // 프로필 이미지 업로드가 성공한 경우 상태 초기화
+          if (profileImageFile) {
+            setProfileImageFile(null);
+            setFormData(prev => ({
+              ...prev,
+              profileImageUrl: profileImageUrl
             }));
           }
         } else {
@@ -321,11 +420,31 @@ export default function UserInfoPage() {
           <div className="lg:col-span-1">
             <div className="relative">
               <div className="w-48 h-48 bg-gray-300 rounded-full mx-auto flex items-center justify-center relative">
-                <Camera className="text-gray-500" size={48} />
-                <button className="absolute bottom-2 right-2 w-12 h-12 bg-orange-500 rounded-full flex items-center justify-center hover:bg-orange-600">
+                {previewImage ? (
+                  <Image
+                    src={previewImage}
+                    alt="프로필 사진"
+                    fill
+                    className="object-cover"
+                  />
+                ) : (
+                  <Camera className="text-gray-500" size={48} />
+                )}
+                <button 
+                  type="button"
+                  onClick={handleProfileImageClick}
+                  className="absolute bottom-2 right-2 w-12 h-12 bg-orange-500 rounded-full flex items-center justify-center hover:bg-orange-600"
+                >
                   <Camera className="text-white" size={20} />
                 </button>
               </div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleImageSelect}
+                className="hidden"
+              />
               <p className="text-center text-gray-600 mt-2">프로필 사진 (선택사항)</p>
             </div>
           </div>
@@ -371,13 +490,24 @@ export default function UserInfoPage() {
                   <div className="relative">
                     <input
                       ref={currentPasswordRef}
-                      type="password"
+                      type={showPasswords.current ? "text" : "password"}
                       placeholder="현재 비밀번호를 입력하세요"
                       value={formData.currentPassword}
                       onChange={(e) => handleInputChange('currentPassword', e.target.value)}
                       onFocus={() => setActiveInput('currentPassword')}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-                    />  
+                      className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => togglePasswordVisibility('current')}
+                      className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                    >
+                      {showPasswords.current ? (
+                        <EyeOff className="h-4 w-4 text-gray-400 hover:text-gray-600" />
+                      ) : (
+                        <Eye className="h-4 w-4 text-gray-400 hover:text-gray-600" />
+                      )}
+                    </button>
                   </div>
                   <p className="text-sm text-gray-500 mt-1">비밀번호 변경 시에만 입력</p>
                 </div>
@@ -418,13 +548,24 @@ export default function UserInfoPage() {
                   <div className="relative">
                     <input
                       ref={newPasswordRef}
-                      type="password"
+                      type={showPasswords.new ? "text" : "password"}
                       placeholder="새 비밀번호를 입력하세요 (8자 이상)"
                       value={formData.newPassword}
                       onChange={(e) => handleInputChange('newPassword', e.target.value)}
                       onFocus={() => setActiveInput('newPassword')}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                      className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
                     />
+                    <button
+                      type="button"
+                      onClick={() => togglePasswordVisibility('new')}
+                      className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                    >
+                      {showPasswords.new ? (
+                        <EyeOff className="h-4 w-4 text-gray-400 hover:text-gray-600" />
+                      ) : (
+                        <Eye className="h-4 w-4 text-gray-400 hover:text-gray-600" />
+                      )}
+                    </button>
                   </div>
                   <p className="text-sm text-gray-500 mt-1">8자 이상의 비밀번호</p>
                 </div>
@@ -437,13 +578,24 @@ export default function UserInfoPage() {
                   <div className="relative">
                     <input
                       ref={confirmPasswordRef}
-                      type="password"
+                      type={showPasswords.confirm ? "text" : "password"}
                       placeholder="비밀번호를 다시 입력하세요"
                       value={formData.confirmPassword}
                       onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
                       onFocus={() => setActiveInput('confirmPassword')}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-                    />  
+                      className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => togglePasswordVisibility('confirm')}
+                      className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                    >
+                      {showPasswords.confirm ? (
+                        <EyeOff className="h-4 w-4 text-gray-400 hover:text-gray-600" />
+                      ) : (
+                        <Eye className="h-4 w-4 text-gray-400 hover:text-gray-600" />
+                      )}
+                    </button>
                   </div>
                 </div>
 

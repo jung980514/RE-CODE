@@ -13,7 +13,7 @@ interface BackendUser {
 
 // 프론트엔드에서 사용하는 사용자 정보 타입 (LoginModal.tsx 기준)
 export interface User {
-  userType: 0 | 1; // 0: 노인, 1: 보호자
+  role: 'ELDER' | 'GUARDIAN';
   email: string;
 }
 
@@ -53,10 +53,10 @@ export const login = async (credentials: LoginCredentials): Promise<User> => {
     // 로그인 성공 시, 서버가 사용자 정보를 JSON으로 반환합니다.
     const backendUser: BackendUser = await response.json();
 
-    // 백엔드 응답(role)을 프론트엔드(userType)에 맞게 변환합니다.
+    // 백엔드 응답(role)을 프론트엔드에 맞게 변환합니다.
     const user: User = {
       email: backendUser.email,
-      userType: backendUser.role === 'ELDER' ? 0 : 1,
+      role: backendUser.role,
     };
 
     // 로그인 성공 후 사용자 정보 조회 및 콘솔 출력
@@ -74,7 +74,8 @@ export const login = async (credentials: LoginCredentials): Promise<User> => {
         console.log('로그인 후 사용자 정보:', userInfo);
         localStorage.setItem("name", userInfo.data.name);
         localStorage.setItem("userID", userInfo.data.id);
-        localStorage.setItem("userType", userInfo.data.role === 'GUARDIAN' ? '1' : '0');
+        localStorage.setItem("role", userInfo.data.role);
+        localStorage.setItem("isLoggedIn", "true");
       }
     } catch (e) {
       console.error('로그인 후 사용자 정보 조회 실패:', e);
