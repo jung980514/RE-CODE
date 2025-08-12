@@ -112,13 +112,15 @@ return (
         <div className={styles.authLinks}>
           {isLoggedIn ? (
             <>
-              {userType !== '0' && <div></div>}
-              {userType !== '0' && <div></div>}
-              {userType !== '1' && (
+              {/* 노인 계정일 때만 기록하기 표시 */}
+              {userType === '0' && (
                 <button onClick={handleRecordClick} className={styles.authLink}>
                   기록하기
                 </button>
               )}
+              {/* 보호자 계정일 때는 빈 공간으로 기록하기 버튼과 같은 크기 유지 */}
+              {userType === '1' && <div></div>}
+              
               <Link href="/userinfo" className={styles.authLink}>회원정보</Link>
               <Link href="/calender" className={styles.authLink}>회상캘린더</Link>
               <button onClick={handleLogout} className={styles.authLink}>
@@ -127,7 +129,6 @@ return (
             </>
           ) : (
             <>
-              <div></div>
               <div></div>
               <div></div>
               <div></div>
