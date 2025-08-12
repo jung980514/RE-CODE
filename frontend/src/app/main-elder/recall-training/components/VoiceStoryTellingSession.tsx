@@ -428,7 +428,7 @@ export function VoiceStoryTellingSession({ onBack }: VoiceSessionProps) {
       formData.append("videoFile", file)
 
       setIsUploading(true)
-      const res = await fetch("http://localhost:8088/api/personal/answers", {
+      const res = await fetch("https://recode-my-life.site/api/personal/answers", {
         method: "POST",
         credentials: "include",
         body: formData,
@@ -451,7 +451,7 @@ export function VoiceStoryTellingSession({ onBack }: VoiceSessionProps) {
       try {
         setQuestionsLoading(true)
         setQuestionsError(null)
-        const response = await fetch("http://localhost:8088/api/personal/questions", {
+        const response = await fetch("https://recode-my-life.site/api/personal/questions", {
           method: "GET",
           credentials: "include",
         })
