@@ -3,6 +3,7 @@ package com.ssafy.recode.domain.basic.controller;
 import com.ssafy.recode.domain.auth.entity.User;
 import com.ssafy.recode.domain.basic.entity.BasicQuestion;
 import com.ssafy.recode.global.dto.request.AnswerRequestDto;
+import com.ssafy.recode.global.dto.request.EmotionRequset;
 import com.ssafy.recode.global.dto.response.ApiResponse;
 import com.ssafy.recode.domain.basic.service.BasicService;
 import com.ssafy.recode.global.security.annotation.LoginUser;
@@ -15,6 +16,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -71,5 +73,14 @@ public class BasicController {
   ) {
     List<BasicQuestion> questions = basicService.getNextQuestions(user.getId());
     return ApiResponse.successResponse(questions);
+  }
+
+  @PostMapping("/emotions")
+  public ResponseEntity<?> addEmotions(
+      @Parameter(hidden = true) @LoginUser User user,
+      @ModelAttribute EmotionRequset requset
+  ){
+    basicService.addEmotions(user,requset);
+    return ResponseEntity.ok(ApiResponse.successResponseWithMessage("", null));
   }
 }

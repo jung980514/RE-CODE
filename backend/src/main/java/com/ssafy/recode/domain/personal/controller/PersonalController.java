@@ -4,6 +4,7 @@ import com.ssafy.recode.domain.auth.entity.User;
 import com.ssafy.recode.domain.personal.entity.PersonalQuestion;
 import com.ssafy.recode.domain.personal.service.PersonalService;
 import com.ssafy.recode.global.dto.request.AnswerRequestDto;
+import com.ssafy.recode.global.dto.request.EmotionRequset;
 import com.ssafy.recode.global.dto.response.ApiResponse;
 import com.ssafy.recode.global.security.annotation.LoginUser;
 import io.swagger.v3.oas.annotations.Operation;
@@ -15,6 +16,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
 
@@ -75,5 +77,14 @@ public class PersonalController {
   ) {
     List<PersonalQuestion> questions =personalService.getNextQuestions(user.getId());
     return ApiResponse.successResponse(questions);
+  }
+
+  @PostMapping("/emotions")
+  public ResponseEntity<?> addEmotions(
+      @Parameter(hidden = true) @LoginUser User user,
+      @ModelAttribute EmotionRequset requset
+  ){
+    personalService.addEmotions(user, requset);
+    return ResponseEntity.ok(ApiResponse.successResponseWithMessage("", null));
   }
 }
