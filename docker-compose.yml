@@ -53,21 +53,15 @@ services:
       start_period: 60s
 
   frontend:
-    build: ./frontend
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
     container_name: frontend
-    expose:
-      - "3030"
-    environment:
-      - PORT=3030
-    restart: unless-stopped
     networks:
-      - app-network
-    healthcheck:
-      test: ["CMD", "curl", "-fsS", "http://localhost:3030/"]
-      interval: 10s
-      timeout: 3s
-      retries: 3
-      start_period: 30s
+      - backend_network
+    restart: always
+    depends_on:
+      - backend
 
   prometheus:
     user: "65534:65534"
