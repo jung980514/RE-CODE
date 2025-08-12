@@ -412,7 +412,7 @@ export default function SurveyQuestion({
       setShowRecordingComplete(true)
       const timer = setTimeout(() => {
         setShowRecordingComplete(false)
-      }, 2000)
+      }, 20000)
       
       return () => clearTimeout(timer)
     }
@@ -776,17 +776,6 @@ export default function SurveyQuestion({
                   </div>
                 )}
 
-                {/* 녹음된 미디어 재생 */}
-                {recordedMedia && !isRecording && (
-                  <div className="mb-8">
-                    <div className="bg-gray-50 border border-gray-300 rounded-xl p-6">
-                      <div className="flex items-center justify-center">
-                        <video controls src={recordedMedia} className="w-full max-w-xl rounded-xl" aria-label="녹화된 답변 재생" />
-                      </div>
-                    </div>
-                  </div>
-                )}
-
                 {/* 컨트롤 버튼들 */}
                 <div className="flex items-center justify-center gap-6">
                   <button
@@ -858,6 +847,7 @@ export default function SurveyQuestion({
               <WebcamView
                 isRecording={isRecording}
                 onStreamReady={setWebcamStream}
+                voiceGifMode
               />
             </div>
           </div>
