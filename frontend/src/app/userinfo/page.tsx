@@ -6,6 +6,7 @@ import { Camera, Users, Eye, EyeOff } from 'lucide-react';
 import Image from 'next/image';
 import { AccountDeletionModal } from './account-deletion-modal';
 import { WithdrawalSuccessModal } from './withdrawal-success-modal';
+import { ProfileSaveSuccessModal } from './profile-save-success-modal';
 import { VirtualKeyboard } from '@/components/common/VirtualKeyboard';
 
 export default function UserInfoPage() {
@@ -51,6 +52,7 @@ export default function UserInfoPage() {
 
 
   const [showWithdrawalSuccess, setShowWithdrawalSuccess] = useState(false);
+  const [showSaveSuccess, setShowSaveSuccess] = useState(false);
 
   useEffect(() => {
     const fetchUserInfo = async () => {
@@ -123,13 +125,13 @@ export default function UserInfoPage() {
     if (file) {
       // 파일 크기 체크 (2MB 제한 - Base64로 변환 시 크기 증가를 고려)
       if (file.size > 2 * 1024 * 1024) {
-        alert('파일 크기는 2MB 이하여야 합니다.');
+        console.error('❌ 파일 크기 초과:', Math.round(file.size / 1024 / 1024), 'MB');
         return;
       }
 
       // 파일 타입 체크
       if (!file.type.startsWith('image/')) {
-        alert('이미지 파일만 업로드 가능합니다.');
+        console.error('❌ 이미지 파일이 아닙니다:', file.type);
         return;
       }
 
@@ -168,11 +170,11 @@ export default function UserInfoPage() {
         
         // Base64 이미지는 크기가 크므로 실제로는 파일 서버에 업로드 후 URL을 받아야 함
         if (previewImage && previewImage.startsWith('data:')) {
-          // 파일 크기 제한 체크 (Base64는 원본보다 약 33% 크므로)
-          if (previewImage.length > 500000) { // 약 375KB 원본 크기 제한
-            alert('이미지 파일이 너무 큽니다. 더 작은 이미지를 선택해주세요.');
-            return;
-          }
+                  // 파일 크기 제한 체크 (Base64는 원본보다 약 33% 크므로)
+        if (previewImage.length > 500000) { // 약 375KB 원본 크기 제한
+          console.error('❌ 이미지 파일이 너무 큽니다:', Math.round(previewImage.length / 1024), 'KB');
+          return;
+        }
         }
         
         profileImageUrl = previewImage || '';
@@ -184,19 +186,19 @@ export default function UserInfoPage() {
       if (isChangingPassword) {
         // 현재 비밀번호 확인
         if (!formData.currentPassword || formData.currentPassword.trim() === '') {
-          alert('비밀번호를 변경하려면 현재 비밀번호를 입력해주세요.');
+          console.error('❌ 현재 비밀번호가 입력되지 않았습니다.');
           return;
         }
 
-        // 새 비밀번호 길이 확인
-        if (formData.newPassword.trim().length < 8) {
-          alert('새 비밀번호는 8자 이상이어야 합니다.');
+        // 새 비밀번호 길이 확인 (백엔드 규칙: 8~100자)
+        if (formData.newPassword.trim().length < 8 || formData.newPassword.trim().length > 100) {
+          console.error('❌ 비밀번호 길이 오류: 8~100자여야 합니다.');
           return;
         }
 
         // 비밀번호 확인 체크
         if (formData.newPassword.trim() !== formData.confirmPassword.trim()) {
-          alert('새 비밀번호와 비밀번호 확인이 일치하지 않습니다.');
+          console.error('❌ 비밀번호 확인 불일치');
           return;
         }
       }
@@ -213,24 +215,30 @@ export default function UserInfoPage() {
       // 이름이 입력된 경우 (원본과 다른 경우에만)
       if (formData.name && formData.name.trim() !== '') {
         const trimmedName = formData.name.trim();
-        if (trimmedName !== originalUserInfo.name) {
+        if (trimmedName !== originalUserInfo.name && trimmedName.length >= 1 && trimmedName.length <= 100) {
           updateData.name = trimmedName;
         }
       }
 
       // 프로필 이미지가 변경된 경우
       if (profileImageUrl && profileImageUrl !== originalUserInfo.profileImageUrl) {
-        updateData.profileImageUrl = profileImageUrl;
+        // URL 길이 검증 (255자 제한)
+        if (profileImageUrl.length <= 255) {
+          updateData.profileImageUrl = profileImageUrl;
+        } else {
+          console.error('❌ 프로필 이미지 URL이 너무 깁니다:', profileImageUrl.length, '자');
+          return;
+        }
       }
 
       // 전화번호가 입력된 경우 (기존 값과 다르거나 새로 입력된 경우)
       if (formData.phoneNumber && formData.phoneNumber.trim() !== '') {
         const phoneNumber = formData.phoneNumber.trim();
         
-        // 전화번호 형식 검증
-        const phoneRegex = /^[0-9]{10,11}$/;
-        if (!phoneRegex.test(phoneNumber.replace(/[^0-9]/g, ''))) {
-          alert('올바른 휴대전화 번호를 입력해주세요. (10-11자리 숫자)');
+        // 전화번호 형식 검증 (백엔드 패턴과 일치: ^[0-9\\-]{9,20}$)
+        const phoneRegex = /^[0-9\-]{9,20}$/;
+        if (!phoneRegex.test(phoneNumber)) {
+          console.error('❌ 전화번호 형식 오류:', phoneNumber);
           return;
         }
         
@@ -246,11 +254,15 @@ export default function UserInfoPage() {
         updateData.newPassword = formData.newPassword.trim();
       }
 
-      // 업데이트할 데이터가 있는지 확인
-      if (Object.keys(updateData).length === 0) {
-        alert('변경된 정보가 없습니다.');
-        return;
-      }
+              // 업데이트할 데이터가 있는지 확인
+        if (Object.keys(updateData).length === 0) {
+          console.log('ℹ️ 변경된 정보가 없습니다.');
+          return;
+        }
+
+      // 디버깅: 전송할 데이터 로그
+      console.log('전송할 데이터:', updateData);
+      console.log('원본 사용자 정보:', originalUserInfo);
 
       // API 호출
       const response = await fetch('https://recode-my-life.site/api/user/update', {
@@ -265,7 +277,7 @@ export default function UserInfoPage() {
       if (response.ok) {
         const result = await response.json();
         if (result.status === 'success') {
-          alert('프로필이 성공적으로 저장되었습니다.');
+          console.log('✅ 프로필 저장 성공');
           
           // 비밀번호 변경이 성공한 경우 필드 초기화
           if (isChangingPassword) {
@@ -285,13 +297,30 @@ export default function UserInfoPage() {
               profileImageUrl: profileImageUrl
             }));
           }
+          
+          // 성공 시 원본 정보 업데이트
+          if (updateData.phone) {
+            setOriginalUserInfo(prev => ({
+              ...prev,
+              phone: updateData.phone!
+            }));
+          }
+          if (updateData.profileImageUrl) {
+            setOriginalUserInfo(prev => ({
+              ...prev,
+              profileImageUrl: updateData.profileImageUrl!
+            }));
+          }
+          
+          // 성공 모달 표시
+          setShowSaveSuccess(true);
         } else {
-          alert(`프로필 저장에 실패했습니다: ${result.message || '알 수 없는 오류'}`);
+          console.error('❌ 프로필 저장 실패:', result.message || '알 수 없는 오류');
         }
       } else {
         const errorData = await response.json().catch(() => ({}));
         
-        // 에러 메시지 처리
+        // 에러 메시지 처리 (콘솔에만 출력)
         let errorMessage = '프로필 저장에 실패했습니다.';
         if (errorData.message) {
           errorMessage += ` ${errorData.message}`;
@@ -303,11 +332,12 @@ export default function UserInfoPage() {
           errorMessage += ' 현재 비밀번호가 올바르지 않습니다.';
         }
         
-        alert(errorMessage);
+        console.error('❌ 프로필 저장 오류:', errorMessage);
+        console.error('상태 코드:', response.status);
+        console.error('응답 데이터:', errorData);
       }
     } catch (error) {
-      console.error('Error saving profile:', error);
-      alert('프로필 저장 중 오류가 발생했습니다. 네트워크 연결을 확인해주세요.');
+      console.error('❌ 프로필 저장 중 예외 발생:', error);
     }
   };
 
@@ -371,6 +401,10 @@ export default function UserInfoPage() {
   const handleWithdrawalSuccessClose = () => {
     setShowWithdrawalSuccess(false);
     router.replace('/'); // 홈으로 이동
+  };
+
+  const handleSaveSuccessClose = () => {
+    setShowSaveSuccess(false);
   };
 
   const focusActiveInput = () => {
@@ -690,11 +724,17 @@ export default function UserInfoPage() {
         currentInputValue={activeInput ? formData[activeInput] : ''}
       />
 
-      {/* 회원탈퇴 성공 모달 */}
-      <WithdrawalSuccessModal
-        isOpen={showWithdrawalSuccess}
-        onClose={handleWithdrawalSuccessClose}
-      />
+             {/* 회원탈퇴 성공 모달 */}
+       <WithdrawalSuccessModal
+         isOpen={showWithdrawalSuccess}
+         onClose={handleWithdrawalSuccessClose}
+       />
+
+       {/* 프로필 저장 성공 모달 */}
+       <ProfileSaveSuccessModal
+         isOpen={showSaveSuccess}
+         onClose={handleSaveSuccessClose}
+       />
     </div>
   );
 }
