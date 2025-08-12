@@ -548,7 +548,7 @@ export function VoiceStoryTellingSession({ onBack }: VoiceSessionProps) {
   const handleCompleteAndSubmitEmotion = async () => {
     try {
       const payload = { emotion: (finalEmotion || 'NEUTRAL').toUpperCase() }
-      await fetch('https://recode-my-life.site/api/cognitive/emotions', {
+      await fetch('https://recode-my-life.site/api/personal/emotions', {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
