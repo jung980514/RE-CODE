@@ -32,21 +32,38 @@ interface AccountDeletionModalProps {
 export function AccountDeletionModal({ children, onConfirm }: AccountDeletionModalProps) {
   const [password, setPassword] = React.useState("");
   const [error, setError] = React.useState("");
+  const [isOpen, setIsOpen] = React.useState(false);
+
+  // 모달이 닫힐 때 필드 초기화
+  const handleOpenChange = (open: boolean) => {
+    setIsOpen(open);
+    if (!open) {
+      setPassword("");
+      setError("");
+    }
+  };
 
   const handleDelete = () => {
-    if (!password) {
+    if (!password || password.trim() === '') {
       setError("비밀번호를 입력해주세요.");
       return;
     }
+    
+    if (password.trim().length < 8) {
+      setError("비밀번호는 8자 이상이어야 합니다.");
+      return;
+    }
+    
     setError("");
-    // onConfirm에 비밀번호를 전달할 수 있도록 콜백을 확장하거나, 전역 상태/props로 전달 필요
-    // 여기서는 window 이벤트로 전달 (임시)
-    window.dispatchEvent(new CustomEvent("account-delete-password", { detail: password }));
+    // 비밀번호를 전역 이벤트로 전달
+    window.dispatchEvent(new CustomEvent("account-delete-password", { detail: password.trim() }));
     onConfirm();
+    // 탈퇴 처리 후 모달 닫기
+    setIsOpen(false);
   };
 
   return (
-    <Dialog>
+    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
@@ -73,8 +90,14 @@ export function AccountDeletionModal({ children, onConfirm }: AccountDeletionMod
             type="password"
             value={password}
             onChange={e => setPassword(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                handleDelete();
+              }
+            }}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
             placeholder="비밀번호를 입력하세요"
+            autoFocus
           />
           {error && <p className="text-xs text-red-500 mt-1">{error}</p>}
         </div>

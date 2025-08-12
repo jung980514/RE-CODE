@@ -202,8 +202,13 @@ export default function UserInfoPage() {
 
   const handleConfirmWithdrawal = async () => {
     try {
-      // LOCAL 계정의 경우 비밀번호 포함
-      const requestBody = deletePassword ? { password: deletePassword } : {};
+      // 비밀번호가 없으면 에러
+      if (!deletePassword || deletePassword.trim() === '') {
+        alert('비밀번호를 입력해주세요.');
+        return;
+      }
+
+      const requestBody = { password: deletePassword };
       
       const response = await fetch('https://recode-my-life.site/api/user/', {
         method: 'DELETE',
@@ -227,11 +232,24 @@ export default function UserInfoPage() {
         setShowWithdrawalSuccess(true);
       } else {
         const errorData = await response.json().catch(() => ({}));
-        alert(`회원 탈퇴에 실패했습니다: ${errorData.message || '서버 오류가 발생했습니다.'}`);
+        
+        // 상태 코드별 에러 메시지 처리 (백엔드 API 스펙에 맞춤)
+        let errorMessage = '회원 탈퇴에 실패했습니다.';
+        if (response.status === 401) {
+          errorMessage = '입력하신 비밀번호가 올바르지 않습니다. 다시 확인해주세요.';
+        } else if (response.status === 404) {
+          errorMessage = '사용자 정보를 찾을 수 없습니다. 다시 로그인해주세요.';
+        } else if (response.status === 400) {
+          errorMessage = '잘못된 요청입니다. 비밀번호를 확인해주세요.';
+        } else if (errorData.message) {
+          errorMessage = errorData.message;
+        }
+        
+        alert(errorMessage);
       }
     } catch (error) {
       console.error('Error during account withdrawal:', error);
-      alert('회원 탈퇴 중 오류가 발생했습니다.');
+      alert('네트워크 오류가 발생했습니다. 인터넷 연결을 확인해주세요.');
     }
   };
 
