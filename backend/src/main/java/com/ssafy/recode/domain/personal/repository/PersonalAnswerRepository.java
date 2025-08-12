@@ -1,11 +1,12 @@
 package com.ssafy.recode.domain.personal.repository;
 
 import com.ssafy.recode.domain.personal.entity.PersonalAnswer;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
-
-import java.time.LocalDateTime;
 
 public interface PersonalAnswerRepository extends JpaRepository<PersonalAnswer, Long> {
 
@@ -25,4 +26,34 @@ public interface PersonalAnswerRepository extends JpaRepository<PersonalAnswer, 
    */
   boolean existsByUserIdAndCreatedAtBetween(Long userId, LocalDateTime start, LocalDateTime end);
 
+  public interface PersonalVideoRow {
+    Long getAnswerId();
+    Long getQuestionId();
+    String getContent();
+    String getVideoPath();
+    int getScore();
+    boolean getIsMatch();
+    LocalDateTime getCreatedAt();
+  }
+
+  @Query(value = """
+        SELECT pa.answer_id AS answerId,
+               pq.question_id AS questionId,
+               pq.content AS content,
+               pa.video_path  AS videoPath,
+               pa.score AS score,
+               pa.is_match AS isMatch,
+               pa.created_at AS createdAt
+        FROM personal_answers pa
+        JOIN personal_questions pq
+          ON pq.question_id = pa.question_id
+        WHERE pa.user_id = :userId
+          AND pa.created_at >= DATE(:date)
+          AND pa.created_at <  DATE(:date) + INTERVAL 1 DAY
+        ORDER BY pa.created_at ASC
+        """, nativeQuery = true)
+  List<PersonalVideoRow> findVideoPathsByDate(
+      @Param("userId") Long userId,
+      @Param("date") LocalDate date
+  );
 }

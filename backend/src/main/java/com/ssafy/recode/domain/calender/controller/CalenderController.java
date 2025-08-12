@@ -1,11 +1,16 @@
 package com.ssafy.recode.domain.calender.controller;
 
 import com.ssafy.recode.domain.auth.entity.User;
+import com.ssafy.recode.domain.basic.service.BasicService;
 import com.ssafy.recode.domain.calender.service.CalenderService;
+import com.ssafy.recode.domain.personal.service.PersonalService;
 import com.ssafy.recode.domain.survey.service.SurveyService;
 import com.ssafy.recode.global.dto.response.ApiResponse;
+import com.ssafy.recode.global.dto.response.calender.VideoListResponse;
 import com.ssafy.recode.global.security.annotation.LoginUser;
 import java.time.LocalDate;
+import java.util.HashMap;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
@@ -20,8 +25,10 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class CalenderController {
 
-  private final SurveyService surveyService;
   private final CalenderService calenderService;
+  private final SurveyService surveyService;
+  private final BasicService basicService;
+  private final PersonalService personalService;
 
   /**
    *
@@ -46,5 +53,18 @@ public class CalenderController {
       @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date
   ) {
     return ResponseEntity.ok(ApiResponse.successResponse(calenderService.getEmotionsByDatePerType(user, date)));
+  }
+
+  @GetMapping("/{date}/videos")
+  public ResponseEntity<?> getVideos(
+      @LoginUser User user,
+      @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date
+  ) {
+    VideoListResponse basicVideosByDate = basicService.getBasicVideosByDate(user, date);
+    VideoListResponse personalVideosByDate = personalService.getBasicVideosByDate(user, date);
+    Map<String, VideoListResponse> map = new HashMap<>();
+    map.put("basic", basicVideosByDate);
+    map.put("personal", personalVideosByDate);
+    return ResponseEntity.ok(ApiResponse.successResponseWithMessage("", map));
   }
 }
