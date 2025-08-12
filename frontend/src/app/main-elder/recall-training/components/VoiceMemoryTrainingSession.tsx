@@ -5,7 +5,7 @@ import * as faceapi from '@vladmandic/face-api'
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { ArrowLeft, RotateCcw, Mic, ChevronRight, Camera, Clock } from "lucide-react"
-import TrainingCompleteModal from "@/components/common/TrainingCompleteModal"
+import TrainingCompleteModal from "@/app/main-elder/recall-training/components/TrainingCompleteModal"
 import { useRouter } from "next/navigation"
 import { synthesizeSpeech, playAudio, stopCurrentAudio } from "@/api/googleTTS/googleTTSService"
 
