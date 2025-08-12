@@ -704,4 +704,6 @@ export function VoicePhotoReminiscenceSession({ onBack }: VoiceSessionProps) {
       </div>
     </div>
   )
-} 
+}
+
+export default VoicePhotoReminiscenceSession
