@@ -73,7 +73,7 @@ export const login = async (credentials: LoginCredentials): Promise<User> => {
         const userInfo = await userInfoResponse.json();
         console.log('로그인 후 사용자 정보:', userInfo);
         localStorage.setItem("name", userInfo.data.name);
-        localStorage.setItem("userID", userInfo.data.id);
+        localStorage.setItem("userId", userInfo.data.id);
         localStorage.setItem("role", userInfo.data.role);
         localStorage.setItem("isLoggedIn", "true");
       }
