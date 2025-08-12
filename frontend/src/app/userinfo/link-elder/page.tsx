@@ -139,13 +139,14 @@ export default function GuardianLinkPage() {
         throw new Error(errorMessage);
       }
 
-      const items: LinkedGuardian[] | undefined = result?.data;
-      if (!Array.isArray(items)) {
-        setLinkedGuardians([]);
-        return;
-      }
-
-      setLinkedGuardians(items);
+      const list: Array<{ guardianId: number; name: string; phone?: string; phoneNumber?: string }> =
+        Array.isArray(result?.data) ? result.data : [];
+      const mapped: LinkedGuardian[] = list.map((item) => ({
+        guardianId: item.guardianId,
+        name: item.name,
+        phone: item.phone ?? item.phoneNumber ?? '',
+      }));
+      setLinkedGuardians(mapped);
     } catch (error) {
       setLinkedGuardians([]);
     }
