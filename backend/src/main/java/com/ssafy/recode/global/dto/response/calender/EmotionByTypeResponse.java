@@ -13,7 +13,7 @@ public class EmotionByTypeResponse {
 
   private Long userId;
   private LocalDate summaryDate;
-  private String answerType;        // BASIC / PERSONAL / COGNITIVE_AUDIO / COGNITIVE_VIDEO
+  private String answerType;        // BASIC / PERSONAL / COGNITIVE_AUDIO / COGNITIVE_IMAGE
   private String dominantEmotion;   // 없으면 null
   private LocalDateTime createdAt;  // 없으면 null
 }

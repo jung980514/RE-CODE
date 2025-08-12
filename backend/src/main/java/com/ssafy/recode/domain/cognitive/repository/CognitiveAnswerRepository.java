@@ -1,12 +1,13 @@
 package com.ssafy.recode.domain.cognitive.repository;
 
 import com.ssafy.recode.domain.cognitive.entity.CognitiveAnswer;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
-
-import java.time.LocalDateTime;
 
 @Repository
 public interface CognitiveAnswerRepository extends JpaRepository<CognitiveAnswer, Long> {
@@ -29,5 +30,38 @@ public interface CognitiveAnswerRepository extends JpaRepository<CognitiveAnswer
    * @return true: 존재함, false: 없음
    */
   boolean existsByUserIdAndCreatedAtBetweenAndMediaType(Long userId, LocalDateTime start, LocalDateTime end, String mediaType);
+
+  public interface CognitiveVideoRow {
+    Long getAnswerId();
+    Long getQuestionId();
+    String getContent();
+    String getVideoPath();
+    int getScore();
+    boolean getIsMatch();
+    LocalDateTime getCreatedAt();
+  }
+
+  @Query(value = """
+        SELECT ca.answer_id AS answerId,
+               cq.question_id AS questionId,
+               cq.content AS content,
+               ca.video_path  AS videoPath,
+               ca.score AS score,
+               ca.is_match AS isMatch,
+               ca.created_at AS createdAt
+         FROM cognitive_answers ca
+         JOIN cognitive_questions cq 
+           ON cq.question_id = ca.question_id
+          AND cq.media_type = :mediaType
+        WHERE ca.user_id = :userId
+          AND ca.created_at >= DATE(:date)
+          AND ca.created_at <  DATE(:date) + INTERVAL 1 DAY
+        ORDER BY ca.created_at ASC
+        """, nativeQuery = true)
+  List<CognitiveVideoRow> findVideoPathsByDate(
+      @Param("userId") Long userId,
+      @Param("date") LocalDate dateR,
+      @Param("mediaType") String mediaType
+  );
 
 }

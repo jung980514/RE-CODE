@@ -4,7 +4,9 @@ import com.ssafy.recode.domain.auth.entity.User;
 import com.ssafy.recode.domain.cognitive.entity.CognitiveQuestion;
 import com.ssafy.recode.domain.cognitive.service.CognitiveService;
 import com.ssafy.recode.global.dto.request.AnswerRequestDto;
+import com.ssafy.recode.global.dto.request.EmotionRequset;
 import com.ssafy.recode.global.dto.response.ApiResponse;
+import com.ssafy.recode.global.enums.AnswerType;
 import com.ssafy.recode.global.security.annotation.LoginUser;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -15,6 +17,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -25,7 +28,7 @@ import java.util.List;
 @Tag(name = "Cognitive", description = "인지 질문 API")
 public class CognitiveController {
 
-  private final CognitiveService answerService;
+  private final CognitiveService cognitiveService;
 
   @Operation(
       summary     = "인지 질문 답변 제출 및 적합도 평가",
@@ -51,8 +54,8 @@ public class CognitiveController {
       @Parameter(hidden = true) @LoginUser User user,
       @Valid @ModelAttribute AnswerRequestDto reqDto
   ) {
-    String mediaKey = answerService.uploadMedia(reqDto.getVideoFile(), reqDto.getMediaType());
-    answerService.processAnswerAsync(
+    String mediaKey = cognitiveService.uploadMedia(reqDto.getVideoFile(), reqDto.getMediaType());
+    cognitiveService.processAnswerAsync(
         reqDto.getQuestionId(),
         user.getId(),
         mediaKey,
@@ -76,7 +79,17 @@ public class CognitiveController {
       @PathVariable String mediaType
   ) {
     List<CognitiveQuestion> questions =
-        answerService.getNextQuestionsByType(user.getId(), mediaType);
+        cognitiveService.getNextQuestionsByType(user.getId(), mediaType);
     return ApiResponse.successResponse(questions);
+  }
+
+  @PostMapping("/emotions")
+  public ResponseEntity<?> addEmotions(
+      @Parameter(hidden = true) @LoginUser User user,
+      @ModelAttribute EmotionRequset requset,
+      @RequestParam AnswerType answerType
+  ){
+    cognitiveService.addEmotions(user,requset,answerType);
+    return ResponseEntity.ok(ApiResponse.successResponseWithMessage("", null));
   }
 }

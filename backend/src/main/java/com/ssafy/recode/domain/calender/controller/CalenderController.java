@@ -3,10 +3,12 @@ package com.ssafy.recode.domain.calender.controller;
 import com.ssafy.recode.domain.auth.entity.User;
 import com.ssafy.recode.domain.basic.service.BasicService;
 import com.ssafy.recode.domain.calender.service.CalenderService;
+import com.ssafy.recode.domain.cognitive.service.CognitiveService;
 import com.ssafy.recode.domain.personal.service.PersonalService;
 import com.ssafy.recode.domain.survey.service.SurveyService;
 import com.ssafy.recode.global.dto.response.ApiResponse;
 import com.ssafy.recode.global.dto.response.calender.VideoListResponse;
+import com.ssafy.recode.global.enums.AnswerType;
 import com.ssafy.recode.global.security.annotation.LoginUser;
 import java.time.LocalDate;
 import java.util.HashMap;
@@ -29,6 +31,7 @@ public class CalenderController {
   private final SurveyService surveyService;
   private final BasicService basicService;
   private final PersonalService personalService;
+  private final CognitiveService cognitiveService;
 
   /**
    *
@@ -61,10 +64,15 @@ public class CalenderController {
       @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date
   ) {
     VideoListResponse basicVideosByDate = basicService.getBasicVideosByDate(user, date);
-    VideoListResponse personalVideosByDate = personalService.getBasicVideosByDate(user, date);
+    VideoListResponse personalVideosByDate = personalService.getPersonalVideosByDate(user, date);
+    VideoListResponse cognitiveAudioVideoByDate = cognitiveService.getCognitiveVideosByDate(user, date, AnswerType.COGNITIVE_AUDIO);
+    VideoListResponse cognitiveImageVideoByDate = cognitiveService.getCognitiveVideosByDate(user, date, AnswerType.COGNITIVE_IMAGE);
+
     Map<String, VideoListResponse> map = new HashMap<>();
     map.put("basic", basicVideosByDate);
     map.put("personal", personalVideosByDate);
+    map.put("cognitiveAudio", cognitiveAudioVideoByDate);
+    map.put("cognitiveImage", cognitiveImageVideoByDate);
     return ResponseEntity.ok(ApiResponse.successResponseWithMessage("", map));
   }
 }
