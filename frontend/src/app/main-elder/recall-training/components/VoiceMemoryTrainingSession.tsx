@@ -1,116 +1,397 @@
 "use client"
 
-import { useState, useEffect, useRef, MutableRefObject } from "react"
+import { useState, useRef, useEffect } from "react"
 import * as faceapi from '@vladmandic/face-api'
 import { Button } from "@/components/ui/button"
+import { Card } from "@/components/ui/card"
+import { ArrowLeft, RotateCcw, Mic, ChevronRight, Camera, Clock } from "lucide-react"
+import TrainingCompleteModal from "@/components/common/TrainingCompleteModal"
+import { useRouter } from "next/navigation"
 import { synthesizeSpeech, playAudio, stopCurrentAudio } from "@/api/googleTTS/googleTTSService"
-import { Card, CardContent } from "@/components/ui/card"
-import { WebcamView } from "@/components/common/WebcamView"
-import { Progress } from "@/components/ui/progress"
-import {
-  ArrowLeft,
-  ArrowRight,
-  Mic,
-  MicOff,
-  CheckCircle,
-  Maximize,
-  Brain,
-  RotateCcw,  
-} from "lucide-react"
-import { markRecallTrainingSessionAsCompleted } from "@/lib/auth"
+
 interface VoiceSessionProps {
   onBack: () => void
 }
 
-// 음성 및 영상 녹화 훅
-function useVoiceRecording(videoStream: MediaStream | null) {
+export function VoiceMemoryTrainingSession({ onBack }: VoiceSessionProps) {
+  const router = useRouter()
   const [isRecording, setIsRecording] = useState(false)
-  const [audioLevel, setAudioLevel] = useState(0)
-  const [recordedMedia, setRecordedMedia] = useState<string | null>(null)
-  const [recordedBlob, setRecordedBlob] = useState<Blob | null>(null)
-  const [isAutoRecording, setIsAutoRecording] = useState(false)
+  const [cameraLoading, setCameraLoading] = useState(true)
+  const [cameraError, setCameraError] = useState(false)
+
+  const videoRef = useRef<HTMLVideoElement>(null)
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
+  const streamRef = useRef<MediaStream | null>(null)
+  // 오디오 비주얼라이저 상태/레퍼런스
+  const [audioLevel, setAudioLevel] = useState(0)
   const audioContextRef = useRef<AudioContext | null>(null)
-  const combinedStreamRef = useRef<MediaStream | null>(null)
-  const chunksRef = useRef<Blob[]>([])
-  const stopResolverRef = useRef<((blob: Blob) => void) | null>(null)
+  const analyserRef = useRef<AnalyserNode | null>(null)
+  const rafRef = useRef<number | null>(null)
+  // 녹화 파일 보관 및 업로드 상태
+  const recordedBlobRef = useRef<Blob | null>(null)
+  const selectedMimeTypeRef = useRef<string>('video/mp4')
+  const selectedExtensionRef = useRef<string>('mp4')
+  const [isUploading, setIsUploading] = useState(false)
 
-  const startRecording = async (isAuto = false) => {
-    try {
-      // 기존 TTS 정지
-      stopCurrentAudio()
-      
-      // 기존 스트림 정리
-      if (combinedStreamRef.current) {
-        combinedStreamRef.current.getTracks().forEach((track) => track.stop())
-      }
-      // 이전 결과 초기화
-      if (recordedMedia) {
-        URL.revokeObjectURL(recordedMedia)
-      }
-      setRecordedMedia(null)
-      setRecordedBlob(null)
-      chunksRef.current = []
-      
-      const audioStream = await navigator.mediaDevices.getUserMedia({ audio: true })
-      const newVideoStream = await navigator.mediaDevices.getUserMedia({ video: true })
-      
-      const tracks = [...audioStream.getAudioTracks(), ...newVideoStream.getVideoTracks()]
-      
-      const combinedStream = new MediaStream(tracks)
-      combinedStreamRef.current = combinedStream
+  // 설문 질문 상태
+  interface SurveyQuestion {
+    questionId: number
+    content: string
+    createdAt: string
+  }
+  const [questions, setQuestions] = useState<SurveyQuestion[]>([])
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState<number>(0)
+  const [questionsLoading, setQuestionsLoading] = useState<boolean>(true)
+  const [questionsError, setQuestionsError] = useState<string | null>(null)
+  const [showCompleteModal, setShowCompleteModal] = useState<boolean>(false)
+  const [hasRecorded, setHasRecorded] = useState<boolean>(false)
 
-      const mediaRecorder = new MediaRecorder(combinedStream, {
-        mimeType: "video/mp4",
+  // 감정 분석 훅 (VoiceStoryTellingSession과 동일한 방식, face-api 사용)
+  interface EmotionRecord {
+    timestamp: number
+    emotion: string
+    confidence: number
+  }
+
+  function useEmotionDetection(
+    videoElRef: React.RefObject<HTMLVideoElement | null>,
+    detectEnabled: boolean,
+    onSecondSample?: (sample: { timestamp: number; emotion: string; confidence: number }) => void,
+  ) {
+    const [emotion, setEmotion] = useState<string>('중립')
+    const [confidence, setConfidence] = useState<number>(0)
+    const requestRef = useRef<number | undefined>(undefined)
+    const modelsLoaded = useRef<boolean>(false)
+    const prevExpressions = useRef<faceapi.FaceExpressions | null>(null)
+    const emotionHistory = useRef<EmotionRecord[]>([])
+    const lastRecordTime = useRef<number>(0)
+
+    useEffect(() => {
+      const loadModels = async () => {
+        try {
+          await Promise.all([
+            faceapi.nets.tinyFaceDetector.loadFromUri('https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model'),
+            faceapi.nets.faceExpressionNet.loadFromUri('https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model'),
+          ])
+          modelsLoaded.current = true
+        } catch (error) {
+          console.error('모델 로드 오류:', error)
+        }
+      }
+      loadModels()
+
+      return () => {
+        if (requestRef.current) cancelAnimationFrame(requestRef.current)
+      }
+    }, [])
+
+    const detectEmotion = async () => {
+      if (!modelsLoaded.current || !videoElRef.current) {
+        requestRef.current = requestAnimationFrame(detectEmotion)
+        return
+      }
+      try {
+        const detections = await faceapi
+          .detectSingleFace(videoElRef.current, new faceapi.TinyFaceDetectorOptions())
+          .withFaceExpressions()
+
+        if (detections) {
+          const expressions = detections.expressions
+          const emotionChange = prevExpressions.current ? Math.abs(expressions.neutral - prevExpressions.current.neutral) : 0
+          const isSpeaking = emotionChange > 0.15
+          const isSmiling = expressions.happy > 0.3
+          const isNeutralDominant = expressions.neutral > 0.5
+          const sadScore = expressions.sad
+          const mouthOpenScore = Math.max(expressions.surprised, expressions.sad)
+          const isMouthOpen = mouthOpenScore > 0.3
+          const isActuallySad = sadScore > 0.4 && !isSpeaking && !isSmiling && !isMouthOpen
+
+          const adjusted = {
+            ...expressions,
+            surprised: expressions.surprised * (isSpeaking ? 0.3 : 0.7),
+            sad: expressions.sad * (isActuallySad ? 1.0 : 0.1),
+            neutral: expressions.neutral * (isNeutralDominant ? 1.4 : 1.2),
+            happy: expressions.happy * (isSmiling ? 1.5 : 1.2),
+            angry: expressions.angry * (isSpeaking ? 0.7 : 0.9),
+            fearful: expressions.fearful * (isSpeaking ? 0.7 : 0.9),
+            disgusted: expressions.disgusted * 0.8,
+          }
+
+          prevExpressions.current = expressions
+
+          let winner: keyof typeof adjusted = 'neutral'
+          let max = adjusted.neutral
+          const threshold = 0.3
+          Object.entries(adjusted).forEach(([key, val]) => {
+            let th = threshold
+            if (key === 'surprised') th = threshold * 1.5
+            if (key === 'sad') th = threshold * 1.4
+            if (val > max && val > th) {
+              max = isSpeaking && (key === 'neutral' || key === 'happy') ? val * 1.2 : val
+              winner = key as keyof typeof adjusted
+            }
+          })
+
+          const map: Record<string, string> = {
+            neutral: '중립',
+            happy: '행복',
+            sad: '슬픔',
+            angry: '화남',
+            fearful: '두려움',
+            disgusted: '혐오',
+            surprised: '놀람',
+          }
+
+          const newEmotion = map[winner] || '중립'
+          if (max > threshold) {
+            setEmotion(newEmotion)
+            setConfidence(max)
+            const now = Date.now()
+            if (now - lastRecordTime.current >= 1000) {
+              const sample = { timestamp: now, emotion: newEmotion, confidence: max }
+              emotionHistory.current.push(sample)
+              if (typeof onSecondSample === 'function') {
+                onSecondSample(sample)
+              }
+              lastRecordTime.current = now
+            }
+          }
+        }
+      } catch (e) {
+        console.error('감정 분석 오류:', e)
+      }
+      requestRef.current = requestAnimationFrame(detectEmotion)
+    }
+
+    const analyzeEmotionHistory = () => {
+      if (emotionHistory.current.length === 0) return
+      const records = emotionHistory.current
+      const totalSec = (records[records.length - 1].timestamp - records[0].timestamp) / 1000
+      const durations: Record<string, number> = {}
+      const confidences: Record<string, number[]> = {}
+      records.forEach((r, i) => {
+        const d = i === records.length - 1 ? 1 : (records[i + 1].timestamp - r.timestamp) / 1000
+        durations[r.emotion] = (durations[r.emotion] || 0) + d
+        if (!confidences[r.emotion]) {
+          confidences[r.emotion] = []
+        }
+        confidences[r.emotion].push(r.confidence)
       })
-      mediaRecorderRef.current = mediaRecorder
+      const dominant = Object.entries(durations).find(([emo, dur]) => emo !== '중립' && (dur / totalSec * 100) > 17)
+      console.log('=== 감정 분석 결과 ===')
+      console.log(`총 녹화 시간: ${totalSec.toFixed(1)}초`)
+      if (dominant) {
+        const [emo, dur] = dominant
+        const pct = (dur / totalSec * 100).toFixed(1)
+        const avg = (confidences[emo].reduce((a, b) => a + b, 0) / confidences[emo].length * 100).toFixed(1)
+        console.log(`주요 감정: ${emo} (${pct}%, 평균 신뢰도: ${avg}%)`)
+      } else {
+        const nd = durations['중립'] || 0
+        const np = (nd / totalSec * 100).toFixed(1)
+        const na = confidences['중립'] ? (confidences['중립'].reduce((a, b) => a + b, 0) / confidences['중립'].length * 100).toFixed(1) : '0.0'
+        console.log(`주요 감정: 중립 (${np}%, 평균 신뢰도: ${na}%)`)
+      }
+      console.log('==================')
+      emotionHistory.current = []
+      lastRecordTime.current = 0
+    }
 
-      // 오디오 레벨 감지
-      const audioContext = new AudioContext()
-      const analyser = audioContext.createAnalyser()
-      const microphone = audioContext.createMediaStreamSource(audioStream)
-      microphone.connect(analyser)
-      audioContextRef.current = audioContext
+    useEffect(() => {
+      if (videoElRef.current && detectEnabled && modelsLoaded.current) {
+        detectEmotion()
+        if (emotionHistory.current.length === 0) {
+          emotionHistory.current = []
+          lastRecordTime.current = Date.now()
+        }
+      } else {
+        setEmotion('중립')
+        setConfidence(0)
+        if (requestRef.current) cancelAnimationFrame(requestRef.current)
+      }
+      return () => {
+        if (requestRef.current) cancelAnimationFrame(requestRef.current)
+      }
+    }, [videoElRef.current, detectEnabled, modelsLoaded.current])
 
-      const dataArray = new Uint8Array(analyser.frequencyBinCount)
-      const updateAudioLevel = () => {
-        if (isRecording) {
-          analyser.getByteFrequencyData(dataArray)
-          const average = dataArray.reduce((a, b) => a + b) / dataArray.length
-          setAudioLevel(average)
-          requestAnimationFrame(updateAudioLevel)
+    return { emotion, confidence, analyzeEmotionHistory }
+  }
+
+  // 세션 전체 감정 기록 (1초 단위 샘플)
+  const sessionEmotionHistory = useRef<EmotionRecord[]>([])
+  const [sessionActive, setSessionActive] = useState<boolean>(false)
+
+  const { emotion, confidence, analyzeEmotionHistory } = useEmotionDetection(
+    videoRef,
+    sessionActive,
+    (sample) => {
+      sessionEmotionHistory.current.push(sample)
+    }
+  )
+
+  useEffect(() => {
+    initializeCamera()
+    return () => {
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((track) => track.stop())
+      }
+    }
+  }, [])
+
+  const initializeCamera = async () => {
+    try {
+      setCameraLoading(true)
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+          facingMode: "user",
+        },
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          sampleRate: 44100,
+        },
+      })
+
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream
+        streamRef.current = stream
+      }
+
+      setCameraLoading(false)
+      setCameraError(false)
+    } catch (error) {
+      console.error("Camera access failed:", error)
+      setCameraLoading(false)
+      setCameraError(true)
+    }
+  }
+
+  const startRecording = async () => {
+    if (!streamRef.current) return
+
+    try {
+      // 재생 중인 TTS 중지
+      stopCurrentAudio()
+
+      const videoTracks = streamRef.current.getVideoTracks()
+      const audioTracks = streamRef.current.getAudioTracks()
+
+      if (videoTracks.length === 0) {
+        console.error("No video track available")
+        return
+      }
+
+      if (audioTracks.length === 0) {
+        console.warn("No audio track available - recording video only")
+      } else {
+        console.log("Audio tracks found:", audioTracks.length)
+      }
+
+      let mimeType = "video/webm"
+      let fileExtension = "webm"
+
+      const mp4Types = [
+        'video/mp4; codecs="avc1.424028, mp4a.40.2"',
+        'video/mp4; codecs="avc1.42E01E, mp4a.40.2"',
+        "video/mp4",
+      ]
+
+      const webmTypes = ['video/webm; codecs="vp9, opus"', 'video/webm; codecs="vp8, opus"', "video/webm"]
+
+      for (const type of mp4Types) {
+        if (MediaRecorder.isTypeSupported(type)) {
+          mimeType = type
+          fileExtension = "mp4"
+          console.log("Using MP4 format:", type)
+          break
         }
       }
 
+      if (fileExtension === "webm") {
+        for (const type of webmTypes) {
+          if (MediaRecorder.isTypeSupported(type)) {
+            mimeType = type
+            fileExtension = "webm"
+            console.log("Using WebM format:", type)
+            break
+          }
+        }
+      }
+
+      const mediaRecorder = new MediaRecorder(streamRef.current, {
+        mimeType,
+        audioBitsPerSecond: 128000,
+        videoBitsPerSecond: 2500000,
+      })
+
+      const chunks: BlobPart[] = []
+
       mediaRecorder.ondataavailable = (event) => {
-        if (event.data && event.data.size > 0) {
-          chunksRef.current.push(event.data)
+        if (event.data.size > 0) {
+          chunks.push(event.data)
+          console.log("Data chunk received:", event.data.size, "bytes")
         }
       }
 
       mediaRecorder.onstop = () => {
-        try {
-          const finalBlob = new Blob(chunksRef.current, { type: 'video/mp4' })
-          setRecordedBlob(finalBlob)
-          const mediaUrl = URL.createObjectURL(finalBlob)
-          setRecordedMedia(mediaUrl)
-          if (stopResolverRef.current) {
-            stopResolverRef.current(finalBlob)
-            stopResolverRef.current = null
-          }
-        } catch (e) {
-          console.error('녹화 종료 처리 중 오류:', e)
-        } finally {
-          chunksRef.current = []
-        }
+        console.log("Recording stopped, creating blob with", chunks.length, "chunks")
+        const blob = new Blob(chunks, { type: mimeType })
+        console.log("Final blob size:", blob.size, "bytes, type:", blob.type)
+        // 다운로드 대신 메모리에 보관
+        recordedBlobRef.current = blob
+        selectedMimeTypeRef.current = mimeType
+        selectedExtensionRef.current = fileExtension
       }
 
-      mediaRecorder.start()
+      mediaRecorder.onerror = (event) => {
+        console.error("MediaRecorder error:", event)
+      }
+
+      mediaRecorder.start(1000)
+      mediaRecorderRef.current = mediaRecorder
       setIsRecording(true)
-      setIsAutoRecording(isAuto)
-      updateAudioLevel()
+      // 세션 시작점: 첫 녹화 시작 시 세션 기록 초기화 및 감정 수집 활성화
+      setSessionActive((prev) => {
+        if (!prev) {
+          sessionEmotionHistory.current = []
+        }
+        return true
+      })
+      setHasRecorded(false)
+      console.log("Recording started with format:", mimeType)
+
+      // 오디오 비주얼라이저 초기화
+      try {
+        if (streamRef.current && streamRef.current.getAudioTracks().length > 0) {
+          const AnyWindow = window as unknown as { AudioContext?: typeof AudioContext; webkitAudioContext?: typeof AudioContext }
+          const Ctor = AnyWindow.AudioContext ?? AnyWindow.webkitAudioContext
+          if (Ctor) {
+            const ctx = new Ctor()
+            const src = ctx.createMediaStreamSource(streamRef.current)
+            const analyser = ctx.createAnalyser()
+            analyser.fftSize = 256
+            src.connect(analyser)
+            audioContextRef.current = ctx
+            analyserRef.current = analyser
+            const data = new Uint8Array(analyser.frequencyBinCount)
+            const loop = () => {
+              if (!analyserRef.current) return
+              analyserRef.current.getByteFrequencyData(data)
+              const avg = data.reduce((a, b) => a + b, 0) / data.length
+              setAudioLevel(avg)
+              rafRef.current = requestAnimationFrame(loop)
+            }
+            loop()
+          }
+        } else {
+          setAudioLevel(0)
+        }
+      } catch (e) {
+        console.warn('오디오 비주얼라이저 초기화 실패:', e)
+      }
     } catch (error) {
-      console.error("녹화 오류:", error)
+      console.error("Recording failed:", error)
     }
   }
 
@@ -118,780 +399,394 @@ function useVoiceRecording(videoStream: MediaStream | null) {
     if (mediaRecorderRef.current && isRecording) {
       mediaRecorderRef.current.stop()
       setIsRecording(false)
-      setIsAutoRecording(false)
-      setAudioLevel(0)
-
-      // 스트림 정리
-      if (combinedStreamRef.current) {
-        combinedStreamRef.current.getTracks().forEach((track) => track.stop())
+      // 녹화 종료 시 감정 기록 요약 출력
+      analyzeEmotionHistory()
+      setHasRecorded(true)
+      // 비주얼라이저 정리
+      if (rafRef.current) {
+        cancelAnimationFrame(rafRef.current)
+        rafRef.current = null
       }
-
-      if (audioContextRef.current) {
-        audioContextRef.current.close()
-      }
-    }
-  }
-
-  const resetRecording = () => {
-    // 녹화 중이면 중지
-    if (mediaRecorderRef.current && isRecording) {
-      mediaRecorderRef.current.stop()
-    }
-    // 스트림 정리
-    if (combinedStreamRef.current) {
-      combinedStreamRef.current.getTracks().forEach((track) => track.stop())
-    }
-    if (audioContextRef.current) {
-      audioContextRef.current.close()
-    }
-    // 기존 URL 정리
-    if (recordedMedia) {
-      URL.revokeObjectURL(recordedMedia)
-    }
-    // 상태 초기화
-    setIsRecording(false)
-    setIsAutoRecording(false)
-    setAudioLevel(0)
-    setRecordedMedia(null)
-    setRecordedBlob(null)
-    // ref 정리
-    mediaRecorderRef.current = null
-    audioContextRef.current = null
-    combinedStreamRef.current = null
-    chunksRef.current = []
-  }
-
-  const stopAndGetBlob = async (): Promise<Blob> => {
-    if (recordedBlob && !isRecording) {
-      return recordedBlob
-    }
-    if (mediaRecorderRef.current && isRecording) {
-      return new Promise<Blob>((resolve) => {
-        stopResolverRef.current = resolve
-        mediaRecorderRef.current?.stop()
-        setIsRecording(false)
-        setIsAutoRecording(false)
-        setAudioLevel(0)
-        // 스트림 및 오디오 컨텍스트 정리
-        if (combinedStreamRef.current) {
-          combinedStreamRef.current.getTracks().forEach((track) => track.stop())
-        }
+      try {
         if (audioContextRef.current) {
+          // eslint-disable-next-line @typescript-eslint/no-floating-promises
           audioContextRef.current.close()
         }
-      })
+      } catch {}
+      audioContextRef.current = null
+      analyserRef.current = null
+      setAudioLevel(0)
     }
-    throw new Error('녹화된 블랍이 없습니다.')
   }
 
-  return {
-    isRecording,
-    audioLevel,
-    recordedMedia,
-    recordedBlob,
-    isAutoRecording,
-    startRecording,
-    stopRecording,
-    resetRecording,
-    stopAndGetBlob,
+  const handleAnswerClick = () => {
+    if (isRecording) {
+      stopRecording()
+    } else {
+      startRecording()
+    }
   }
-}
 
-// 감정 분석 훅
-interface EmotionRecord {
-  timestamp: number;
-  emotion: string;
-  confidence: number;
-}
-
-function useEmotionDetection(videoRef: React.RefObject<HTMLVideoElement | null>, isRecording: boolean) {
-  const [emotion, setEmotion] = useState<string>('중립')
-  const [confidence, setConfidence] = useState<number>(0)
-  const requestRef = useRef<number | undefined>(undefined)
-  const modelsLoaded = useRef<boolean>(false)
-  const prevExpressions = useRef<faceapi.FaceExpressions | null>(null)
-  const emotionHistory = useRef<EmotionRecord[]>([])
-  const lastRecordTime = useRef<number>(0)
-
-  useEffect(() => {
-    const loadModels = async () => {
-      try {
-        // CDN에서 모델 로드
-        await Promise.all([
-          faceapi.nets.tinyFaceDetector.loadFromUri('https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model'),
-          faceapi.nets.faceExpressionNet.loadFromUri('https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model')
-        ])
-        modelsLoaded.current = true
-      } catch (error) {
-        console.error('모델 로드 오류:', error)
-      }
-    }
-    loadModels()
-
-    return () => {
-      if (requestRef.current) {
-        cancelAnimationFrame(requestRef.current)
-      }
-    }
-  }, [])
-
-  const detectEmotion = async () => {
-    if (!modelsLoaded.current || !videoRef.current) return
-
+  // 현재 질문 답변 업로드
+  const uploadCurrentAnswer = async (): Promise<void> => {
     try {
-      const detections = await faceapi
-        .detectSingleFace(videoRef.current, new faceapi.TinyFaceDetectorOptions())
-        .withFaceExpressions()
-
-      if (detections) {
-        const expressions = detections.expressions
-        
-        // 감정 점수 조정
-        // 말할 때 입이 벌어지는 것을 고려하여 '놀람' 점수 조정
-        // 이전 프레임과 현재 프레임의 감정 변화 감지
-        const emotionChange = prevExpressions.current ? 
-          Math.abs(expressions.neutral - prevExpressions.current.neutral) : 0
-
-        // 말하기/표정 변화 감지 로직 개선
-        const isSpeaking = emotionChange > 0.15
-        const isSmiling = expressions.happy > 0.3
-        const isNeutralDominant = expressions.neutral > 0.5
-        
-        // 슬픔 감정 보정을 위한 추가 체크
-        const sadScore = expressions.sad
-        const mouthOpenScore = Math.max(expressions.surprised, expressions.sad) // 입이 벌어진 정도를 추정
-        const isMouthOpen = mouthOpenScore > 0.3
-        
-        // 실제 슬픔 표정인지 판단
-        const isActuallySad = sadScore > 0.4 && !isSpeaking && !isSmiling && !isMouthOpen
-        
-        const adjustedExpressions = {
-          ...expressions,
-          // 놀람 점수 조정
-          surprised: expressions.surprised * (isSpeaking ? 0.3 : 0.7),
-          // 슬픔 점수 대폭 조정
-          sad: expressions.sad * (isActuallySad ? 1.0 : 0.1),
-          // 중립 점수 증가
-          neutral: expressions.neutral * (isNeutralDominant ? 1.4 : 1.2),
-          // 행복 점수 조정 (미소 짓는 것을 더 잘 감지)
-          happy: expressions.happy * (isSmiling ? 1.5 : 1.2),
-          // 다른 감정들도 상황에 따라 조정
-          angry: expressions.angry * (isSpeaking ? 0.7 : 0.9),
-          fearful: expressions.fearful * (isSpeaking ? 0.7 : 0.9),
-          disgusted: expressions.disgusted * 0.8
-        }
-
-        // 현재 프레임의 감정 점수 저장
-        prevExpressions.current = expressions
-
-        let maxExpression = 'neutral'
-        let maxConfidence = adjustedExpressions.neutral
-        const threshold = 0.3 // 최소 신뢰도 임계값
-
-        // 가장 높은 확률의 감정 찾기
-        Object.entries(adjustedExpressions).forEach(([expression, value]) => {
-          // 놀람과 슬픔의 경우 더 높은 임계값 적용
-          let currentThreshold = threshold
-          if (expression === 'surprised') currentThreshold = threshold * 1.5
-          if (expression === 'sad') currentThreshold = threshold * 1.4
-          
-          if (value > maxConfidence && value > currentThreshold) {
-            // 말하는 중일 때는 중립과 행복을 더 선호
-            if (isSpeaking && (expression === 'neutral' || expression === 'happy')) {
-              maxConfidence = value * 1.2
-            } else {
-              maxConfidence = value
-            }
-            maxExpression = expression
-          }
-        })
-
-        // 감정 한글화
-        const emotionMap: { [key: string]: string } = {
-          neutral: '중립',
-          happy: '행복',
-          sad: '슬픔',
-          angry: '화남',
-          fearful: '두려움',
-          disgusted: '혐오',
-          surprised: '놀람'
-        }
-
-        // 이전 감정과 현재 감정이 다를 경우에만 업데이트
-        const newEmotion = emotionMap[maxExpression] || '중립'
-        if (maxConfidence > threshold) {
-          setEmotion(newEmotion)
-          setConfidence(maxConfidence)
-
-          // 1초마다 감정 상태 기록
-          const now = Date.now()
-          if (now - lastRecordTime.current >= 1000) {
-            emotionHistory.current.push({
-              timestamp: now,
-              emotion: newEmotion,
-              confidence: maxConfidence
-            })
-            lastRecordTime.current = now
-          }
-        }
+      if (!recordedBlobRef.current) {
+        console.warn('업로드할 녹화 데이터가 없습니다')
+        return
       }
-    } catch (error) {
-      console.error('감정 분석 오류:', error)
-    }
+      if (questions.length === 0) return
+      const question = questions[currentQuestionIndex]
+      const userId = (typeof window !== 'undefined' ? localStorage.getItem('userId') : null) || ''
+      const formData = new FormData()
+      formData.append('userId', userId)
+      formData.append('questionId', String(question.questionId))
+      formData.append('mediaType', 'video')
+      const filename = `answer-${question.questionId}.${selectedExtensionRef.current}`
+      const file = new File([recordedBlobRef.current], filename, { type: selectedMimeTypeRef.current })
+      formData.append('videoFile', file)
 
-    requestRef.current = requestAnimationFrame(detectEmotion)
-  }
-
-  // 감정 기록 분석 함수
-  const analyzeEmotionHistory = () => {
-    if (emotionHistory.current.length === 0) return;
-
-    const emotions = emotionHistory.current;
-    const totalDuration = (emotions[emotions.length - 1].timestamp - emotions[0].timestamp) / 1000; // 초 단위
-
-    // 각 감정별 지속 시간 계산
-    const emotionDurations: { [key: string]: number } = {};
-    const emotionConfidences: { [key: string]: number[] } = {};
-
-    emotions.forEach((record, index) => {
-      const duration = index === emotions.length - 1
-        ? 1 // 마지막 기록은 1초로 계산
-        : (emotions[index + 1].timestamp - record.timestamp) / 1000;
-
-      emotionDurations[record.emotion] = (emotionDurations[record.emotion] || 0) + duration;
-      emotionConfidences[record.emotion] = emotionConfidences[record.emotion] || [];
-      emotionConfidences[record.emotion].push(record.confidence);
-    });
-
-    // 중립을 제외한 감정 중 17%를 넘는 감정 찾기
-    const dominantEmotion = Object.entries(emotionDurations).find(([emotion, duration]) => {
-      const percentage = (duration / totalDuration * 100);
-      return emotion !== '중립' && percentage > 17;
-    });
-
-    // 분석 결과 출력
-    console.log('=== 감정 분석 결과 ===');
-    console.log(`총 녹화 시간: ${totalDuration.toFixed(1)}초`);
-    
-    if (dominantEmotion) {
-      // 중립을 제외한 감정이 17%를 넘는 경우 해당 감정만 출력
-      const [emotion, duration] = dominantEmotion;
-      const percentage = (duration / totalDuration * 100).toFixed(1);
-      const avgConfidence = (emotionConfidences[emotion].reduce((a, b) => a + b, 0) / emotionConfidences[emotion].length * 100).toFixed(1);
-      console.log(`주요 감정: ${emotion} (${percentage}%, 평균 신뢰도: ${avgConfidence}%)`);
-    } else {
-      // 중립을 제외한 감정이 17%를 넘지 않는 경우 중립만 출력
-      const neutralDuration = emotionDurations['중립'] || 0;
-      const neutralPercentage = (neutralDuration / totalDuration * 100).toFixed(1);
-      const neutralAvgConfidence = emotionConfidences['중립'] 
-        ? (emotionConfidences['중립'].reduce((a, b) => a + b, 0) / emotionConfidences['중립'].length * 100).toFixed(1)
-        : '0.0';
-      console.log(`주요 감정: 중립 (${neutralPercentage}%, 평균 신뢰도: ${neutralAvgConfidence}%)`);
-    }
-    console.log('==================');
-
-    // 기록 초기화
-    emotionHistory.current = [];
-    lastRecordTime.current = 0;
-  };
-
-  useEffect(() => {
-    if (videoRef.current && isRecording && modelsLoaded.current) {
-      detectEmotion()
-      
-      // 녹화 시작 시 기록 초기화
-      if (emotionHistory.current.length === 0) {
-        emotionHistory.current = [];
-        lastRecordTime.current = Date.now();
-      }
-    } else {
-      // 녹화 중지 시에는 감정 분석을 실행하지 않음 (최종 완료 시에만 실행)
-      setEmotion('중립')
-      setConfidence(0)
-      if (requestRef.current) {
-        cancelAnimationFrame(requestRef.current)
-      }
-    }
-    return () => {
-      if (requestRef.current) {
-        cancelAnimationFrame(requestRef.current)
-      }
-    }
-  }, [videoRef.current, isRecording, modelsLoaded.current])
-
-  return { emotion, confidence, analyzeEmotionHistory }
-}
-
-// 자동 녹음 시작 함수
-function useAutoRecording(startRecording: (isAuto: boolean) => void) {
-  const [showCountdown, setShowCountdown] = useState(false)
-  const [countdown, setCountdown] = useState(3)
-
-  const startAutoRecording = () => {
-    setShowCountdown(true)
-    setCountdown(3)
-
-    const countdownInterval = setInterval(() => {
-      setCountdown((prev) => {
-        if (prev <= 1) {
-          clearInterval(countdownInterval)
-          setShowCountdown(false)
-          startRecording(true)
-          return 0
-        }
-        return prev - 1
+      setIsUploading(true)
+      const res = await fetch('https://recode-my-life.site/api/basic/answers', {
+        method: 'POST',
+        credentials: 'include',
+        body: formData,
       })
-    }, 1000)
+      if (!res.ok) {
+        throw new Error(`업로드 실패: HTTP ${res.status}`)
+      }
+      // 업로드 성공 후 보관 데이터 해제
+      recordedBlobRef.current = null
+    } catch (e) {
+      console.error('답변 업로드 에러:', e)
+      // 실패 시 보관 데이터는 유지하여 재시도 가능
+    } finally {
+      setIsUploading(false)
+    }
   }
-
-  return { showCountdown, countdown, startAutoRecording }
-}
-
-export function VoiceMemoryTrainingSession({ onBack }: VoiceSessionProps) {
-  const [currentStep, setCurrentStep] = useState(0)
-  const [progress, setProgress] = useState(0)
-  const [isAITalking, setIsAITalking] = useState(false)
-  const [showCompletionModal, setShowCompletionModal] = useState(false)
-  const [webcamStream, setWebcamStream] = useState<MediaStream | null>(null)
-  const [hasStartedRecording, setHasStartedRecording] = useState(false)
-  const [questions, setQuestions] = useState<Array<{ title: string; question: string }>>([])
-  const [questionIds, setQuestionIds] = useState<number[]>([])
-  const [isLoadingQuestions, setIsLoadingQuestions] = useState<boolean>(false)
-  const [userId, setUserId] = useState<number | null>(null)
-  const videoRef = useRef<HTMLVideoElement>(null)
-  const { isRecording, audioLevel, recordedMedia, recordedBlob, isAutoRecording, startRecording, stopRecording, resetRecording, stopAndGetBlob } = useVoiceRecording(webcamStream)
-  const { emotion, confidence, analyzeEmotionHistory } = useEmotionDetection(videoRef, isRecording)
-  const { showCountdown, countdown, startAutoRecording } = useAutoRecording(startRecording)
 
   // 질문 불러오기 (쿠키 세션 포함)
   useEffect(() => {
-    const fetchUser = async () => {
-      try {
-        // 로컬 저장된 userId 우선 사용
-        const stored = typeof window !== 'undefined' ? localStorage.getItem('userId') : null
-        if (stored) {
-          const parsed = Number(stored)
-          if (!Number.isNaN(parsed)) {
-            setUserId(parsed)
-          }
-        }
-        // 서버에서 최신 사용자 조회
-        const res = await fetch('https://recode-my-life.site/api/user', {
-          method: 'GET',
-          credentials: 'include',
-          headers: { 'Accept': 'application/json' },
-        })
-        if (res.ok) {
-          const json = await res.json()
-          const idCandidate = json?.data?.id
-          if (typeof idCandidate === 'number') {
-            setUserId(idCandidate)
-            try { localStorage.setItem('userId', String(idCandidate)) } catch {}
-          }
-        } else {
-          console.warn('사용자 정보 조회 실패:', res.status)
-        }
-      } catch (e) {
-        console.error('사용자 정보 조회 오류:', e)
-      }
-    }
-
     const fetchQuestions = async () => {
       try {
-        setIsLoadingQuestions(true)
-        const response = await fetch('https://recode-my-life.site/api/basic/questions', {
+        setQuestionsLoading(true)
+        setQuestionsError(null)
+        const response = await fetch('https://recode-my-life.site/api/survey/questions', {
           method: 'GET',
           credentials: 'include',
-          headers: {
-            'Accept': 'application/json',
-          },
         })
-
         if (!response.ok) {
-          throw new Error(`질문 불러오기 실패: ${response.status}`)
+          throw new Error(`HTTP ${response.status}`)
         }
-
-        const result = await response.json()
-        const data: Array<{ id: number; content: string }> = Array.isArray(result?.data) ? result.data : []
-
-        const mapped = data.map((item) => ({
-          title: '기초 질문',
-          question: `${item.content}\n준비되시면 답변하기를 눌러 시작해주세요`,
-        }))
-        const ids = data.map((item) => item.id)
-
-        setQuestions(mapped)
-        setQuestionIds(ids)
-        setCurrentStep(0)
-        setHasStartedRecording(false)
-      } catch (error) {
-        console.error(error)
+        const json = await response.json() as { data?: SurveyQuestion[] }
+        const list = Array.isArray(json?.data) ? json.data as SurveyQuestion[] : []
+        setQuestions(list)
+        setCurrentQuestionIndex(0)
+      } catch (e) {
+        setQuestionsError('질문을 불러오지 못했습니다. 잠시 후 다시 시도해주세요.')
       } finally {
-        setIsLoadingQuestions(false)
+        setQuestionsLoading(false)
       }
     }
-
-    fetchUser()
+    // eslint-disable-next-line @typescript-eslint/no-floating-promises
     fetchQuestions()
   }, [])
 
-  useEffect(() => {
-    if (questions.length === 0) {
-      setProgress(0)
-      return
-    }
+  const handleNextQuestion = async () => {
+    if (questions.length === 0) return
+    stopCurrentAudio()
+    await uploadCurrentAnswer()
+    setCurrentQuestionIndex((prev) => (prev + 1) % questions.length)
+    setHasRecorded(false)
+  }
 
-    setProgress(((currentStep + 1) / questions.length) * 100)
-    
-    const playQuestionTTS = async () => {
+  const handleComplete = () => {
+    setShowCompleteModal(true)
+  }
+
+  const handleNextOrComplete = async () => {
+    const total = questions.length
+    if (total > 0 && currentQuestionIndex === total - 1) {
+      stopCurrentAudio()
+      await uploadCurrentAnswer()
+      // 세션 최종 감정 산출 및 로그
       try {
-        setIsAITalking(true)
-        const audioContent = await synthesizeSpeech(questions[currentStep].question)
+        const records = sessionEmotionHistory.current
+        if (records.length > 0) {
+          const startTs = records[0].timestamp
+          const endTs = records[records.length - 1].timestamp
+          const totalDurationSec = Math.max(1, Math.round((endTs - startTs) / 1000))
+          // 1초 단위 샘플만 사용(이미 1초 단위로 추가됨)
+          const durationPerEmotion: Record<string, number> = {}
+          records.forEach(() => {})
+          for (let i = 0; i < records.length; i += 1) {
+            const emo = records[i].emotion
+            durationPerEmotion[emo] = (durationPerEmotion[emo] || 0) + 1
+          }
+          const thresholdSec = Math.ceil(totalDurationSec * 0.17)
+          // 지배적 감정 찾기 (중립 제외 우선)
+          type Dominant = { emo: string; sec: number }
+          let dominant: Dominant | null = null
+          Object.entries(durationPerEmotion).forEach(([emo, sec]) => {
+            if (emo !== '중립' && sec >= thresholdSec) {
+              if (!dominant || sec > dominant.sec) dominant = { emo, sec }
+            }
+          })
+          if (!dominant) {
+            // 중립만 임계치를 넘었거나, 어떤 감정도 임계치를 넘지 못한 경우, 최다 지속 감정을 선택
+            Object.entries(durationPerEmotion).forEach(([emo, sec]) => {
+              if (!dominant || sec > dominant.sec) dominant = { emo, sec }
+            })
+          }
+          const koToEn: Record<string, string> = {
+            '중립': 'neutral',
+            '행복': 'happy',
+            '슬픔': 'sad',
+            '화남': 'angry',
+            '두려움': 'fearful',
+            '혐오': 'disgusted',
+            '놀람': 'surprised',
+          }
+          let finalEmotionEn = 'neutral'
+          if (dominant && typeof (dominant as Dominant).emo === 'string') {
+            const key = (dominant as Dominant).emo
+            finalEmotionEn = koToEn[key] || 'neutral'
+          }
+          console.log(`[세션 감정 요약] 총 ${totalDurationSec}s, 임계 ${thresholdSec}s, 최종 감정: ${finalEmotionEn}`)
+        }
+      } catch (e) {
+        console.error('세션 감정 요약 오류:', e)
+      }
+      // 완료 버튼 시점에 감정 측정 중단
+      setSessionActive(false)
+      handleComplete()
+    } else {
+      await handleNextQuestion()
+    }
+  }
+
+  // 질문 TTS 재생
+  const replayQuestionTTS = async () => {
+    try {
+      if (questions.length === 0) return
+      stopCurrentAudio()
+      const text = `${questions[currentQuestionIndex]?.content}\n준비되시면 답변하기 버튼을 눌러 시작해주세요.`
+      const audioContent = await synthesizeSpeech(text)
+      await playAudio(audioContent)
+    } catch (e) {
+      console.error('TTS 에러:', e)
+    }
+  }
+
+  // 질문 변경/로드 시 자동 TTS
+  useEffect(() => {
+    const speak = async () => {
+      if (questionsLoading) return
+      if (questions.length === 0) return
+      try {
+        const text = `${questions[currentQuestionIndex]?.content}\n준비되시면 답변하기 버튼을 눌러 시작해주세요.`
+        const audioContent = await synthesizeSpeech(text)
         await playAudio(audioContent)
-      } catch (error) {
-        console.error('TTS 에러:', error)
-      } finally {
-        setIsAITalking(false)
+      } catch (e) {
+        console.error('TTS 에러:', e)
       }
     }
-    
-    playQuestionTTS()
-
+    // eslint-disable-next-line @typescript-eslint/no-floating-promises
+    speak()
     return () => {
       stopCurrentAudio()
     }
-  }, [currentStep, questions])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [questionsLoading, currentQuestionIndex, questions.length])
 
-  // 질문이 바뀌면 다음 버튼을 비활성화 상태로 초기화
+  // 질문 로드 완료 시 초기 상태
   useEffect(() => {
-    setHasStartedRecording(false)
-  }, [currentStep])
-
-  const handleNext = async () => {
-    if (questions.length === 0) return
-    try {
-      const questionId = questionIds[currentStep]
-      // 업로드 직전에 userId 없으면 한 번 더 조회 시도
-      let ensuredUserId = userId
-      if (ensuredUserId == null) {
-        try {
-          const res = await fetch('https://recode-my-life.site/api/user', {
-            method: 'GET',
-            credentials: 'include',
-            headers: { 'Accept': 'application/json' },
-          })
-          if (res.ok) {
-            const json = await res.json()
-            const idCandidate = json?.data?.id
-            if (typeof idCandidate === 'number') {
-              ensuredUserId = idCandidate
-              setUserId(idCandidate)
-              try { localStorage.setItem('userId', String(idCandidate)) } catch {}
-            }
-          }
-        } catch {}
-      }
-      let blobToUpload = recordedBlob
-      if (isRecording) {
-        blobToUpload = await stopAndGetBlob()
-      }
-      if (!blobToUpload) {
-        console.warn('업로드할 녹화 파일이 없습니다.')
-      } else {
-        const formData = new FormData()
-        formData.append('questionId', String(questionId))
-        if (ensuredUserId != null) {
-          formData.append('userId', String(ensuredUserId))
-        }
-        formData.append('mediaType', 'video')
-        const fileName = `answer_${questionId}_${new Date().toISOString().replace(/[:.]/g, '-')}.mp4`
-        const file = new File([blobToUpload], fileName, { type: 'video/mp4' })
-        formData.append('videoFile', file)
-
-        const uploadResponse = await fetch('https://recode-my-life.site/api/basic/answers', {
-          method: 'POST',
-          credentials: 'include',
-          body: formData,
-        })
-        if (!uploadResponse.ok) {
-          console.error('답변 업로드 실패:', uploadResponse.status)
-        }
-      }
-
-      if (currentStep < questions.length - 1) {
-        setCurrentStep(currentStep + 1)
-        // 이전 질문의 녹화 결과 창 숨김을 위해 녹음 상태 초기화
-        resetRecording()
-      } else {
-        // 마지막 질문 완료 시 최종 감정 분석 실행
-        console.log('=== 기억 꺼내기 훈련 최종 감정 분석 결과 ===')
-        analyzeEmotionHistory()
-        markRecallTrainingSessionAsCompleted('memory')
-        setShowCompletionModal(true)
-      }
-    } catch (err) {
-      console.error('다음으로 진행 중 오류:', err)
+    if (!questionsLoading) {
+      setHasRecorded(false)
     }
-  }
-
-  const handleBackToMain = () => {
-    stopCurrentAudio()
-    onBack()
-  }
-
-  const replayQuestion = async () => {
-    try {
-      // 기존 TTS 정지
-      stopCurrentAudio()
-      setIsAITalking(true)
-      const audioContent = await synthesizeSpeech(questions[currentStep].question)
-      await playAudio(audioContent)
-    } catch (error) {
-      console.error('TTS 에러:', error)
-    } finally {
-      setIsAITalking(false)
-    }
-  }
-
-  // 답변하기(녹음 시작) 버튼 클릭 시: 녹음 시작과 동시에 다음 버튼 활성화
-  const handleStartRecording = () => {
-    startRecording(false)
-    setHasStartedRecording(true)
-  }
-
-  // 완료 모달
-  if (showCompletionModal) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-emerald-100 to-violet-100 flex items-center justify-center p-6">
-        <Card className="max-w-md w-full bg-white/95 backdrop-blur border-0 shadow-2xl">
-          <CardContent className="p-8 text-center">
-            <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-              <CheckCircle className="w-10 h-10 text-green-600" />
-            </div>
-            <h2 className="text-4xl font-bold text-gray-800 mb-6">기억 꺼내기 완료!</h2>
-            <p className="text-2xl text-gray-600 mb-10 font-medium">
-              모든 질문을 성공적으로 완료하셨습니다.<br />
-              다른 훈련 프로그램도 진행해보세요.
-            </p>
-            <div className="flex gap-6">
-              <Button
-                variant="outline"
-                onClick={handleBackToMain}
-                className="flex-1 h-16 text-xl font-bold px-8"
-              >
-                메인으로 돌아가기
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    )
-  }
+  }, [questionsLoading])
 
   return (
-    <div className="h-screen bg-gradient-to-br from-emerald-100 to-violet-100 p-6">
-      <div className="max-w-7xl mx-auto">
-        {/* 헤더 */}
-        <div className="flex items-center justify-between mb-8">
-          <Button 
-            variant="ghost" 
-            onClick={onBack} 
-            className="flex items-center gap-3 text-2xl font-bold hover:bg-white/50 bg-white/80 backdrop-blur px-6 py-4"
-          >
-            <ArrowLeft className="w-7 h-7" />
-            돌아가기
-          </Button>
-          
-          <div className="text-center">
-            <h1 className="text-5xl font-bold text-gray-800 mb-2" style={{ fontFamily: "Paperlogy, sans-serif" }}>
-              기억 꺼내기 훈련
-            </h1>
-            <p className="text-2xl text-gray-600 font-medium">가벼운 질문으로 소중한 추억을 되살려보세요</p>
-          </div>
-          
-          <div className="w-20"></div>
+    <div className="h-screen overflow-hidden bg-gradient-to-br from-emerald-100 to-teal-100 pt-1 pb-0 px-4 md:pt-6 md:pb-0 md:px-8">
+      <div className="h-full flex items-start justify-center">
+        <div style={{ transform: 'scale(0.75)', transformOrigin: 'top center' }}>
+      {/* Header */}
+      <div className="max-w-6xl mx-auto mb-6">
+
+        <div className="text-center">
+          <h1 className="text-4xl md:text-5xl font-extrabold text-gray-900 mb-3 tracking-tight">
+            기억 꺼내기 훈련
+          </h1>
+          <p className="text-2xl text-gray-800">
+            가벼운 질문으로 기억의 보석함을 열어보세요.
+          </p>
         </div>
+      </div>
 
-        {/* 메인 콘텐츠 */}
-        <div className="grid lg:grid-cols-3 gap-6">
-          {/* 왼쪽: 질문 영역 */}
-          <div className="lg:col-span-2">
-            <Card className="shadow-2xl border-0 bg-white/95 backdrop-blur overflow-hidden h-full">
-              <CardContent className="p-8">
-                {/* 질문 제목 */}
-                <div className="text-center mb-8">
-                  <div className="inline-flex items-center gap-4 bg-blue-100 text-blue-700 px-6 py-3 rounded-full mb-6">
-                    <Brain className="w-7 h-7" />
-                    <span className="font-bold text-xl">
-                      질문 {questions.length > 0 ? currentStep + 1 : 0}/{questions.length}
-                    </span>
-                  </div>
-                  <h2 className="text-4xl font-bold text-gray-800 mb-6">{questions[currentStep]?.title ?? '기초 질문'}</h2>
-                </div>
-
-                {/* 질문 내용 */}
-                <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-10 rounded-2xl mb-10">
-                  <div className="flex items-start gap-6">
-                    <div className="w-16 h-16 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0">
-                      <Brain className="w-8 h-8 text-white" />
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-lg text-blue-600 font-bold mb-3">RE:CODE는 궁금해요</p>
-                       <p className="text-2xl leading-relaxed text-gray-800 whitespace-pre-line font-medium">
-                        {questions[currentStep]?.question ?? '질문을 불러오는 중입니다...'}
-                       </p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* 카운트다운 */}
-                {showCountdown && (
-                  <div className="text-center mb-8">
-                    <div className="text-8xl font-bold text-blue-500 mb-6">{countdown}</div>
-                    <p className="text-2xl text-gray-600 font-medium">곧 녹음이 시작됩니다...</p>
-                  </div>
-                )}
-
-                {/* 녹음 상태 */}
-                {isRecording && (
-                  <div className="mb-8">
-                    <div className="bg-red-50 border border-red-200 rounded-lg p-6">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                          <div className="w-6 h-6 bg-red-500 rounded-full animate-pulse"></div>
-                          <div>
-                            <p className="font-bold text-red-800 text-xl">녹음 중...</p>
-                            <p className="text-lg text-red-600">자유롭게 말씀해 주세요</p>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <div className="w-4 h-4 bg-red-500 rounded-full animate-pulse"></div>
-                          <div className="w-4 h-4 bg-red-500 rounded-full animate-pulse" style={{ animationDelay: '0.2s' }}></div>
-                          <div className="w-4 h-4 bg-red-500 rounded-full animate-pulse" style={{ animationDelay: '0.4s' }}></div>
-                        </div>
-                      </div>
-                      
-                      {/* 오디오 레벨 표시 */}
-                      <div className="mt-4">
-                        <div className="flex items-center gap-1 h-8">
-                          {Array.from({ length: 20 }, (_, i) => (
-                            <div
-                              key={i}
-                              className="flex-1 bg-red-200 rounded-sm transition-all duration-100"
-                              style={{
-                                height: `${Math.max(10, (audioLevel / 255) * 100 * (i + 1) / 20)}%`,
-                                backgroundColor: audioLevel > 50 ? '#ef4444' : '#fecaca'
-                              }}
-                            />
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* 녹음된 미디어 재생 */}
-                {recordedMedia && !isRecording && (
-                  <div className="mb-8">
-                    <div className="bg-green-50 border border-green-200 rounded-lg p-6">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                          <CheckCircle className="w-8 h-8 text-green-600" />
-                          <div>
-                            <p className="font-bold text-green-800 text-xl">답변이 녹화되었습니다</p>
-                            <p className="text-lg text-green-600">아래에서 다시 확인하실 수 있습니다</p>
-                          </div>
-                        </div>
-                        <video controls src={recordedMedia} className="w-100 h-31 rounded-lg" />
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* 컨트롤 버튼들 */}
-                <div className="flex items-center justify-center gap-6">
-                  <Button
-                    onClick={replayQuestion}
-                    variant="outline"
-                    disabled={questions.length === 0 || isLoadingQuestions}
-                    className="h-16 px-8 border-2 border-blue-400 text-blue-700 hover:bg-blue-50 bg-transparent text-xl font-bold"
-                  >
-                    <RotateCcw className="w-6 h-6 mr-3" />
-                    다시재생
-                  </Button>
-
-                  <Button
-                    onClick={isRecording ? stopRecording : handleStartRecording}
-                    disabled={(questions.length === 0 || isLoadingQuestions) ? true : false}
-                    className={`h-16 px-12 text-xl font-bold ${
-                      isRecording
-                        ? "bg-red-600 hover:bg-red-700 text-white"
-                        : "bg-green-600 hover:bg-green-700 text-white"
-                    }`}
-                  >
-                    {isRecording ? (
-                      <>
-                        <MicOff className="w-6 h-6 mr-3" />
-                        녹음 중지
-                      </>
-                    ) : (
-                      <>
-                        <Mic className="w-6 h-6 mr-3" />
-                        답변하기
-                      </>
-                    )}
-                  </Button>
-
-                  <Button
-                    onClick={handleNext}
-                    disabled={!hasStartedRecording || questions.length === 0}
-                    className="h-16 px-12 bg-blue-600 hover:bg-blue-700 text-white text-xl font-bold"
-                  >
-                    {currentStep === questions.length - 1 ? '완료하기' : '다음 질문'}
-                    <ArrowRight className="w-6 h-6 ml-3" />
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+      {/* Main Content */}
+      <div className="max-w-6xl mx-auto grid lg:grid-cols-2 gap-6">
+        {/* Left Panel - Question Exercise */}
+        <Card className="p-6 md:p-8 bg-white shadow-2xl rounded-2xl">
+          <div className="text-center mb-6">
+            <div className="inline-flex items-center gap-3 bg-blue-100 text-blue-800 px-6 py-3 rounded-full text-xl font-bold mb-4">
+              <Clock className="w-6 h-6" aria-hidden="true" />
+              질문 {questions.length > 0 ? currentQuestionIndex + 1 : 0}/{questions.length}
+            </div>
           </div>
 
-          {/* 오른쪽: 사용자 캠 화면 */}
-          <div className="lg:col-span-1">
-            <Card className="shadow-2xl border-0 bg-white/95 backdrop-blur overflow-hidden h-full">
-              <CardContent className="p-6">
-                <div className="space-y-4">
-                  <WebcamView
-                    isRecording={isRecording}
-                    onStreamReady={setWebcamStream}
-                    videoRef={videoRef}
+          {/* Question */}
+          <div className="mb-10">
+            <div className="flex items-start gap-4 mb-4">
+              <div>
+                <h3 className="font-bold text-blue-700 text-2xl mb-3">RE:CODE는 궁금해요!</h3>
+                {questionsLoading ? (
+                  <p className="text-gray-600 text-xl">질문을 불러오는 중입니다...</p>
+                ) : questionsError ? (
+                  <p className="text-red-600 text-xl">{questionsError}</p>
+                ) : questions.length > 0 ? (
+                  <p className="text-gray-900 leading-relaxed text-xl">
+                    {questions[currentQuestionIndex]?.content}
+                    <br />
+                    준비되시면 <strong className="text-emerald-700">답변하기</strong> 버튼을 눌러 시작해주세요.
+                  </p>
+                ) : (
+                  <p className="text-gray-600 text-xl">표시할 질문이 없습니다.</p>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* 오디오 비주얼라이저 */}
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+            <div className="flex items-end gap-1 h-16">
+              {Array.from({ length: 20 }, (_, i) => {
+                const amplified = (audioLevel / 255) * 100 * 2.5
+                const barHeight = Math.min(100, Math.max(8, (amplified * (i + 1)) / 20))
+                return (
+                  <div
+                    key={i}
+                    className="flex-1 bg-blue-300 rounded-sm transition-all duration-100"
+                    style={{ height: `${barHeight}%` }}
                   />
-                  
-                  {/* 감정 분석 결과 */}
-                  <div className="bg-white/80 backdrop-blur rounded-lg p-6">
-                    <h3 className="text-2xl font-bold mb-4">감정 분석</h3>
-                    <div className="space-y-4">
-                      <div className="flex justify-between items-center">
-                        <span className="text-lg font-medium">현재 감정:</span>
-                        <span className="font-bold text-blue-600 text-xl">{emotion}</span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-lg font-medium">신뢰도:</span>
-                        <span className="font-bold text-blue-600 text-xl">{Math.round(confidence * 100)}%</span>
-                      </div>
-                      <div className="w-full bg-gray-200 rounded-full h-3">
-                        <div
-                          className="bg-blue-600 h-3 rounded-full transition-all duration-300"
-                          style={{ width: `${confidence * 100}%` }}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+                )
+              })}
+            </div>
           </div>
+
+          {/* Control Buttons */}
+          <div className="flex gap-4">
+            <Button
+              onClick={replayQuestionTTS}
+              variant="outline"
+              className="flex-1 h-16 text-2xl border-2 border-blue-400 text-blue-800 hover:bg-blue-50 bg-white focus-visible:ring-4 focus-visible:ring-blue-300"
+              aria-label="질문 다시 재생"
+            >
+              <RotateCcw className="w-6 h-6 mr-3" aria-hidden="true" />
+              다시 재생
+            </Button>
+
+            <Button
+              onClick={handleAnswerClick}
+              aria-pressed={isRecording}
+              aria-label={isRecording ? '녹화 중지' : '녹화 시작'}
+              className={`flex-1 h-16 text-2xl text-white focus-visible:ring-4 focus-visible:ring-emerald-300 ${
+                isRecording ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'
+              }`}
+            >
+              <Mic className="w-6 h-6 mr-3" aria-hidden="true" />
+              {isRecording ? '녹화 중지' : '답변하기'}
+            </Button>
+
+            <Button
+              onClick={handleNextOrComplete}
+              className="flex-1 h-16 text-2xl bg-blue-700 hover:bg-blue-800 text-white focus-visible:ring-4 focus-visible:ring-blue-300 disabled:opacity-60 disabled:cursor-not-allowed"
+              aria-label={questions.length > 0 && currentQuestionIndex === questions.length - 1 ? '완료하기' : '다음 질문으로 이동'}
+              disabled={questions.length === 0 || isRecording || !hasRecorded}
+            >
+              {questions.length > 0 && currentQuestionIndex === questions.length - 1 ? '완료하기' : '다음 질문'}
+              <ChevronRight className="w-6 h-6 ml-3" aria-hidden="true" />
+            </Button>
+          </div>
+        </Card>
+
+        {/* Right Panel - Webcam */}
+        <Card className="p-6 md:p-8 bg-white shadow-2xl rounded-2xl" aria-label="영상 미리보기">
+          <h3 className="text-2xl text-center font-extrabold text-gray-900 mb-4">내 화면</h3>
+
+          {/* Webcam Display */}
+          <div className="relative bg-gray-900 rounded-2xl overflow-hidden mb-6" style={{ aspectRatio: '4/3' }}>
+            {cameraLoading && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center text-white">
+                <Camera className="w-16 h-16 mb-4 opacity-80" aria-hidden="true" />
+                <p className="text-xl">카메라를 불러오는 중...</p>
+              </div>
+            )}
+
+            {cameraError && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center text-white">
+                <Camera className="w-16 h-16 mb-4 opacity-80" aria-hidden="true" />
+                <p className="text-xl">카메라 접근 실패</p>
+                <Button
+                  variant="outline"
+                  className="mt-3 bg-white text-gray-900 border-2"
+                  onClick={initializeCamera}
+                  aria-label="카메라 다시 시도"
+                >
+                  다시 시도
+                </Button>
+              </div>
+            )}
+
+            <video
+              ref={videoRef}
+              autoPlay
+              muted
+              playsInline
+              aria-label="웹캠 미리보기"
+              className={`w-full h-full object-cover ${cameraLoading || cameraError ? 'hidden' : ''}`}
+            />
+
+            {/* 녹화 상태 라이브 리전 */}
+            <div className="sr-only" aria-live="polite" aria-atomic="true">
+              {isRecording ? '녹화 중입니다' : '녹화가 중지되었습니다'}
+            </div>
+
+            {isRecording && (
+              <div className="absolute top-4 right-4 flex items-center gap-3 bg-red-600 text-white px-4 py-2 rounded-full text-xl">
+                <div className="w-3 h-3 bg-white rounded-full animate-pulse" />
+                녹화 중...
+              </div>
+            )}
+          </div>
+
+          {/* Status */}
+          <div className="space-y-4">
+            <h4 className="text-2xl font-extrabold text-gray-900">감정 분석</h4>
+
+            <div className="flex justify-between items-center text-xl">
+              <span className="text-gray-800">현재 감정</span>
+              <span className="text-blue-700 font-extrabold">{emotion}</span>
+            </div>
+
+            <div className="flex justify-between items-center text-xl">
+              <span className="text-gray-800">신뢰도</span>
+              <span className="text-blue-700 font-extrabold">{Math.round(confidence * 100)}%</span>
+            </div>
+          </div>
+        </Card>
+      </div>
+      {/* 완료 모달 */}
+      <TrainingCompleteModal
+        open={showCompleteModal}
+        onClose={() => setShowCompleteModal(false)}
+        title="훈련이 완료되었습니다"
+        description="수고하셨어요! 다음 단계로 진행하시거나 창을 닫아주세요."
+        primaryActionLabel="확인"
+        onPrimaryAction={() => router.push('/main-elder/recall-training')}
+      />
         </div>
       </div>
     </div>
   )
-} 
+}
+
+export default VoiceMemoryTrainingSession
