@@ -5,58 +5,17 @@ pipeline {
         stage('Cleanup') {
             steps {
                 script {
-                    echo 'Stopping and removing containers...'
-                    // 컨테이너 정지 및 제거 (더 안전한 방식)
-                    sh '''
-                        docker-compose down --remove-orphans --volumes || true
-                        docker container prune -f || true
-                        docker volume prune -f || true
-                    '''
-
-                    // 사용하지 않는 이미지 정리
-                    sh 'docker image prune -f || true'
-
-                    // 네트워크 정리
-                    sh 'docker network prune -f || true'
+                    sh 'docker-compose down --remove-orphans || true'
                 }
             }
         }
-
-        stage('Pre-Build Check') {
-            steps {
-                script {
-                    echo 'Checking for existing containers...'
-                    // 남아있는 관련 컨테이너 강제 제거
-                    sh '''
-                        # 프로젝트 관련 컨테이너들 강제 정지/제거
-                        docker ps -a --format "table {{.Names}}" | grep -E "(redis|backend|frontend|nginx|prometheus|grafana)" | xargs -r docker rm -f || true
-
-                        # 포트를 사용중인 컨테이너 확인 및 제거
-                        for port in 80 443 3000 3030 6379 8088 9090 9100 9104 9113 9121; do
-                            container_id=$(docker ps --filter "publish=$port" -q)
-                            if [ ! -z "$container_id" ]; then
-                                echo "Stopping container using port $port: $container_id"
-                                docker stop "$container_id" || true
-                                docker rm "$container_id" || true
-                            fi
-                        done
-                    '''
-                }
-            }
-        }
-
         stage('Build') {
             steps {
                 script {
-                    echo 'Building images...'
-                    sh '''
-                        # 빌드 캐시 없이 새로 빌드
-                        docker-compose build --no-cache --pull
-                    '''
+                    sh 'docker-compose build'
                 }
             }
         }
-
         stage('Push') {
             steps {
                 script {
@@ -67,38 +26,19 @@ pipeline {
                           passwordVariable: 'DOCKER_PASSWORD'
                         )
                     ]) {
-                        sh '''
-                            echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
-                            docker-compose push
-                        '''
+                        sh 'echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin'
+                        sh 'docker-compose push'
                     }
                 }
             }
         }
-
-        stage('Pre-Deploy Check') {
-            steps {
-                script {
-                    echo 'Final cleanup before deploy...'
-                    // 배포 전 마지막 정리
-                    sh '''
-                        # 혹시 모를 잔여 컨테이너 정리
-                        docker-compose down --remove-orphans || true
-                        sleep 5
-
-                        # 포트 사용 상태 확인
-                        # netstat -tulpn | grep -E ":(80|443|3000|3030|6379|8088|9090|9100|9104|9113|9121) " || true
-                    '''
-                }
-            }
-        }
-
         stage('Deploy') {
             steps {
                 script {
+                    // 여기에 나열된 모든 크리덴셜을 바인딩
                     withCredentials([
                         string(credentialsId: 'REDIS_PASSWORD',     variable: 'REDIS_PASSWORD'),
-                        string(credentialsId: 'REDIS_HOST',         variable: 'REDIS_HOST'),
+                        string(credentialsId: 'REDIS_HOST',     variable: 'REDIS_HOST'),
                         string(credentialsId: 'AWS_ACCESS_KEY',     variable: 'AWS_ACCESS_KEY'),
                         string(credentialsId: 'AWS_SECRET_KEY',     variable: 'AWS_SECRET_KEY'),
                         string(credentialsId: 'CLOVA_DOMAIN_CODE',  variable: 'CLOVA_DOMAIN_CODE'),
@@ -111,57 +51,12 @@ pipeline {
                         string(credentialsId: 'DB_NAME',            variable: 'DB_NAME'),
                         string(credentialsId: 'DB_USERNAME',        variable: 'DB_USERNAME'),
                         string(credentialsId: 'DB_PASSWORD',        variable: 'DB_PASSWORD'),
-                        string(credentialsId: 'GRAFANA_USER',       variable: 'GRAFANA_USER'),
-                        string(credentialsId: 'GRAFANA_PW',         variable: 'GRAFANA_PW'),
+                        string(credentialsId: 'GRAFANA_USER',        variable: 'GRAFANA_USER'),
+                        string(credentialsId: 'GRAFANA_PW',        variable: 'GRAFANA_PW'),
                     ]) {
-                        sh '''
-                            # 환경변수 확인 (디버깅용)
-                            echo "Starting deployment..."
-
-                            # 컨테이너 시작
-                            docker-compose up -d --force-recreate
-
-                            # 헬스체크 대기
-                            echo "Waiting for services to be ready..."
-                            sleep 30
-
-                            # 서비스 상태 확인
-                            docker-compose ps
-
-                            # 백엔드 헬스체크 확인
-                            for i in {1..10}; do
-                                if docker exec backend wget -qO- http://localhost:8088/actuator/health 2>/dev/null; then
-                                    echo "Backend health check passed"
-                                    break
-                                else
-                                    echo "Backend health check failed, retrying in 10s... ($i/10)"
-                                    sleep 10
-                                fi
-                            done
-                        '''
+                        // 환경변수로 주입된 값을 docker-compose가 .env 또는 직접 참조하도록 구성
+                        sh 'docker-compose up --build -d'
                     }
-                }
-            }
-        }
-
-        stage('Post-Deploy Verification') {
-            steps {
-                script {
-                    sh '''
-                        echo "Verifying deployment..."
-
-                        # 실행 중인 컨테이너 확인
-                        echo "Running containers:"
-                        docker ps --format "table {{.Names}}\\t{{.Status}}\\t{{.Ports}}"
-
-                        # 로그 확인 (에러가 있다면)
-                        echo "Checking for any container errors..."
-                        docker-compose logs --tail=50 | grep -i error || echo "No errors found"
-
-                        # 포트 바인딩 확인
-                        echo "Port bindings:"
-                        docker-compose ps --services | xargs -I {} docker port {}
-                    '''
                 }
             }
         }
@@ -169,38 +64,7 @@ pipeline {
 
     post {
         always {
-            script {
-                // 빌드 후 정리
-                sh '''
-                    # 사용하지 않는 이미지만 정리 (실행 중인 컨테이너의 이미지는 보존)
-                    docker image prune -f || true
-                '''
-            }
-        }
-
-        failure {
-            script {
-                echo 'Deployment failed, collecting logs...'
-                sh '''
-                    echo "=== Container Status ==="
-                    docker ps -a
-
-                    echo "=== Compose Logs ==="
-                    docker-compose logs --tail=100 || true
-
-                    echo "=== System Resources ==="
-                    df -h
-                    free -m
-
-                    
-                '''
-                //echo "=== Port Usage ==="
-                // netstat -tulpn | grep -E ":(80|443|3000|3030|6379|8088|9090)" || true
-            }
-        }
-
-        success {
-            echo 'Deployment completed successfully!'
+            sh 'docker image prune -f || true'
         }
     }
 }
