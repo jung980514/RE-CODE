@@ -57,6 +57,11 @@ const Navbar = () => {
       localStorage.removeItem('role');
       localStorage.removeItem('name');
       localStorage.removeItem('isLoggedIn');
+      localStorage.removeItem('dailySurveyData');
+      localStorage.removeItem('isdailysurveycompleted');
+      localStorage.removeItem('userID');
+      localStorage.removeItem('userId');
+      localStorage.removeItem('userType');
       // localStorage 정리 후 상태 재확인
       checkAuthStatus();
       router.replace('/'); // 로그아웃 후 메인으로 이동
