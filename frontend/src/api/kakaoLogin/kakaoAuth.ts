@@ -6,6 +6,12 @@ import { KAKAO_CONFIG } from './config';
  * Spring Security OAuth2를 사용하는 백엔드 엔드포인트로 리다이렉트
  */
 export const generateKakaoAuthURL = (): string => {
+  // 환경변수 검증
+  if (!KAKAO_CONFIG.API_BASE_URL) {
+    console.error('❌ API_BASE_URL이 설정되지 않았습니다.');
+    throw new Error('백엔드 URL이 설정되지 않았습니다. 환경변수를 확인해주세요.');
+  }
+  
   // 백엔드의 OAuth2 엔드포인트 사용
   const backendOAuthURL = `${KAKAO_CONFIG.API_BASE_URL}/oauth2/authorization/kakao`;
   
