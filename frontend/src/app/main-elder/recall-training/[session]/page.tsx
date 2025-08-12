@@ -1,10 +1,37 @@
 "use client"
 
 import { useParams, useRouter } from "next/navigation"
-import { VoiceMemoryTrainingSession } from "../components/VoiceMemoryTrainingSession"
-import { VoicePhotoReminiscenceSession } from "../components/VoicePhotoReminiscenceSession"
-import { VoiceMusicTherapySession } from "../components/VoiceMusicTherapySession"
-import { VoiceStoryTellingSession } from "../components/VoiceStoryTellingSession"
+import dynamic from "next/dynamic"
+import { Suspense } from "react"
+
+const VoiceMemoryTrainingSession = dynamic(
+  () =>
+    import("../components/VoiceMemoryTrainingSession").then(
+      (mod) => mod.VoiceMemoryTrainingSession,
+    ),
+  { ssr: false },
+)
+const VoicePhotoReminiscenceSession = dynamic(
+  () =>
+    import("../components/VoicePhotoReminiscenceSession").then(
+      (mod) => mod.VoicePhotoReminiscenceSession,
+    ),
+  { ssr: false },
+)
+const VoiceMusicTherapySession = dynamic(
+  () =>
+    import("../components/VoiceMusicTherapySession").then(
+      (mod) => mod.VoiceMusicTherapySession,
+    ),
+  { ssr: false },
+)
+const VoiceStoryTellingSession = dynamic(
+  () =>
+    import("../components/VoiceStoryTellingSession").then(
+      (mod) => mod.VoiceStoryTellingSession,
+    ),
+  { ssr: false },
+)
 
 export default function SessionPage() {
   const params = useParams()
@@ -12,23 +39,23 @@ export default function SessionPage() {
   const sessionId = params.session as string
 
   const handleBack = () => {
-    router.push('/main-elder/recall-training')
+    router.push("/main-elder/recall-training")
   }
 
   const renderSession = () => {
     switch (sessionId) {
-      case 'memory':
+      case "memory":
         return <VoiceMemoryTrainingSession onBack={handleBack} />
-      case 'photo':
+      case "photo":
         return <VoicePhotoReminiscenceSession onBack={handleBack} />
-      case 'music':
+      case "music":
         return <VoiceMusicTherapySession onBack={handleBack} />
-      case 'story':
+      case "story":
         return <VoiceStoryTellingSession onBack={handleBack} />
       default:
         return <div>세션을 찾을 수 없습니다.</div>
     }
   }
 
-  return renderSession()
+  return <Suspense fallback={<div>Loading...</div>}>{renderSession()}</Suspense>
 } 
