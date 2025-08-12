@@ -1,28 +1,20 @@
 "use client"
 
-import React from "react"
-
-import { Button } from "@/components/ui/button"
+import React from 'react';
 import {
   Dialog,
-  DialogClose,
   DialogContent,
   DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog"
+  DialogClose,
+} from "@/components/ui/dialog";
 
 interface AccountDeletionModalProps {
-  /**
-   * 모달을 트리거할 요소 (예: 버튼)
-   */
-  children: React.ReactNode
-  /**
-   * 사용자가 탈퇴를 최종 확인했을 때 호출될 콜백 함수
-   */
-  onConfirm: () => void
+  children: React.ReactNode;
+  onConfirm: (password: string) => Promise<void>;
 }
 
 /**
@@ -33,17 +25,20 @@ export function AccountDeletionModal({ children, onConfirm }: AccountDeletionMod
   const [password, setPassword] = React.useState("");
   const [error, setError] = React.useState("");
   const [isOpen, setIsOpen] = React.useState(false);
+  const [isProcessing, setIsProcessing] = React.useState(false);
 
   // 모달이 닫힐 때 필드 초기화
   const handleOpenChange = (open: boolean) => {
-    setIsOpen(open);
-    if (!open) {
-      setPassword("");
-      setError("");
+    if (!isProcessing) { // 처리 중이 아닐 때만 모달 닫기 허용
+      setIsOpen(open);
+      if (!open) {
+        setPassword("");
+        setError("");
+      }
     }
   };
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (!password || password.trim() === '') {
       setError("비밀번호를 입력해주세요.");
       return;
@@ -55,11 +50,19 @@ export function AccountDeletionModal({ children, onConfirm }: AccountDeletionMod
     }
     
     setError("");
-    // 비밀번호를 전역 이벤트로 전달
-    window.dispatchEvent(new CustomEvent("account-delete-password", { detail: password.trim() }));
-    onConfirm();
-    // 탈퇴 처리 후 모달 닫기
-    setIsOpen(false);
+    setIsProcessing(true);
+    
+    try {
+      // 비밀번호를 직접 전달
+      await onConfirm(password.trim());
+      // 성공 시 모달 닫기
+      setIsOpen(false);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "회원 탈퇴 중 오류가 발생했습니다.";
+      setError(errorMessage);
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   return (
@@ -103,15 +106,22 @@ export function AccountDeletionModal({ children, onConfirm }: AccountDeletionMod
         </div>
         <DialogFooter className="sm:justify-start">
           <DialogClose asChild>
-            <Button type="button" variant="secondary">
+            <button 
+              disabled={isProcessing}
+              className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
               취소
-            </Button>
+            </button>
           </DialogClose>
-          <Button type="button" variant="destructive" onClick={handleDelete}>
-            탈퇴
-          </Button>
+          <button 
+            onClick={handleDelete}
+            disabled={isProcessing}
+            className="px-4 py-2 text-sm font-medium text-white bg-red-500 rounded-md hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isProcessing ? '처리 중...' : '회원탈퇴'}
+          </button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  )
+  );
 }
