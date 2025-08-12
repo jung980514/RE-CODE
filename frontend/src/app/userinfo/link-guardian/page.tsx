@@ -7,8 +7,9 @@ import { Link, Users, Send, Eye, X } from "lucide-react";
 interface LinkedElder {
   id: number;
   name: string;
-  email: string;
   phone: string;
+  birthDate?: string;
+  email?: string;
 }
 
 export default function GuardianLinkPage() {
@@ -32,12 +33,14 @@ export default function GuardianLinkPage() {
           throw new Error("연동된 노인 목록을 가져오지 못했습니다.");
         }
         const result = await response.json();
-        const list: Array<{ id: number; name: string; phone: string; createdAt: string }> =
+        const list: Array<{ id: number; name: string; phone?: string; birthDate?: string; createdAt?: string; email?: string }> =
           Array.isArray(result?.data) ? result.data : [];
         const mapped: LinkedElder[] = list.map((item) => ({
           id: item.id,
           name: item.name,
-          phone: item.phone,
+          phone: item.phone ?? '',
+          birthDate: item.birthDate,
+          email: item.email,
         }));
         setLinkedElders(mapped);
       } catch (error) {
