@@ -22,7 +22,7 @@ public interface DailyEmotionSummaryRepository extends JpaRepository<DailyEmotio
             SELECT 'BASIC' AS answer_type
             UNION ALL SELECT 'PERSONAL'
             UNION ALL SELECT 'COGNITIVE_AUDIO'
-            UNION ALL SELECT 'COGNITIVE_VIDEO'
+            UNION ALL SELECT 'COGNITIVE_IMAGE'
         ),
         single_date AS (                       
               SELECT DATE(:date) AS summary_date
@@ -49,7 +49,7 @@ public interface DailyEmotionSummaryRepository extends JpaRepository<DailyEmotio
        CROSS JOIN single_date sd
         LEFT JOIN latest l
           ON l.answer_type = t.answer_type AND l.rn = 1
-        ORDER BY FIELD(t.answer_type,'BASIC','PERSONAL','COGNITIVE_AUDIO','COGNITIVE_VIDEO')
+        ORDER BY FIELD(t.answer_type,'BASIC','PERSONAL','COGNITIVE_AUDIO','COGNITIVE_IMAGE')
         """, nativeQuery = true)
   List<Object[]> findEmotionByDatePerTypeRaw(
       @Param("userId") Long userId,
