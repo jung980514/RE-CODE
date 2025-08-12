@@ -572,7 +572,7 @@ export function VoiceMemoryTrainingSession({ onBack }: VoiceSessionProps) {
   const handleCompleteAndSubmitEmotion = async () => {
     try {
       const payload = { emotion: (finalEmotion || 'NEUTRAL').toUpperCase() }
-      await fetch('https://recode-my-life.site/api/cognitive/emotions', {
+      await fetch('https://recode-my-life.site/api/basic/emotions', {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
