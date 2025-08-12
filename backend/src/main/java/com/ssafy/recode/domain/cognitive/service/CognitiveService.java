@@ -62,14 +62,7 @@ public class CognitiveService {
   ) {
     try {
       // 1) 답변 텍스트 결정
-      String answerText;
-      if ("audio".equals(mediaType)) {
-        // 동영상/mp4 → 텍스트 변환
-        answerText = transcriptionService.transcribeVideo(mediaKey);
-      } else {
-        // 이미지인 경우 URL 또는 key 그대로 사용
-        answerText = mediaKey;
-      }
+      String answerText = transcriptionService.transcribeVideo(mediaKey);
 
       // 2) 질문 조회
       CognitiveQuestion question = questionRepo.findById(questionId)
