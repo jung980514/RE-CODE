@@ -20,12 +20,16 @@ const Navbar = () => {
 
   // 로그인 상태를 확인하는 함수
   const checkAuthStatus = () => {
-    const type = localStorage.getItem('userType');
+    const role = localStorage.getItem('role');
     const name = localStorage.getItem('name');
-    if (type && name) {
+    const isLoggedInFlag = localStorage.getItem('isLoggedIn');
+    
+    // role이 있고, 이름과 로그인 플래그가 있으면 로그인된 상태
+    if (role && name && isLoggedInFlag === 'true') {
       setIsLoggedIn(true);
       setUserName(name);
-      setUserType(type);
+      // role을 userType으로 변환 (기존 호환성 유지)
+      setUserType(role === 'ELDER' ? '0' : '1');
     } else {
       setIsLoggedIn(false);
       setUserName('');
@@ -50,8 +54,9 @@ const Navbar = () => {
       console.error('Logout API call failed:', error);
     } finally {
       // API 요청 성공 여부와 관계없이 클라이언트 측 상태를 업데이트합니다.
-      localStorage.removeItem('userType');
+      localStorage.removeItem('role');
       localStorage.removeItem('name');
+      localStorage.removeItem('isLoggedIn');
       // localStorage 정리 후 상태 재확인
       checkAuthStatus();
       router.replace('/'); // 로그아웃 후 메인으로 이동

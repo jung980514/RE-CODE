@@ -91,17 +91,24 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLoginSuccess
     try {
       const user = await login({ email: formData.email, password: formData.password });
       console.log('로그인 성공:', user);
+      
+      // localStorage에서 role 확인
+      const role = localStorage.getItem('role');
+      console.log('저장된 role:', role);
+      
       // role에 따라 리다이렉트
-      const role = localStorage.getItem('role')
-      console.log(role)
       if (role === 'ELDER') {
-        // 노인 계정: main-elder로 이동
+        console.log('노인 계정 → /main-elder로 이동');
         router.push('/main-elder');
       } else if (role === 'GUARDIAN') {
-        // 보호자 계정: main-guardian으로 이동
+        console.log('보호자 계정 → /main-guardian으로 이동');
         router.push('/main-guardian');
+      } else {
+        console.error('사용자 역할을 확인할 수 없습니다:', role);
       }
+      
       onLoginSuccess();
+      onClose(); // 로그인 성공 후 모달 닫기
     } catch (err) {
       console.error('로그인 실패:', err);
       setError('로그인에 실패했습니다. 이메일과 비밀번호를 확인해주세요.');
