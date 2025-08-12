@@ -26,7 +26,7 @@ export default function GuardianLinkPage() {
   type LinkedGuardian = {
     guardianId: number;
     name: string;
-    phoneNumber: string;
+    phone: string;
   };
   const [linkedGuardians, setLinkedGuardians] = useState<LinkedGuardian[]>([]);
 
