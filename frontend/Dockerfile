@@ -39,6 +39,9 @@ COPY --from=builder /usr/src/app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /usr/src/app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /usr/src/app/.next/static ./.next/static
 
+# curl 설치 
+RUN apk add --no-cache curl
+
 # 컨테이너의 수신 대기 포트를 3030으로 설정
 EXPOSE 3030
 

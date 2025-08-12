@@ -63,11 +63,11 @@ services:
     networks:
       - app-network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3030"]
-      interval: 30s
-      timeout: 10s
+      test: ["CMD", "curl", "-fsS", "http://localhost:3030/"]
+      interval: 10s
+      timeout: 3s
       retries: 3
-      start_period: 40s
+      start_period: 30s
 
   prometheus:
     user: "65534:65534"

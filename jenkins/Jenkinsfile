@@ -87,7 +87,7 @@ pipeline {
                         sleep 5
 
                         # 포트 사용 상태 확인
-                        netstat -tulpn | grep -E ":(80|443|3000|3030|6379|8088|9090|9100|9104|9113|9121) " || true
+                        # netstat -tulpn | grep -E ":(80|443|3000|3030|6379|8088|9090|9100|9104|9113|9121) " || true
                     '''
                 }
             }
@@ -192,9 +192,10 @@ pipeline {
                     df -h
                     free -m
 
-                    echo "=== Port Usage ==="
-                    netstat -tulpn | grep -E ":(80|443|3000|3030|6379|8088|9090)" || true
+                    
                 '''
+                //echo "=== Port Usage ==="
+                // netstat -tulpn | grep -E ":(80|443|3000|3030|6379|8088|9090)" || true
             }
         }
 
