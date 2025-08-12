@@ -40,8 +40,8 @@ const Navbar = () => {
 
   const handleLogout = async () => {
     try {
-      // await fetch('http://recode-my-life.site/api/user/logout', {
-      await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8088'}/api/user/logout`, {
+      await fetch('http://recode-my-life.site/api/user/logout', {
+      // await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8088'}/api/user/logout`, {
         method: 'POST',
         credentials: 'include', // 세션 쿠키를 포함하여 요청
       });
