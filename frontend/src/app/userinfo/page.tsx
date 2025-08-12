@@ -34,6 +34,15 @@ export default function UserInfoPage() {
     profileImageUrl: '',
   });
 
+  // 원본 사용자 정보를 저장 (변경 감지용)
+  const [originalUserInfo, setOriginalUserInfo] = useState({
+    name: '',
+    phone: '',
+    birthDate: '',
+    email: '',
+    profileImageUrl: '',
+  });
+
   // 프로필 이미지 관련 상태
   const [profileImageFile, setProfileImageFile] = useState<File | null>(null);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
@@ -65,6 +74,15 @@ export default function UserInfoPage() {
               email: result.data.email || '',
               profileImageUrl: result.data.profileImageUrl || '',
             }));
+            
+            // 원본 사용자 정보 저장
+            setOriginalUserInfo({
+              name: result.data.name || '',
+              phone: result.data.phone || '',
+              birthDate: result.data.birthDate || '',
+              email: result.data.email || '',
+              profileImageUrl: result.data.profileImageUrl || '',
+            });
             
             // 기존 프로필 이미지가 있으면 미리보기 설정
             if (result.data.profileImageUrl) {
@@ -192,17 +210,20 @@ export default function UserInfoPage() {
         newPassword?: string;
       } = {};
       
-      // 이름이 입력된 경우 (백엔드에서 빈 값 처리)
+      // 이름이 입력된 경우 (원본과 다른 경우에만)
       if (formData.name && formData.name.trim() !== '') {
-        updateData.name = formData.name.trim();
+        const trimmedName = formData.name.trim();
+        if (trimmedName !== originalUserInfo.name) {
+          updateData.name = trimmedName;
+        }
       }
 
       // 프로필 이미지가 변경된 경우
-      if (profileImageUrl && profileImageUrl !== formData.profileImageUrl) {
+      if (profileImageUrl && profileImageUrl !== originalUserInfo.profileImageUrl) {
         updateData.profileImageUrl = profileImageUrl;
       }
 
-      // 전화번호가 입력된 경우
+      // 전화번호가 입력된 경우 (기존 값과 다르거나 새로 입력된 경우)
       if (formData.phoneNumber && formData.phoneNumber.trim() !== '') {
         const phoneNumber = formData.phoneNumber.trim();
         
@@ -213,7 +234,10 @@ export default function UserInfoPage() {
           return;
         }
         
-        updateData.phone = phoneNumber;
+        // 원본 전화번호와 다른 경우에만 업데이트
+        if (phoneNumber !== originalUserInfo.phone) {
+          updateData.phone = phoneNumber;
+        }
       }
 
       // 비밀번호 변경이 요청된 경우 (실제로 비밀번호를 변경할 때만)
