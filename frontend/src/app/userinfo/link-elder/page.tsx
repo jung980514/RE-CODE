@@ -80,7 +80,7 @@ export default function GuardianLinkPage() {
   // 토큰 생성 (실제 API 호출)
   const generateToken = async () => {
     try {
-      const response = await fetch('${process.env.NEXT_PUBLIC_BACKEND_URL}/api/link/', {
+      const response = await fetch('https://recode-my-life.site/api/link/', {
         method: 'POST',
         credentials: 'include',
         cache: 'no-store',
@@ -134,7 +134,7 @@ export default function GuardianLinkPage() {
   // 연동 요청 목록 불러오기
   const fetchPendingRequests = async () => {
     try {
-      const response = await fetch('${process.env.NEXT_PUBLIC_BACKEND_URL}/api/link/list', {
+      const response = await fetch('https://recode-my-life.site/api/link/list', {
         method: 'GET',
         credentials: 'include',
         cache: 'no-store',
@@ -164,7 +164,7 @@ export default function GuardianLinkPage() {
   // 연동된 보호자 목록 불러오기
   const fetchLinkedGuardians = async () => {
     try {
-      const response = await fetch('${process.env.NEXT_PUBLIC_BACKEND_URL}/api/link/elder/list', {
+      const response = await fetch('https://recode-my-life.site/api/link/elder/list', {
         method: 'GET',
         credentials: 'include',
         cache: 'no-store',
@@ -198,7 +198,7 @@ export default function GuardianLinkPage() {
     try {
       setProcessingIds((prev: number[]) => (prev.includes(guardianId) ? prev : [...prev, guardianId]));
 
-      const response = await fetch('${process.env.NEXT_PUBLIC_BACKEND_URL}/api/link/res', {
+      const response = await fetch('https://recode-my-life.site/api/link/res', {
         method: 'POST',
         credentials: 'include',
         cache: 'no-store',

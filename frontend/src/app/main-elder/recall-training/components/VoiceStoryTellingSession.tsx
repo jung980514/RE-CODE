@@ -429,7 +429,7 @@ export function VoiceStoryTellingSession({ onBack }: VoiceSessionProps) {
       formData.append("videoFile", file)
 
       setIsUploading(true)
-      const res = await fetch("${process.env.NEXT_PUBLIC_BACKEND_URL}/api/personal/answers", {
+      const res = await fetch('https://recode-my-life.site/api/personal/answers', {
         method: "POST",
         credentials: "include",
         body: formData,
@@ -452,7 +452,7 @@ export function VoiceStoryTellingSession({ onBack }: VoiceSessionProps) {
       try {
         setQuestionsLoading(true)
         setQuestionsError(null)
-        const response = await fetch("${process.env.NEXT_PUBLIC_BACKEND_URL}/api/personal/questions", {
+        const response = await fetch('https://recode-my-life.site/api/personal/questions', {
           method: "GET",
           credentials: "include",
         })
@@ -548,7 +548,7 @@ export function VoiceStoryTellingSession({ onBack }: VoiceSessionProps) {
   const handleCompleteAndSubmitEmotion = async () => {
     try {
       const payload = { emotion: (finalEmotion || 'NEUTRAL').toUpperCase() }
-      await fetch('${process.env.NEXT_PUBLIC_BACKEND_URL}/api/personal/emotions', {
+      await fetch('https://recode-my-life.site/api/personal/emotions', {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },

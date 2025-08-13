@@ -68,7 +68,7 @@ export default function UserInfoPage() {
     const fetchUserInfo = async () => {
       try {
         // const response = await fetch('http://localhost:8088/api/user/', {
-        const response = await fetch('${process.env.NEXT_PUBLIC_BACKEND_URL}/api/user/', {
+        const response = await fetch('https://recode-my-life.site/api/user/', {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
@@ -311,7 +311,7 @@ export default function UserInfoPage() {
       console.log('fd:',fd);
 
       // API 호출
-      const response = await fetch('${process.env.NEXT_PUBLIC_BACKEND_URL}/api/user/update', {
+      const response = await fetch('https://recode-my-life.site/api/user/update', {
         method: 'PATCH',
         // headers: {
         //   'Content-Type': 'application/json',
@@ -392,7 +392,7 @@ export default function UserInfoPage() {
     try {
       const requestBody = { password: password };
       // const response = await fetch('http://localhost:8088/api/user/', {
-      const response = await fetch('${process.env.NEXT_PUBLIC_BACKEND_URL}/api/user/', {
+      const response = await fetch('https://recode-my-life.site/api/user/', {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
