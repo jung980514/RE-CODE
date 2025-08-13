@@ -211,7 +211,7 @@ export function VoicePhotoReminiscenceSession({ onBack }: { onBack: () => void }
       try {
         setQuestionsLoading(true)
         setQuestionsError(null)
-        const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/cognitive/questions/image`, {
+        const res = await fetch(`${NEXT_PUBLIC_BACKEND_URL}/api/cognitive/questions/image`, {
           method: 'GET',
           credentials: 'include',
         })
@@ -426,7 +426,7 @@ export function VoicePhotoReminiscenceSession({ onBack }: { onBack: () => void }
       formData.append('videoFile', file)
 
       setIsUploading(true)
-      const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/cognitive/answers`, {
+      const res = await fetch(`${NEXT_PUBLIC_BACKEND_URL}/api/cognitive/answers`, {
         method: 'POST',
         credentials: 'include',
         body: formData,
@@ -518,8 +518,8 @@ export function VoicePhotoReminiscenceSession({ onBack }: { onBack: () => void }
 
     // 사용자 제안 로직 기반: 기본 리전 ap-northeast-2 강제
     const DEFAULT_REGION = 'ap-northeast-2'
-    const REGION = process.env.NEXT_PUBLIC_S3_REGION || DEFAULT_REGION
-    const PUBLIC_DOMAIN = process.env.NEXT_PUBLIC_S3_PUBLIC_DOMAIN // 예: dxxxxx.cloudfront.net
+    const REGION = NEXT_PUBLIC_S3_REGION || DEFAULT_REGION
+    const PUBLIC_DOMAIN = NEXT_PUBLIC_S3_PUBLIC_DOMAIN // 예: dxxxxx.cloudfront.net
 
     const match = rawUrl.match(/^s3:\/\/([^\/]+)\/(.+)$/)
     if (!match) return rawUrl
@@ -765,7 +765,7 @@ export function VoicePhotoReminiscenceSession({ onBack }: { onBack: () => void }
         primaryActionLabel="확인"
         onPrimaryAction={async () => {
           try {
-            await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/cogntive/emotions?answerType=COGNITIVE_IMAGE`, {
+            await fetch(`${NEXT_PUBLIC_BACKEND_URL}/api/cogntive/emotions?answerType=COGNITIVE_IMAGE`, {
               method: 'POST',
               credentials: 'include',
               headers: { 'Content-Type': 'application/json' },
