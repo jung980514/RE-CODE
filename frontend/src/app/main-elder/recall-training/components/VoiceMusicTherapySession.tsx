@@ -812,7 +812,7 @@ export function VoiceMusicTherapySession({ onBack }: { onBack: () => void }) {
                 <span>불러오는 중...</span>
               ) : (
                 <span>
-                  노래 {questions.length > 0 ? currentIndex + 1 : 0}/{questions.length}
+                 소리 {questions.length > 0 ? currentIndex + 1 : 0}/{questions.length}
                 </span>
               )}
             </div>
@@ -904,9 +904,9 @@ export function VoiceMusicTherapySession({ onBack }: { onBack: () => void }) {
               style={{ fontFamily: 'Pretendard' }}
               onClick={handleNext}
               disabled={questions.length === 0 || isRecording || !hasRecorded || isUploading}
-              aria-label={questions.length > 0 && currentIndex === questions.length - 1 ? '완료하기' : '다음 노래로 이동'}
+              aria-label={questions.length > 0 && currentIndex === questions.length - 1 ? '완료하기' : '다음 음성으로 이동'}
             >
-              {questions.length > 0 && currentIndex === questions.length - 1 ? '완료하기' : '다음 노래'}
+              {questions.length > 0 && currentIndex === questions.length - 1 ? '완료하기' : '다음 음성'}
             </Button>
           </div>
         </Card>

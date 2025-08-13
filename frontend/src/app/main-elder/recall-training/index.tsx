@@ -26,7 +26,8 @@ import {
   getIncompleteRecallTrainingSessions,
   isRecallTrainingSessionCompleted,
   clearRecallTrainingProgress,
-  type RecallTrainingSession
+  type RecallTrainingSession,
+  syncRecallTrainingSessionsFromStatus // 추가
 } from "@/lib/auth"
 
 export default function RecallTrainingMain() {
@@ -36,7 +37,18 @@ export default function RecallTrainingMain() {
 
 
   useEffect(() => {
-    updateSessionStatus()
+    // recall-training status 동기화
+    fetch("https://recode-my-life.site/api/user/status", { credentials: "include" })
+      .then(res => res.json())
+      .then(json => {
+        if (json.status === "success" && json.data) {
+          syncRecallTrainingSessionsFromStatus(json.data)
+        }
+        updateSessionStatus()
+      })
+      .catch(() => {
+        updateSessionStatus()
+      })
   }, [])
 
   const updateSessionStatus = () => {
@@ -474,9 +486,9 @@ export default function RecallTrainingMain() {
               {sessionsToShow.includes('photo') && renderSessionCard('photo')}
             </div>
           </motion.section>
-        </div>
-      </div>
+        </div> {/* max-w-6xl ... */}
+      </div> {/* min-h-screen ... */}
       <FloatingButtons />
     </>
   )
-} 
+}

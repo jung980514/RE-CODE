@@ -105,4 +105,21 @@ export function getIncompleteRecallTrainingSessions(): RecallTrainingSession[] {
 export function clearRecallTrainingProgress() {
   if (typeof window === 'undefined') return
   localStorage.removeItem('completedRecallTrainingSessions')
-} 
+}
+
+// Recall Training 세션 완료 상태 관리
+// 서버 status 결과를 localStorage에 반영하는 함수
+export function syncRecallTrainingSessionsFromStatus(statusData: {
+  basic?: boolean;
+  personal?: boolean;
+  cognitiveAudio?: boolean;
+  cognitiveImage?: boolean;
+}): void {
+  if (typeof window === 'undefined') return;
+  const completed: RecallTrainingSession[] = [];
+  if (statusData.basic) completed.push('memory');
+  if (statusData.personal) completed.push('story');
+  if (statusData.cognitiveAudio) completed.push('music');
+  if (statusData.cognitiveImage) completed.push('photo');
+  localStorage.setItem('completedRecallTrainingSessions', JSON.stringify(completed));
+}
