@@ -43,7 +43,12 @@ export default function UserInfoPage() {
     birthDate: '',
     email: '',
     profileImageUrl: '',
+    provider: '',
   });
+
+  // 사용자 provider 상태 관리
+  const [userProvider, setUserProvider] = useState<string>('');
+  const isKakaoUser = userProvider === 'KAKAO';
 
   // 프로필 이미지 관련 상태
   const [profileImageFile, setProfileImageFile] = useState<File | null>(null);
@@ -88,6 +93,10 @@ export default function UserInfoPage() {
               profileImageUrl: result.data.profileImageUrl || '',
             }));
             
+            // provider 정보 설정
+            const provider = result.data.provider || '';
+            setUserProvider(provider);
+            
             // 원본 사용자 정보 저장
             setOriginalUserInfo({
               name: result.data.name || '',
@@ -95,6 +104,7 @@ export default function UserInfoPage() {
               birthDate: result.data.birthDate || '',
               email: result.data.email || '',
               profileImageUrl: result.data.profileImageUrl || '',
+              provider: provider,
             });
             
             // 기존 프로필 이미지가 있으면 미리보기 설정
@@ -213,8 +223,8 @@ export default function UserInfoPage() {
       //   profileImageUrl = previewImage || '';
       // }
 
-      // 비밀번호 변경 여부 확인 (실제로 새 비밀번호를 입력했을 때만)
-      const isChangingPassword = formData.newPassword && formData.newPassword.trim().length > 0;
+      // 비밀번호 변경 여부 확인 (카카오 사용자가 아니고 실제로 새 비밀번호를 입력했을 때만)
+      const isChangingPassword = !isKakaoUser && formData.newPassword && formData.newPassword.trim().length > 0;
       
       if (isChangingPassword) {
         // 현재 비밀번호 확인
@@ -292,7 +302,7 @@ export default function UserInfoPage() {
         }
       }
 
-      // 비밀번호 변경이 요청된 경우 (실제로 비밀번호를 변경할 때만)
+      // 비밀번호 변경이 요청된 경우 (카카오 사용자가 아니고 실제로 비밀번호를 변경할 때만)
       if (isChangingPassword) {
         updateData.currentPassword = formData.currentPassword.trim();
         updateData.newPassword = formData.newPassword.trim();
@@ -456,6 +466,11 @@ export default function UserInfoPage() {
 
   const focusActiveInput = () => {
     setTimeout(() => {
+      // 카카오 사용자일 때는 비밀번호 필드가 없으므로 포커스하지 않음
+      if (isKakaoUser && (activeInput === 'currentPassword' || activeInput === 'newPassword' || activeInput === 'confirmPassword')) {
+        return;
+      }
+
       const inputRef =
         activeInput === 'currentPassword'
           ? currentPasswordRef
@@ -474,6 +489,10 @@ export default function UserInfoPage() {
 
   const handleVirtualKeyPress = (key: string, replaceLast = false) => {
     if (!activeInput) return;
+    // 카카오 사용자일 때는 비밀번호 필드에 입력하지 않음
+    if (isKakaoUser && (activeInput === 'currentPassword' || activeInput === 'newPassword' || activeInput === 'confirmPassword')) {
+      return;
+    }
 
     setFormData((prev) => {
       const currentVal = prev[activeInput];
@@ -487,6 +506,10 @@ export default function UserInfoPage() {
 
   const handleVirtualBackspace = () => {
     if (!activeInput) return;
+    // 카카오 사용자일 때는 비밀번호 필드에 입력하지 않음
+    if (isKakaoUser && (activeInput === 'currentPassword' || activeInput === 'newPassword' || activeInput === 'confirmPassword')) {
+      return;
+    }
     setFormData((prev) => ({
       ...prev,
       [activeInput]: prev[activeInput].slice(0, -1),
@@ -496,6 +519,10 @@ export default function UserInfoPage() {
 
   const handleVirtualSpace = () => {
     if (!activeInput) return;
+    // 카카오 사용자일 때는 비밀번호 필드에 입력하지 않음
+    if (isKakaoUser && (activeInput === 'currentPassword' || activeInput === 'newPassword' || activeInput === 'confirmPassword')) {
+      return;
+    }
     setFormData((prev) => ({
       ...prev,
       [activeInput]: `${prev[activeInput]} `,
@@ -587,35 +614,37 @@ export default function UserInfoPage() {
                   />
                 </div>
                 
-                {/* Current Password */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    현재 비밀번호
-                  </label>
-                  <div className="relative">
-                    <input
-                      ref={currentPasswordRef}
-                      type={showPasswords.current ? "text" : "password"}
-                      placeholder="현재 비밀번호를 입력하세요"
-                      value={formData.currentPassword}
-                      onChange={(e) => handleInputChange('currentPassword', e.target.value)}
-                      onFocus={() => setActiveInput('currentPassword')}
-                      className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => togglePasswordVisibility('current')}
-                      className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                    >
-                      {showPasswords.current ? (
-                        <EyeOff className="h-4 w-4 text-gray-400 hover:text-gray-600" />
-                      ) : (
-                        <Eye className="h-4 w-4 text-gray-400 hover:text-gray-600" />
-                      )}
-                    </button>
+                {/* Current Password - 카카오 사용자가 아닐 때만 표시 */}
+                {!isKakaoUser && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      현재 비밀번호
+                    </label>
+                    <div className="relative">
+                      <input
+                        ref={currentPasswordRef}
+                        type={showPasswords.current ? "text" : "password"}
+                        placeholder="현재 비밀번호를 입력하세요"
+                        value={formData.currentPassword}
+                        onChange={(e) => handleInputChange('currentPassword', e.target.value)}
+                        onFocus={() => setActiveInput('currentPassword')}
+                        className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => togglePasswordVisibility('current')}
+                        className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                      >
+                        {showPasswords.current ? (
+                          <EyeOff className="h-4 w-4 text-gray-400 hover:text-gray-600" />
+                        ) : (
+                          <Eye className="h-4 w-4 text-gray-400 hover:text-gray-600" />
+                        )}
+                      </button>
+                    </div>
+                    <p className="text-sm text-gray-500 mt-1">비밀번호 변경 시에만 입력</p>
                   </div>
-                  <p className="text-sm text-gray-500 mt-1">비밀번호 변경 시에만 입력</p>
-                </div>
+                )}
             </div>
 
               {/* Right Column */}
@@ -645,64 +674,68 @@ export default function UserInfoPage() {
                     className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50"
                   />
                 </div>
-                {/* New Password */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    새 비밀번호
-                  </label>
-                  <div className="relative">
-                    <input
-                      ref={newPasswordRef}
-                      type={showPasswords.new ? "text" : "password"}
-                      placeholder="새 비밀번호를 입력하세요 (8자 이상)"
-                      value={formData.newPassword}
-                      onChange={(e) => handleInputChange('newPassword', e.target.value)}
-                      onFocus={() => setActiveInput('newPassword')}
-                      className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => togglePasswordVisibility('new')}
-                      className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                    >
-                      {showPasswords.new ? (
-                        <EyeOff className="h-4 w-4 text-gray-400 hover:text-gray-600" />
-                      ) : (
-                        <Eye className="h-4 w-4 text-gray-400 hover:text-gray-600" />
-                      )}
-                    </button>
+                {/* New Password - 카카오 사용자가 아닐 때만 표시 */}
+                {!isKakaoUser && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      새 비밀번호
+                    </label>
+                    <div className="relative">
+                      <input
+                        ref={newPasswordRef}
+                        type={showPasswords.new ? "text" : "password"}
+                        placeholder="새 비밀번호를 입력하세요 (8자 이상)"
+                        value={formData.newPassword}
+                        onChange={(e) => handleInputChange('newPassword', e.target.value)}
+                        onFocus={() => setActiveInput('newPassword')}
+                        className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => togglePasswordVisibility('new')}
+                        className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                      >
+                        {showPasswords.new ? (
+                          <EyeOff className="h-4 w-4 text-gray-400 hover:text-gray-600" />
+                        ) : (
+                          <Eye className="h-4 w-4 text-gray-400 hover:text-gray-600" />
+                        )}
+                      </button>
+                    </div>
+                    <p className="text-sm text-gray-500 mt-1">8자 이상의 비밀번호</p>
                   </div>
-                  <p className="text-sm text-gray-500 mt-1">8자 이상의 비밀번호</p>
-                </div>
+                )}
 
-                {/* Confirm Password */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    비밀번호 확인
-                  </label>
-                  <div className="relative">
-                    <input
-                      ref={confirmPasswordRef}
-                      type={showPasswords.confirm ? "text" : "password"}
-                      placeholder="비밀번호를 다시 입력하세요"
-                      value={formData.confirmPassword}
-                      onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
-                      onFocus={() => setActiveInput('confirmPassword')}
-                      className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => togglePasswordVisibility('confirm')}
-                      className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                    >
-                      {showPasswords.confirm ? (
-                        <EyeOff className="h-4 w-4 text-gray-400 hover:text-gray-600" />
-                      ) : (
-                        <Eye className="h-4 w-4 text-gray-400 hover:text-gray-600" />
-                      )}
-                    </button>
+                {/* Confirm Password - 카카오 사용자가 아닐 때만 표시 */}
+                {!isKakaoUser && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      비밀번호 확인
+                    </label>
+                    <div className="relative">
+                      <input
+                        ref={confirmPasswordRef}
+                        type={showPasswords.confirm ? "text" : "password"}
+                        placeholder="비밀번호를 다시 입력하세요"
+                        value={formData.confirmPassword}
+                        onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
+                        onFocus={() => setActiveInput('confirmPassword')}
+                        className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => togglePasswordVisibility('confirm')}
+                        className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                      >
+                        {showPasswords.confirm ? (
+                          <EyeOff className="h-4 w-4 text-gray-400 hover:text-gray-600" />
+                        ) : (
+                          <Eye className="h-4 w-4 text-gray-400 hover:text-gray-600" />
+                        )}
+                      </button>
+                    </div>
                   </div>
-                </div>
+                )}
 
 
             
