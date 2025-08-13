@@ -20,7 +20,7 @@ interface RegisterResponse {
 
 export const register = async (data: FormData): Promise<RegisterResponse> => {
   try {
-    const response = await fetch('${process.env.NEXT_PUBLIC_BACKEND_URL}/api/user/register', {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/user/register`, {
       method: 'POST',
       // headers: {
       //   'Content-Type': 'application/json',
