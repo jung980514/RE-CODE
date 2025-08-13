@@ -4,7 +4,8 @@ export interface RegisterData {
   password: string;
   phone: string;
   birthDate: string; // YYYY-MM-DD
-  role: 'GUARDIAN' | 'ELDER'; 
+  role: 'GUARDIAN' | 'ELDER';
+  profileImageFile?: string; // Base64 문자열로 변환된 프로필 이미지
 }
 
 interface RegisterResponse {
@@ -19,9 +20,7 @@ interface RegisterResponse {
 
 export const register = async (data: RegisterData): Promise<RegisterResponse> => {
   try {
-    // const response = await fetch('https://recode-my-life.site/api/user/login', {
     const response = await fetch('https://recode-my-life.site/api/user/register', {
-    // const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8088'}/api/user/register`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
