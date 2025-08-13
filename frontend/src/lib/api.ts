@@ -46,7 +46,7 @@ export interface LoginRequest {
 const createApiClient = (): AxiosInstance => {
   const client = axios.create({
     // baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8088',
-    baseURL: process.env.NEXT_PUBLIC_API_URL || '${process.env.NEXT_PUBLIC_BACKEND_URL}',
+    baseURL: process.env.NEXT_PUBLIC_API_URL || `${process.env.NEXT_PUBLIC_BACKEND_URL}`,
     withCredentials: true, // 쿠키 포함
     headers: {
       'Content-Type': 'application/json',
