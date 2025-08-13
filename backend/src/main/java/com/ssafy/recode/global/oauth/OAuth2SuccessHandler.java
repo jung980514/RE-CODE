@@ -100,7 +100,8 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
 
         response.getWriter().write(loginResponse);
         response.setStatus(HttpServletResponse.SC_OK);
-        response.sendRedirect("http://localhost:3000/auth/kakao/callback");
+        response.sendRedirect("https://recode-my-life.site/auth/kakao/callback");
+        // response.sendRedirect("http://localhost:3000/auth/kakao/callback");
     }
 
     /**
