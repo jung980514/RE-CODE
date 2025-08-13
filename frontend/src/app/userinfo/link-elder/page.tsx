@@ -198,7 +198,7 @@ export default function GuardianLinkPage() {
     try {
       setProcessingIds((prev: number[]) => (prev.includes(guardianId) ? prev : [...prev, guardianId]));
 
-      const response = await fetch('${process.env.NEXT_PUBLIC_BACKEND_URL}/api/link/res', {
+      const response = await fetch('https://recode-my-life.site/api/link/res', {
         method: 'POST',
         credentials: 'include',
         cache: 'no-store',
