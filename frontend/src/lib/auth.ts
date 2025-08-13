@@ -109,6 +109,7 @@ export function clearRecallTrainingProgress() {
 
 // Recall Training 세션 완료 상태 관리
 // 서버 status 결과를 localStorage에 반영하는 함수
+// 단, 사용자가 로컬스토리지를 수동으로 삭제한 경우(진행도 초기화 의도)에는 동기화하지 않음
 export function syncRecallTrainingSessionsFromStatus(statusData: {
   basic?: boolean;
   personal?: boolean;
@@ -116,6 +117,18 @@ export function syncRecallTrainingSessionsFromStatus(statusData: {
   cognitiveImage?: boolean;
 }): void {
   if (typeof window === 'undefined') return;
+  
+  // 로컬스토리지에서 completedRecallTrainingSessions가 존재하는지 확인
+  const existingData = localStorage.getItem('completedRecallTrainingSessions');
+  
+  // 로컬스토리지에 데이터가 없는 경우 (사용자가 삭제했거나 최초 방문)
+  // 이 경우 서버 동기화를 하지 않고 사용자의 삭제 의도를 존중
+  if (existingData === null) {
+    console.log('[RecallTraining] 로컬스토리지에서 진행도 데이터가 삭제됨. 서버 동기화 건너뜀.');
+    return;
+  }
+  
+  // 기존 데이터가 있는 경우에만 서버 데이터로 동기화
   const completed: RecallTrainingSession[] = [];
   if (statusData.basic) completed.push('memory');
   if (statusData.personal) completed.push('story');
