@@ -269,6 +269,11 @@ const GuardianSignupModal: React.FC<GuardianSignupModalProps> = ({
   const handleGuardianSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
 
+    if (guardianFormData.password.length < 8) {
+      setError('비밀번호는 8자 이상이어야 합니다.');
+      return;
+    }
+
     if (guardianFormData.password !== guardianFormData.confirmPassword) {
       setError('비밀번호가 일치하지 않습니다.');
       return;

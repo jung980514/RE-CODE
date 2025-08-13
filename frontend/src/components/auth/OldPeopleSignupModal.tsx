@@ -269,6 +269,10 @@ const OldPeopleSignupModal: React.FC<OldPeopleSignupModalProps> = ({
   // 회원가입 제출 핸들러
   const handleOldPeopleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
+    if (oldPeopleFormData.password.length < 8) {
+      setError('비밀번호는 8자 이상이어야 합니다.');
+      return;
+    }
     if (oldPeopleFormData.password !== oldPeopleFormData.confirmPassword) {
       setError('비밀번호가 일치하지 않습니다.');
       return;
