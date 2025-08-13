@@ -6,6 +6,7 @@ import jakarta.validation.constraints.Size;
 import java.time.LocalDate;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.springframework.web.multipart.MultipartFile;
 
 /**
  * UpdateUserRequest
@@ -32,8 +33,7 @@ public class UpdateUserRequest {
     private LocalDate birthDate;
 
     /** 프로필 이미지 URL (선택) */
-    @Size(max = 255, message = "프로필 이미지 URL은 255자를 초과할 수 없습니다.")
-    private String profileImageUrl;
+    private MultipartFile profileImageFile;
 
     /** 현재 비밀번호 (선택: LOCAL 계정에서 비밀번호 변경 시 필수) */
     private String currentPassword;

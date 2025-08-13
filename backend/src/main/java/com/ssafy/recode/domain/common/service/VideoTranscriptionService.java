@@ -81,16 +81,16 @@ public class VideoTranscriptionService {
   }
 
   // Presigned URL 생성 (GET 전용)
-  public String presign(String key) {
+  public String presign(String key, String contentType, int time) {
     GetObjectRequest get = GetObjectRequest.builder()
         .bucket(bucket)
         .key(key)
         // 콘텐츠 타입을 설정해주면 브라우저가 더 잘 인식합니다.
-        .responseContentType("video/mp4")
+        .responseContentType(contentType)
         .build();
 
     PresignedGetObjectRequest pre = s3Presigner.presignGetObject(b -> b
-        .signatureDuration(Duration.ofMinutes(60)) // 만료 시간
+        .signatureDuration(Duration.ofMinutes(time)) // 만료 시간
         .getObjectRequest(get)
     );
 

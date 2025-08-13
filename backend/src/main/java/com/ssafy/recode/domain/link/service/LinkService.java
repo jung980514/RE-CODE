@@ -16,6 +16,7 @@ import com.ssafy.recode.global.error.ErrorCode;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
@@ -121,6 +122,7 @@ public class LinkService {
    * @param guardianId   보호자 ID
    * @param targetUserId  상대방 ID
    */
+  @Transactional
   public void unlinkUsers(Long guardianId, Long targetUserId) {
     // 복합 키 존재 확인
     boolean exists = guardianElderRepository.existsByGuardianIdAndElderId(guardianId, targetUserId);

@@ -134,7 +134,7 @@ public class BasicService {
             r.getAnswerId(),
             r.getQuestionId(),
             r.getContent(),
-            transcriptionService.presign(transcriptionService.toS3Key(r.getVideoPath())),
+            transcriptionService.presign(transcriptionService.toS3Key(r.getVideoPath()),"video/mp4", 60),
             r.getScore(),
             r.getIsMatch(),
             r.getCreatedAt()
