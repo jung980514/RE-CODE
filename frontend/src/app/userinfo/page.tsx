@@ -67,7 +67,7 @@ export default function UserInfoPage() {
   useEffect(() => {
     const fetchUserInfo = async () => {
       try {
-        const response = await fetch('https://recode-my-life.site/api/user/', {
+        const response = await fetch('http://localhost:8088/api/user/', {
         // const response = await fetch('http://localhost:8088/api/user/', {
           method: 'GET',
           headers: {
@@ -136,29 +136,47 @@ export default function UserInfoPage() {
 
   // 프로필 이미지 선택 처리
   const handleImageSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      // 파일 크기 체크 (2MB 제한 - Base64로 변환 시 크기 증가를 고려)
-      if (file.size > 2 * 1024 * 1024) {
-        console.error('❌ 파일 크기 초과:', Math.round(file.size / 1024 / 1024), 'MB');
-        return;
-      }
+    // const file = event.target.files?.[0];
+    // if (file) {
+    //   // 파일 크기 체크 (2MB 제한 - Base64로 변환 시 크기 증가를 고려)
+    //   if (file.size > 2 * 1024 * 1024) {
+    //     console.error('❌ 파일 크기 초과:', Math.round(file.size / 1024 / 1024), 'MB');
+    //     return;
+    //   }
 
-      // 파일 타입 체크
-      if (!file.type.startsWith('image/')) {
-        console.error('❌ 이미지 파일이 아닙니다:', file.type);
-        return;
-      }
+    //   // 파일 타입 체크
+    //   if (!file.type.startsWith('image/')) {
+    //     console.error('❌ 이미지 파일이 아닙니다:', file.type);
+    //     return;
+    //   }
 
-      setProfileImageFile(file);
+    //   setProfileImageFile(file);
       
-      // 미리보기 생성
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setPreviewImage(e.target?.result as string);
-      };
-      reader.readAsDataURL(file);
+    //   // 미리보기 생성
+    //   const reader = new FileReader();
+    //   reader.onload = (e) => {
+    //     setPreviewImage(e.target?.result as string);
+    //   };
+    //   reader.readAsDataURL(file);
+    // }
+
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 2 * 1024 * 1024) {
+      console.error('❌ 파일 크기 초과(2MB)');
+      return;
     }
+    if (!file.type.startsWith('image/')) {
+      console.error('❌ 이미지 파일이 아닙니다');
+      return;
+    }
+
+    setProfileImageFile(file);
+
+    // ✅ 미리보기는 Object URL만 사용 (Base64 금지)
+    const objectUrl = URL.createObjectURL(file);
+    setPreviewImage(objectUrl);
   };
 
   // 프로필 이미지 클릭 핸들러
@@ -177,23 +195,23 @@ export default function UserInfoPage() {
   const handleSaveProfile = async () => {
     try {
       // 프로필 이미지 업로드 처리
-      let profileImageUrl = formData.profileImageUrl;
-      if (profileImageFile) {
-        // TODO: 실제 파일 업로드를 위해서는 별도의 이미지 업로드 API 엔드포인트가 필요합니다.
-        // 현재는 base64 데이터로 처리 (개발 목적)
-        // 실제 운영환경에서는 multipart/form-data로 파일을 업로드하고 URL을 받아야 합니다.
+      // let profileImageUrl = formData.profileImageUrl;
+      // if (profileImageFile) {
+      //   // TODO: 실제 파일 업로드를 위해서는 별도의 이미지 업로드 API 엔드포인트가 필요합니다.
+      //   // 현재는 base64 데이터로 처리 (개발 목적)
+      //   // 실제 운영환경에서는 multipart/form-data로 파일을 업로드하고 URL을 받아야 합니다.
         
-        // Base64 이미지는 크기가 크므로 실제로는 파일 서버에 업로드 후 URL을 받아야 함
-        if (previewImage && previewImage.startsWith('data:')) {
-                  // 파일 크기 제한 체크 (Base64는 원본보다 약 33% 크므로)
-        if (previewImage.length > 500000) { // 약 375KB 원본 크기 제한
-          console.error('❌ 이미지 파일이 너무 큽니다:', Math.round(previewImage.length / 1024), 'KB');
-          return;
-        }
-        }
+      //   // Base64 이미지는 크기가 크므로 실제로는 파일 서버에 업로드 후 URL을 받아야 함
+      //   if (previewImage && previewImage.startsWith('data:')) {
+      //             // 파일 크기 제한 체크 (Base64는 원본보다 약 33% 크므로)
+      //   if (previewImage.length > 500000) { // 약 375KB 원본 크기 제한
+      //     console.error('❌ 이미지 파일이 너무 큽니다:', Math.round(previewImage.length / 1024), 'KB');
+      //     return;
+      //   }
+      //   }
         
-        profileImageUrl = previewImage || '';
-      }
+      //   profileImageUrl = previewImage || '';
+      // }
 
       // 비밀번호 변경 여부 확인 (실제로 새 비밀번호를 입력했을 때만)
       const isChangingPassword = formData.newPassword && formData.newPassword.trim().length > 0;
@@ -218,6 +236,9 @@ export default function UserInfoPage() {
         }
       }
 
+      // 변경된 값만 폼에 담기
+      const fd = new FormData();
+
       // API 요청 데이터 구성
       const updateData: {
         name?: string;
@@ -232,19 +253,26 @@ export default function UserInfoPage() {
         const trimmedName = formData.name.trim();
         if (trimmedName !== originalUserInfo.name && trimmedName.length >= 1 && trimmedName.length <= 100) {
           updateData.name = trimmedName;
+          fd.append('name', trimmedName);
         }
       }
 
-      // 프로필 이미지가 변경된 경우
-      if (profileImageUrl && profileImageUrl !== originalUserInfo.profileImageUrl) {
-        // URL 길이 검증 (255자 제한)
-        if (profileImageUrl.length <= 255) {
-          updateData.profileImageUrl = profileImageUrl;
-        } else {
-          console.error('❌ 프로필 이미지 URL이 너무 깁니다:', profileImageUrl.length, '자');
-          return;
-        }
+       // ✅ 프로필 이미지 파일(선택)
+      if (profileImageFile) {
+        // 파일명과 타입을 같이 넘기는 게 안전
+        fd.append('profileImage', profileImageFile, profileImageFile.name);
       }
+
+      // 프로필 이미지가 변경된 경우
+      // if (profileImageUrl && profileImageUrl !== originalUserInfo.profileImageUrl) {
+      //   // URL 길이 검증 (255자 제한)
+      //   if (profileImageUrl.length <= 255) {
+      //     updateData.profileImageUrl = profileImageUrl;
+      //   } else {
+      //     console.error('❌ 프로필 이미지 URL이 너무 깁니다:', profileImageUrl.length, '자');
+      //     return;
+      //   }
+      // }
 
       // 전화번호가 입력된 경우 (기존 값과 다르거나 새로 입력된 경우)
       if (formData.phoneNumber && formData.phoneNumber.trim() !== '') {
@@ -260,6 +288,7 @@ export default function UserInfoPage() {
         // 원본 전화번호와 다른 경우에만 업데이트
         if (phoneNumber !== originalUserInfo.phone) {
           updateData.phone = phoneNumber;
+          fd.append('phone', phoneNumber);
         }
       }
 
@@ -267,26 +296,29 @@ export default function UserInfoPage() {
       if (isChangingPassword) {
         updateData.currentPassword = formData.currentPassword.trim();
         updateData.newPassword = formData.newPassword.trim();
+        fd.append('newPassword', formData.newPassword.trim());
       }
 
               // 업데이트할 데이터가 있는지 확인
-        if (Object.keys(updateData).length === 0) {
-          console.log('ℹ️ 변경된 정보가 없습니다.');
-          return;
-        }
+        // if (Object.keys(updateData).length === 0) {
+        //   console.log('ℹ️ 변경된 정보가 없습니다.');
+        //   return;
+        // }
 
       // 디버깅: 전송할 데이터 로그
       console.log('전송할 데이터:', updateData);
       console.log('원본 사용자 정보:', originalUserInfo);
+      console.log('fd:',fd);
 
       // API 호출
       const response = await fetch('https://recode-my-life.site/api/user/update', {
         method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        // headers: {
+        //   'Content-Type': 'application/json',
+        // },
         credentials: 'include',
-        body: JSON.stringify(updateData),
+        // body: JSON.stringify(updateData),
+        body: fd,
       });
 
       if (response.ok) {
@@ -309,7 +341,7 @@ export default function UserInfoPage() {
             setProfileImageFile(null);
             setFormData(prev => ({
               ...prev,
-              profileImageUrl: profileImageUrl
+              profileImageUrl: result.data.profileImageUrl
             }));
           }
           
@@ -360,7 +392,7 @@ export default function UserInfoPage() {
     try {
       const requestBody = { password: password };
       
-      const response = await fetch('https://recode-my-life.site/api/user/', {
+      const response = await fetch('http://localhost:8088/api/user/', {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
