@@ -448,7 +448,7 @@ export function VoiceMemoryTrainingSession({ onBack }: VoiceSessionProps) {
       formData.append('videoFile', file)
 
       setIsUploading(true)
-      const res = await fetch('https://recode-my-life.site/api/basic/answers', {
+      const res = await fetch('${process.env.NEXT_PUBLIC_BACKEND_URL}/api/basic/answers', {
         method: 'POST',
         credentials: 'include',
         body: formData,
@@ -472,7 +472,7 @@ export function VoiceMemoryTrainingSession({ onBack }: VoiceSessionProps) {
       try {
         setQuestionsLoading(true)
         setQuestionsError(null)
-        const response = await fetch('https://recode-my-life.site/api/survey/questions', {
+        const response = await fetch('${process.env.NEXT_PUBLIC_BACKEND_URL}/api/survey/questions', {
           method: 'GET',
           credentials: 'include',
         })
@@ -572,7 +572,7 @@ export function VoiceMemoryTrainingSession({ onBack }: VoiceSessionProps) {
   const handleCompleteAndSubmitEmotion = async () => {
     try {
       const payload = { emotion: (finalEmotion || 'NEUTRAL').toUpperCase() }
-      await fetch('https://recode-my-life.site/api/basic/emotions', {
+      await fetch('${process.env.NEXT_PUBLIC_BACKEND_URL}/api/basic/emotions', {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },

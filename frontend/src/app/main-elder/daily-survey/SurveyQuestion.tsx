@@ -477,7 +477,7 @@ export default function SurveyQuestion({
             setUserId(parsed)
           }
         }
-        const res = await fetch('https://recode-my-life.site/api/user', {
+        const res = await fetch('${process.env.NEXT_PUBLIC_BACKEND_URL}/api/user', {
           method: 'GET',
           credentials: 'include',
           headers: { 'Accept': 'application/json' },
@@ -602,7 +602,7 @@ export default function SurveyQuestion({
         const file = new File([blobToUpload], fileName, { type: 'video/mp4' })
         formData.append('videoFile', file)
 
-        const uploadResponse = await fetch('https://recode-my-life.site/api/survey/answers', {
+        const uploadResponse = await fetch('${process.env.NEXT_PUBLIC_BACKEND_URL}/api/survey/answers', {
           method: 'POST',
           credentials: 'include',
           body: formData,
