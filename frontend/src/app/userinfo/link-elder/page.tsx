@@ -264,9 +264,9 @@ export default function GuardianLinkPage() {
             <div className="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center">
               <Heart className="w-6 h-6 text-green-600" />
             </div>
-            <h1 className="text-2xl font-bold text-gray-900">보호자 연동 관리</h1>
+            <h1 className="text-3xl font-bold text-gray-900">보호자 연동 관리</h1>
           </div>
-          <p className="text-gray-600">보호자와의 연동을 관리할 수 있습니다</p>
+          <p className="text-lg text-gray-600">보호자와의 연동을 관리할 수 있습니다</p>
         </div>
 
         <div className="space-y-6">
@@ -277,13 +277,13 @@ export default function GuardianLinkPage() {
                 <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
                   <Link className="w-5 h-5 text-blue-600" />
                 </div>
-                <CardTitle className="text-lg">연동 토큰 생성</CardTitle>
+                <CardTitle className="text-xl">연동 토큰 생성</CardTitle>
               </div>
-              <CardDescription>보호자가 연동할 때 사용할 일회용 토큰을 생성합니다</CardDescription>
+              <CardDescription className="text-base">보호자가 연동할 때 사용할 일회용 토큰을 생성합니다</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <p className="text-sm text-blue-800">
+                <p className="text-base text-blue-800">
                   <strong>안내:</strong> 어르신께서 생성한 6자리 토큰을 정확히 입력해주세요. 토큰은 생성 후 10분간 유효합니다.
                 </p>
               </div>
@@ -293,9 +293,9 @@ export default function GuardianLinkPage() {
                   <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
                     <div className="flex items-center justify-between">
                       <div>
-                        <div className="text-sm text-gray-600 mb-1">생성된 토큰:</div>
-                        <div className="text-2xl font-bold text-orange-600 mb-2">{generatedToken}</div>
-                        <div className="flex items-center gap-2 text-sm">
+                        <div className="text-base text-gray-600 mb-1">생성된 토큰:</div>
+                        <div className="text-3xl font-bold text-orange-600 mb-2">{generatedToken}</div>
+                        <div className="flex items-center gap-2 text-base">
                           <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
                           <span className="text-red-600 font-medium">토큰 만료까지: {formatTime(tokenExpiry)}</span>
                         </div>
@@ -308,14 +308,23 @@ export default function GuardianLinkPage() {
                 </>
               )}
 
-              <div className="flex justify-center">
+              <div className="flex items-center gap-6">
                 <Button 
-                  className="bg-orange-500 hover:bg-orange-600 text-white text-lg w-40 h-40 rounded-2xl flex flex-col items-center justify-center gap-4 shadow-md hover:shadow-lg transition-all duration-200" 
+                  className="bg-orange-500 hover:bg-orange-600 text-white text-xl w-56 h-32 rounded-2xl flex flex-col items-center justify-center gap-4 shadow-md hover:shadow-lg transition-all duration-200" 
                   onClick={generateToken}
                 >
-                  <UserPlus className="w-10 h-10" />
-                  <span className="text-lg font-semibold">새 토큰 생성</span>
+                  <Link className="w-12 h-12" />
+                  <span className="text-xl font-semibold">새 토큰 생성</span>
                 </Button>
+                
+                <div className="flex-1">
+                  <p className="text-lg text-gray-700 leading-relaxed">
+                    <strong>새 토큰 생성</strong>을 클릭하면 토큰이 생성됩니다
+                  </p>
+                  <p className="text-base text-gray-500 mt-2">
+                    생성된 토큰은 보호자에게 전달하여 연동 요청을 받을 수 있습니다
+                  </p>
+                </div>
               </div>
 
               {!isTokenGenerated && (
@@ -337,9 +346,9 @@ export default function GuardianLinkPage() {
                   <div className="w-8 h-8 bg-amber-100 rounded-lg flex items-center justify-center">
                     <Shield className="w-5 h-5 text-amber-600" />
                   </div>
-                  <CardTitle className="text-lg">연동 요청 승인</CardTitle>
+                  <CardTitle className="text-xl">연동 요청 승인</CardTitle>
                 </div>
-                <Badge variant="secondary">{pendingRequests.length}개 대기중</Badge>
+                <Badge variant="secondary" className="text-base">{pendingRequests.length}개 대기중</Badge>
               </div>
             </CardHeader>
             <CardContent>
@@ -403,9 +412,9 @@ export default function GuardianLinkPage() {
                   <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
                     <Users className="w-5 h-5 text-purple-600" />
                   </div>
-                  <CardTitle className="text-lg">연동된 보호자 목록</CardTitle>
+                  <CardTitle className="text-xl">연동된 보호자 목록</CardTitle>
                 </div>
-                <Badge variant="secondary">{linkedGuardians.length}명 연동됨</Badge>
+                <Badge variant="secondary" className="text-base">{linkedGuardians.length}명 연동됨</Badge>
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
