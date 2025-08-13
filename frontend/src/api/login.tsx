@@ -83,8 +83,8 @@ export const login = async (credentials: LoginCredentials): Promise<User> => {
 
     // 로그인 성공 후 일일 설문 완료 여부 조회 → 로컬스토리지 플래그 저장
     try {
-      const dailySurveyResp = await fetch('https://recode-my-life.site/api/user/daily-survey', {
-      // const dailySurveyResp = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8088'}api/user/daily-survey`, {
+      const dailySurveyResp = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/user/daily-survey`, {
+      // const dailySurveyResp = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8088'}/api/user/daily-survey`, {
         method: 'GET',
         credentials: 'include',
         headers: { 'Accept': 'application/json' },
