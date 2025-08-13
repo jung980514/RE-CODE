@@ -7,3 +7,5 @@ datasources:
     isDefault: true
     uid: DS_PROMETHEUS
     editable: false
+    jsonData:
+      httpMethod: POST
