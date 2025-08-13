@@ -187,8 +187,8 @@ services:
     restart: unless-stopped
     networks:
       - app-network
-        aliases:
-          - mysqld-exporter
+          aliases:
+            - mysqld-exporter
 
   node-exporter:
     image: prom/node-exporter:v1.6.1
