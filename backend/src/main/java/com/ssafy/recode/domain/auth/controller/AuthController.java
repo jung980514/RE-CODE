@@ -12,13 +12,13 @@ import com.ssafy.recode.global.dto.request.DeleteUserRequest;
 import com.ssafy.recode.global.dto.request.RegisterRequest;
 import com.ssafy.recode.global.dto.request.UpdateUserRequest;
 import com.ssafy.recode.global.dto.response.ApiResponse;
+import com.ssafy.recode.global.dto.response.UserProfileResponse;
 import com.ssafy.recode.global.security.annotation.LoginUser;
 import com.ssafy.recode.global.security.util.CookieUtils;
 import com.ssafy.recode.global.security.util.JWTUtils;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
-
 import java.util.LinkedHashMap;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
@@ -56,7 +56,8 @@ public class AuthController {
 
     @GetMapping
     public ResponseEntity<?> getUser(@LoginUser User user) {
-        return ResponseEntity.ok(ApiResponse.successResponse(user));
+        UserProfileResponse userProfileResponse = authService.getUser(user);
+        return ResponseEntity.ok(ApiResponse.successResponse(userProfileResponse));
     }
 
     @PostMapping("/register")

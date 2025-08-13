@@ -41,7 +41,7 @@ public interface SurveyAnswerRepository extends JpaRepository<SurveyAnswer, Inte
         WHERE cal_date < LAST_DAY(:startDate)
     )
     SELECT 
-        dr.cal_date,
+        DISTINCT dr.cal_date,
         CASE WHEN sa.user_id IS NOT NULL THEN TRUE ELSE FALSE END AS has_data
     FROM date_range dr
     LEFT JOIN survey_answers sa
