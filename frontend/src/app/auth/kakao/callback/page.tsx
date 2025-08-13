@@ -16,6 +16,30 @@ const KakaoCallbackPage: React.FC = () => {
       if (!mounted) return; // 언마운트된 경우 처리 중단
       
       try {
+        // 🔍 페이지 로드 시 쿠키 상태 확인
+        console.log('🔍 콜백 페이지 로드됨');
+        console.log('🔍 현재 URL:', window.location.href);
+        console.log('🔍 현재 도메인:', window.location.hostname);
+        console.log('🔍 현재 포트:', window.location.port);
+        console.log('🔍 현재 프로토콜:', window.location.protocol);
+        
+        // 쿠키 상태 확인
+        console.log('🍪 현재 페이지 쿠키:', document.cookie);
+        if (document.cookie) {
+          const cookies = document.cookie.split(';').reduce((acc, cookie) => {
+            const [key, value] = cookie.trim().split('=');
+            acc[key] = value;
+            return acc;
+          }, {} as Record<string, string>);
+          
+          console.log('🍪 파싱된 쿠키들:', cookies);
+          console.log('🍪 access_token:', cookies['access_token']);
+          console.log('🍪 refresh_token:', cookies['refresh_token']);
+          console.log('🍪 uuid:', cookies['uuid']);
+        } else {
+          console.log('🍪 쿠키가 없습니다');
+        }
+        
         // URL 파라미터 확인 - 에러가 있는지 체크
         const urlParams = new URLSearchParams(window.location.search);
         const errorParam = urlParams.get('error');
