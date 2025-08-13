@@ -41,8 +41,17 @@ public class AuthService {
      return new UserProfileResponse(user, presignedUrl);
     }
 
+    public String getPresignedUrl(User user){
+      String profileImageUrl = user.getProfileImageUrl();
+      if (profileImageUrl != null && !profileImageUrl.isEmpty()) {
+        return videoTranscriptionService.presign(videoTranscriptionService.toS3Key(profileImageUrl), "image/jpeg", 15);
+      }else{
+        return "";
+      }
+    }
+
   @Transactional
-  public void register(RegisterRequest request) {
+  public void register(RegisterRequest request, MultipartFile profileImageFile) {
     String email = request.getEmail();
     // 이메일 중복 검사
     if (userRepository.findByEmail(email).isPresent()) {
@@ -60,7 +69,6 @@ public class AuthService {
 
     //프로필 이미지
     String profileImageUrl = null;
-    MultipartFile profileImageFile = request.getProfileImageFile();
     if (profileImageFile != null && !profileImageFile.isEmpty()) {
       profileImageUrl = s3UploaderService.uploadRawMedia(profileImageFile, "profile");
     }
@@ -93,7 +101,7 @@ public class AuthService {
    * 비밀번호 동일 여부 확인 5. JPA Dirty Checking으로 DB에 반영
    */
   @Transactional
-  public User updateUser(User reqUser, UpdateUserRequest request) {
+  public User updateUser(User reqUser, UpdateUserRequest request, MultipartFile profileImage) {
     // 1) 회원 조회
     User user = userRepository.findById(reqUser.getId())
         .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND_ERROR));
@@ -111,9 +119,8 @@ public class AuthService {
 
     // 4) 프로필 이미지 변경
     String profileImageUrl = null;
-    MultipartFile profileImageFile = request.getProfileImageFile();
-    if (profileImageFile != null && !profileImageFile.isEmpty()) {
-      profileImageUrl = s3UploaderService.uploadRawMedia(profileImageFile, "profile");
+    if (profileImage != null && !profileImage.isEmpty()) {
+      profileImageUrl = s3UploaderService.uploadRawMedia(profileImage, "profile");
       user.setProfileImageUrl(profileImageUrl);
     }
 
