@@ -9,9 +9,10 @@ import OldPeopleSignupModal from './OldPeopleSignupModal';
 interface SignupModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onOpenLogin?: () => void;
 }
 
-const SignupModal: React.FC<SignupModalProps> = ({ isOpen, onClose }) => {
+const SignupModal: React.FC<SignupModalProps> = ({ isOpen, onClose, onOpenLogin }) => {
   // 모달의 표시 상태와 애니메이션 상태를 분리
   const [isVisible, setIsVisible] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
@@ -21,9 +22,18 @@ const SignupModal: React.FC<SignupModalProps> = ({ isOpen, onClose }) => {
   // OldPeopleSignupModal 상태 관리
   const [showOldPeopleSignup, setShowOldPeopleSignup] = useState(false);
 
-  // isOpen 상태 변화에 따른 애니메이션 처리
+  // isOpen 상태 변화에 따른 애니메이션 처리 및 스크롤 제어
   useEffect(() => {
     if (isOpen) {
+      // 현재 스크롤 위치 저장
+      const scrollY = window.scrollY;
+      
+      // 모달이 열릴 때 배경 스크롤 막기
+      document.body.style.position = 'fixed';
+      document.body.style.top = `-${scrollY}px`;
+      document.body.style.width = '100%';
+      document.body.style.overflow = 'hidden';
+      
       setIsVisible(true);
       const timer = setTimeout(() => {
         setIsAnimating(true);
@@ -31,6 +41,17 @@ const SignupModal: React.FC<SignupModalProps> = ({ isOpen, onClose }) => {
 
       return () => clearTimeout(timer);
     } else {
+      // 모달이 닫힐 때 배경 스크롤 복원
+      const scrollY = document.body.style.top;
+      document.body.style.position = '';
+      document.body.style.top = '';
+      document.body.style.width = '';
+      document.body.style.overflow = '';
+      
+      if (scrollY) {
+        window.scrollTo(0, parseInt(scrollY || '0') * -1);
+      }
+      
       setIsAnimating(false);
       const timer = setTimeout(() => {
         setIsVisible(false);
@@ -39,6 +60,16 @@ const SignupModal: React.FC<SignupModalProps> = ({ isOpen, onClose }) => {
       return () => clearTimeout(timer);
     }
   }, [isOpen]);
+
+  // 컴포넌트 언마운트 시 스크롤 복원
+  useEffect(() => {
+    return () => {
+      document.body.style.position = '';
+      document.body.style.top = '';
+      document.body.style.width = '';
+      document.body.style.overflow = '';
+    };
+  }, []);
 
   const handleSeniorSignup = () => {
     setShowOldPeopleSignup(true);
@@ -51,6 +82,18 @@ const SignupModal: React.FC<SignupModalProps> = ({ isOpen, onClose }) => {
   const handleBackToSignup = () => {
     setShowGuardianSignup(false);
     setShowOldPeopleSignup(false);
+  };
+
+  const handleSignupSuccess = () => {
+    // 모든 모달 닫기
+    setShowGuardianSignup(false);
+    setShowOldPeopleSignup(false);
+    onClose();
+    
+    // 로그인 모달 열기
+    if (onOpenLogin) {
+      onOpenLogin();
+    }
   };
 
   // 모달이 완전히 숨겨진 상태에서는 렌더링하지 않음
@@ -123,12 +166,14 @@ const SignupModal: React.FC<SignupModalProps> = ({ isOpen, onClose }) => {
         isOpen={showGuardianSignup}
         onClose={() => setShowGuardianSignup(false)}
         onBackToSignup={handleBackToSignup}
+        onSignupSuccess={handleSignupSuccess}
       />
       {/* OldPeopleSignupModal */}
       <OldPeopleSignupModal
         isOpen={showOldPeopleSignup}
         onClose={() => setShowOldPeopleSignup(false)}
         onBackToSignup={handleBackToSignup}
+        onSignupSuccess={handleSignupSuccess}
       />
     </>
   );
