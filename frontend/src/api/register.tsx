@@ -18,15 +18,16 @@ interface RegisterResponse {
   };
 }
 
-export const register = async (data: RegisterData): Promise<RegisterResponse> => {
+export const register = async (data: FormData): Promise<RegisterResponse> => {
   try {
     const response = await fetch('https://recode-my-life.site/api/user/register', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': '*/*',
-      },
-      body: JSON.stringify(data),
+      // headers: {
+      //   'Content-Type': 'application/json',
+      //   'Accept': '*/*',
+      // },
+      // body: JSON.stringify(data),
+      body: data,
     });
 
     if (!response.ok) {

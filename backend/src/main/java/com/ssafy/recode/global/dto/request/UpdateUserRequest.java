@@ -6,7 +6,6 @@ import jakarta.validation.constraints.Size;
 import java.time.LocalDate;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import org.springframework.web.multipart.MultipartFile;
 
 /**
  * UpdateUserRequest
@@ -31,9 +30,6 @@ public class UpdateUserRequest {
 
     /** 생년월일 (선택) */
     private LocalDate birthDate;
-
-    /** 프로필 이미지 URL (선택) */
-    private MultipartFile profileImageFile;
 
     /** 현재 비밀번호 (선택: LOCAL 계정에서 비밀번호 변경 시 필수) */
     private String currentPassword;

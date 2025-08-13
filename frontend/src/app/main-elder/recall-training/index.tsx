@@ -124,7 +124,17 @@ export default function RecallTrainingMain() {
     const isCompleted = isRecallTrainingSessionCompleted(sessionId)
 
     return (
-      <Card key={sessionId} className={`bg-white/95 backdrop-blur border-0 shadow-xl overflow-hidden ${isCompleted ? 'opacity-25' : ''}`}>
+      <Card
+        key={sessionId}
+        className={`bg-white/95 backdrop-blur border-0 shadow-xl overflow-hidden ${isCompleted ? 'opacity-25 cursor-not-allowed' : 'cursor-pointer'}`}
+        onClick={() => {
+          if (!isCompleted) handleStartTraining(sessionId)
+        }}
+        tabIndex={0}
+        role="button"
+        aria-disabled={isCompleted}
+        style={isCompleted ? { pointerEvents: 'none' } : {}}
+      >
         <div className={`bg-gradient-to-r ${config.gradient} p-6 text-white relative`}>
           {isCompleted && (
             <div className="absolute top-4 right-4 bg-white/20 rounded-full p-2">
@@ -153,7 +163,7 @@ export default function RecallTrainingMain() {
         <CardContent className="p-6">
           <div className="mb-6">
             <div className={`w-full h-48 bg-gradient-to-br ${config.bgGradient} rounded-lg flex items-center justify-center`}>
-            <div className={`w-full h-48 rounded-lg flex items-center justify-center ${config.bgImage ? 'bg-cover bg-center' : `bg-gradient-to-br ${config.bgGradient}`}`} style={config.bgImage ? { backgroundImage: `url(${config.bgImage})` } : {}}></div>
+              <div className={`w-full h-48 rounded-lg flex items-center justify-center ${config.bgImage ? 'bg-cover bg-center' : `bg-gradient-to-br ${config.bgGradient}`}`} style={config.bgImage ? { backgroundImage: `url(${config.bgImage})` } : {}}></div>
             </div>
           </div>
           <p className="text-gray-600 mb-6">{config.longDescription}</p>
@@ -168,7 +178,10 @@ export default function RecallTrainingMain() {
             </div>
           </div>
           <Button 
-            onClick={() => handleStartTraining(sessionId)}
+            onClick={e => {
+              e.stopPropagation()
+              handleStartTraining(sessionId)
+            }}
             className={`w-full bg-gradient-to-r ${config.gradient} text-white hover:opacity-90 py-3 ${isCompleted ? 'opacity-50' : ''}`}
             disabled={isCompleted}
           >

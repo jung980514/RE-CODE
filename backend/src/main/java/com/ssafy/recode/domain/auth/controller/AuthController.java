@@ -27,11 +27,14 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 /**
  * AuthController
@@ -61,8 +64,12 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest request) {
-        authService.register(request);
+    public ResponseEntity<?> register(
+        @Valid @ModelAttribute RegisterRequest request,
+        @RequestPart(value = "profileImage", required = false)    // 파일 필드
+        MultipartFile profileImage
+    ) {
+        authService.register(request, profileImage);
         return ResponseEntity.ok(ApiResponse.successResponse("회원가입이 완료되었습니다."));
     }
 
@@ -103,10 +110,14 @@ public class AuthController {
     @PatchMapping("/update")
     public ResponseEntity<?> updateUser(
         @LoginUser User user,
-        @RequestBody @jakarta.validation.Valid UpdateUserRequest request
+//        @RequestBody @jakarta.validation.Valid UpdateUserRequest request
+        @ModelAttribute UpdateUserRequest request,                 // 폼 필드
+        @RequestPart(value = "profileImage", required = false)    // 파일 필드
+        MultipartFile profileImage
     ) {
-      User updated = authService.updateUser(user, request);
-      return ResponseEntity.ok(ApiResponse.successResponse(updated)); // 필요 시 UserResponse로 변환
+        User updated = authService.updateUser(user, request, profileImage);
+        updated.setProfileImageUrl(authService.getPresignedUrl(user));
+        return ResponseEntity.ok(ApiResponse.successResponse(updated)); // 필요 시 UserResponse로 변환
     }
 
     @DeleteMapping()

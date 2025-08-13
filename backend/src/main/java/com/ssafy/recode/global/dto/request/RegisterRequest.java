@@ -6,7 +6,8 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import java.time.LocalDate;
 import lombok.Getter;
-import org.springframework.web.multipart.MultipartFile;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 /**
  * SignupRequest
@@ -17,6 +18,8 @@ import org.springframework.web.multipart.MultipartFile;
  * @since 2025. 7. 28.
  */
 @Getter
+@Setter
+@NoArgsConstructor
 public class RegisterRequest {
 
     @NotBlank(message = "이름은 필수입니다.")
@@ -37,6 +40,4 @@ public class RegisterRequest {
 
     @NotNull(message = "회원 역할은 필수입니다.")
     private Role role; // ELDER 또는 GUARDIAN
-
-    private MultipartFile profileImageFile;
 }
