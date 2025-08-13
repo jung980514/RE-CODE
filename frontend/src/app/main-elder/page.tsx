@@ -18,7 +18,7 @@ export default function Page() {
     );
   }
 
-  // 인증되지 않았거나 노인 사용자가 아닌 경우 빈 화면 표시 (리다이렉트 처리됨)
+  // 인증되지 않았거나 노인 사용자가 아닌 경우 빈 화면 표시 (리다이렉트 처리됨).
   if (!isLoggedIn || role !== 'ELDER') {
     return null;
   }
