@@ -2,7 +2,10 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Key, Clock, Copy, Check, X } from 'lucide-react';
+import { Heart, Users, Link, Shield, Copy, Eye, Trash2, UserPlus, Check, X, Clock } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { AlertModal, ConfirmModal } from '@/components/ui/modal';
 
 export default function GuardianLinkPage() {
@@ -252,137 +255,217 @@ export default function GuardianLinkPage() {
     return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
   };
 
-     return (
-     <div className="min-h-screen bg-gray-50">
-       {/* Main Content */}
-       <main className="max-w-4xl mx-auto p-6 pt-8">
-        {/* Page Title */}
-        <div className="mb-6">
-          <h2 className="text-2xl font-bold text-gray-800 mb-2">보호자 연동 관리</h2>
-          <p className="text-gray-600">보호자와의 연동을 관리할 수 있습니다</p>
-        </div>
-
-        {/* 연동 토큰 생성 섹션 */}
-        <div className="bg-white rounded-lg p-6 mb-6 shadow-sm">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center space-x-2">
-              <Key size={20} className="text-gray-600" />
-              <h3 className="text-lg font-semibold text-gray-800">연동 토큰 생성</h3>
+  return (
+    <div className="min-h-screen bg-slate-50 p-6">
+      <div className="max-w-4xl mx-auto">
+        {/* Header with icon - consistent with profile page design */}
+        <div className="mb-8">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center">
+              <Heart className="w-6 h-6 text-green-600" />
             </div>
-            <button
-              onClick={generateToken}
-              className="bg-orange-500 text-white px-4 py-2 rounded-md hover:bg-orange-600"
-            >
-              토큰 생성
-            </button>
+            <h1 className="text-3xl font-bold text-gray-900">보호자 연동 관리</h1>
           </div>
-          <p className="text-gray-600 mb-4">보호자가 연동할 때 사용할 일회용 토큰을 생성합니다</p>
-          
-          {isTokenGenerated && (
-            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="text-sm text-gray-600 mb-1">생성된 토큰:</div>
-                  <div className="text-2xl font-bold text-orange-600 mb-2">{generatedToken}</div>
-                  <div className="flex items-center space-x-1 text-gray-500">
-                    <Clock size={14} />
-                    <span>남은 시간: {formatTime(tokenExpiry)}</span>
-                  </div>
+          <p className="text-lg text-gray-600">보호자와의 연동을 관리할 수 있습니다</p>
+        </div>
+
+        <div className="space-y-6">
+          {/* 연동 토큰 생성 */}
+          <Card className="shadow-sm border-0">
+            <CardHeader className="pb-4">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                  <Link className="w-5 h-5 text-blue-600" />
                 </div>
-                <button
-                  onClick={copyToken}
-                  className="flex items-center space-x-1 bg-gray-200 text-gray-700 px-3 py-1 rounded hover:bg-gray-300"
-                >
-                  <Copy size={14} />
-                  <span>복사</span>
-                </button>
+                <CardTitle className="text-xl">연동 토큰 생성</CardTitle>
               </div>
-            </div>
-          )}
-        </div>
-
-         {/* 연동 요청 승인 섹션 */}
-         <div className="bg-white rounded-lg p-6 mb-6 shadow-sm">
-           <h3 className="text-lg font-semibold text-gray-800 mb-4">연동 요청 승인</h3>
-           {pendingRequests.length > 0 ? (
-             <div className="space-y-3">
-               {pendingRequests.map((req: LinkRequestItem) => (
-                 <div key={req.guardianId} className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                   <div className="flex items-center justify-between">
-                     <div>
-                       <div className="font-semibold text-gray-800 mb-1">
-                         {req.guardianName}의 연동 요청
-                       </div>
-                       <div className="text-sm text-gray-500">
-                         요청 시간: {new Date(req.requestedAt).toLocaleString('ko-KR')}
-                       </div>
-                       <div className="text-xs text-gray-400 mt-1">{req.guardianEmail}</div>
-                     </div>
-                     <div className="flex space-x-2">
-                       <button
-                         onClick={() => approveRequest(req.guardianId)}
-                         disabled={processingIds.includes(req.guardianId)}
-                         className={`flex items-center space-x-1 bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 ${processingIds.includes(req.guardianId) ? 'opacity-50 cursor-not-allowed' : ''}`}
-                       >
-                         <Check size={16} />
-                         <span>승인</span>
-                       </button>
-                       <button
-                         onClick={() => rejectRequest(req.guardianId)}
-                         disabled={processingIds.includes(req.guardianId)}
-                         className={`flex items-center space-x-1 bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 ${processingIds.includes(req.guardianId) ? 'opacity-50 cursor-not-allowed' : ''}`}
-                       >
-                         <X size={16} />
-                         <span>거절</span>
-                       </button>
-                     </div>
-                   </div>
-                 </div>
-               ))}
-             </div>
-           ) : (
-             <div className="text-center py-8 text-gray-500">
-               <p>대기 중인 연동 요청이 없습니다.</p>
-             </div>
-           )}
-         </div>
-
-        {/* 연동된 보호자 목록 섹션 */}
-        <div className="bg-white rounded-lg p-6 shadow-sm">
-          <h3 className="text-lg font-semibold text-gray-800 mb-4">연동된 보호자 목록</h3>
-          
-          {linkedGuardians.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
-              <p>연동된 보호자가 없습니다.</p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {linkedGuardians.map((guardian: LinkedGuardian) => (
-                <div key={guardian.guardianId} className="bg-white border border-gray-200 rounded-lg p-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-4">
-                      <div className="w-12 h-12 bg-gray-300 rounded-full flex items-center justify-center">
-                        <span className="text-gray-600 font-semibold">
-                          {guardian.name?.charAt(0) ?? ''}
-                        </span>
-                      </div>
+              <CardDescription className="text-base">보호자가 연동할 때 사용할 일회용 토큰을 생성합니다</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <p className="text-base text-blue-800">
+                  <strong>안내:</strong> 어르신께서 생성한 6자리 토큰을 정확히 입력해주세요. 토큰은 생성 후 10분간 유효합니다.
+                </p>
+              </div>
+              
+              {isTokenGenerated && (
+                <>
+                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                    <div className="flex items-center justify-between">
                       <div>
-                        <div className="font-semibold text-gray-800">{guardian.name}</div>
-                        <div className="text-sm text-gray-500">{guardian.phone}</div>
+                        <div className="text-base text-gray-600 mb-1">생성된 토큰:</div>
+                        <div className="text-3xl font-bold text-orange-600 mb-2">{generatedToken}</div>
+                        <div className="flex items-center gap-2 text-base">
+                          <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
+                          <span className="text-red-600 font-medium">토큰 만료까지: {formatTime(tokenExpiry)}</span>
+                        </div>
                       </div>
-                    </div>
-                    <div className="flex items-center space-x-3">
-                      <span className="bg-green-100 text-green-700 px-3 py-1 rounded text-sm">
-                        연동됨
-                      </span>
+                      <Button variant="outline" size="icon" onClick={copyToken}>
+                        <Copy className="w-4 h-4" />
+                      </Button>
                     </div>
                   </div>
+                </>
+              )}
+
+              <div className="flex items-center gap-6">
+                <Button 
+                  className="bg-orange-500 hover:bg-orange-600 text-white text-xl w-56 h-32 rounded-2xl flex flex-col items-center justify-center gap-4 shadow-md hover:shadow-lg transition-all duration-200" 
+                  onClick={generateToken}
+                >
+                  <Link className="w-12 h-12" />
+                  <span className="text-xl font-semibold">새 토큰 생성</span>
+                </Button>
+                
+                <div className="flex-1">
+                  <p className="text-lg text-gray-700 leading-relaxed">
+                    <strong>새 토큰 생성</strong>을 클릭하면 토큰이 생성됩니다
+                  </p>
+                  <p className="text-base text-gray-500 mt-2">
+                    생성된 토큰은 보호자에게 전달하여 연동 요청을 받을 수 있습니다
+                  </p>
                 </div>
-              ))}
-            </div>
-          )}
+              </div>
+
+              {!isTokenGenerated && (
+                <div className="text-center py-6">
+                  <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <Link className="w-6 h-6 text-gray-400" />
+                  </div>
+                  <p className="text-gray-500 text-sm">새 토큰을 생성하여 보호자 연동을 시작하세요</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* 연동 요청 승인 */}
+          <Card className="shadow-sm border-0">
+            <CardHeader className="pb-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-amber-100 rounded-lg flex items-center justify-center">
+                    <Shield className="w-5 h-5 text-amber-600" />
+                  </div>
+                  <CardTitle className="text-xl">연동 요청 승인</CardTitle>
+                </div>
+                <Badge variant="secondary" className="text-base">{pendingRequests.length}개 대기중</Badge>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {pendingRequests.length > 0 ? (
+                <div className="space-y-4">
+                  {pendingRequests.map((req: LinkRequestItem) => (
+                    <div key={req.guardianId} className="border rounded-lg p-4 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-yellow-100 rounded-full flex items-center justify-center">
+                            <Users className="w-5 h-5 text-yellow-600" />
+                          </div>
+                          <div>
+                            <p className="font-medium text-gray-900">{req.guardianName}의 연동 요청</p>
+                            <p className="text-sm text-gray-500">요청 시간: {new Date(req.requestedAt).toLocaleString('ko-KR')}</p>
+                            <p className="text-xs text-gray-400">{req.guardianEmail}</p>
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button
+                            onClick={() => approveRequest(req.guardianId)}
+                            disabled={processingIds.includes(req.guardianId)}
+                            className="bg-green-600 hover:bg-green-700 text-white"
+                            size="sm"
+                          >
+                            <Check className="w-4 h-4 mr-1" />
+                            승인
+                          </Button>
+                          <Button
+                            onClick={() => rejectRequest(req.guardianId)}
+                            disabled={processingIds.includes(req.guardianId)}
+                            variant="outline"
+                            size="sm"
+                            className="text-red-600 hover:text-red-700 bg-transparent"
+                          >
+                            <X className="w-4 h-4 mr-1" />
+                            거절
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-12">
+                  <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Shield className="w-8 h-8 text-gray-400" />
+                  </div>
+                  <p className="text-gray-500 mb-2">대기 중인 연동 요청이 없습니다</p>
+                  <p className="text-sm text-gray-400">새로운 요청이 있으면 여기에 표시됩니다</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* 연동된 보호자 목록 */}
+          <Card className="shadow-sm border-0">
+            <CardHeader className="pb-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
+                    <Users className="w-5 h-5 text-purple-600" />
+                  </div>
+                  <CardTitle className="text-xl">연동된 보호자 목록</CardTitle>
+                </div>
+                <Badge variant="secondary" className="text-base">{linkedGuardians.length}명 연동됨</Badge>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {linkedGuardians.length > 0 ? (
+                <>
+                  {linkedGuardians.map((guardian: LinkedGuardian) => (
+                    <div key={guardian.guardianId} className="border rounded-lg p-4 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                            <Users className="w-5 h-5 text-green-600" />
+                          </div>
+                          <div>
+                            <p className="font-medium text-gray-900">{guardian.name}</p>
+                            <p className="text-sm text-gray-500">{guardian.phone}</p>
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button variant="outline" size="sm">
+                            <Eye className="w-4 h-4 mr-1" />
+                            권한 보기
+                          </Button>
+                          <Button variant="outline" size="sm" className="text-red-600 hover:text-red-700 bg-transparent">
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </>
+              ) : (
+                <div className="text-center py-12">
+                  <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Users className="w-8 h-8 text-gray-400" />
+                  </div>
+                  <p className="text-gray-500 mb-2">연동된 보호자가 없습니다</p>
+                  <p className="text-sm text-gray-400">토큰을 생성하여 보호자와 연동을 시작하세요</p>
+                </div>
+              )}
+
+              {linkedGuardians.length > 0 && (
+                <div className="pt-4 border-t">
+                  <Button className="w-full bg-green-600 hover:bg-green-700 text-white">
+                    <UserPlus className="w-4 h-4 mr-2" />새 보호자 초대하기
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
-      </main>
+      </div>
 
       {/* 모달들 */}
       <AlertModal
