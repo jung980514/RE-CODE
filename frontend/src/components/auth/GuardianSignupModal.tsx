@@ -60,6 +60,7 @@ const GuardianSignupModal: React.FC<GuardianSignupModalProps> = ({
   const mouseDownTargetRef = useRef<EventTarget | null>(null);
 
   // 폼 상태 관리 - Figma 디자인에 맞춘 초기값
+  const [profileImageFile, setProfileImageFile] = useState<File | null>(null);
   const [guardianFormData, setGuardianFormData] = useState({
     name: '',
     phoneNumber: '',
@@ -162,6 +163,18 @@ const GuardianSignupModal: React.FC<GuardianSignupModalProps> = ({
     if (file) {
       handleGuardianInputChange('profileImage', file);
     }
+    if (!file) return;
+
+    if (file.size > 2 * 1024 * 1024) {
+      console.error('❌ 파일 크기 초과(2MB)');
+      return;
+    }
+    if (!file.type.startsWith('image/')) {
+      console.error('❌ 이미지 파일이 아닙니다');
+      return;
+    }
+
+    setProfileImageFile(file);
   };
 
   // 가상키보드 토글 핸들러
@@ -302,17 +315,17 @@ const GuardianSignupModal: React.FC<GuardianSignupModalProps> = ({
 
     try {
       // 프로필 이미지를 Base64로 변환
-      let profileImageFile = undefined;
-      if (guardianFormData.profileImage) {
-        try {
-          profileImageFile = await convertFileToBase64(guardianFormData.profileImage);
-        } catch (error) {
-          console.error('프로필 이미지 변환 실패:', error);
-          setError('프로필 이미지 처리에 실패했습니다.');
-          setIsLoading(false);
-          return;
-        }
-      }
+      // let profileImageFile = undefined;
+      // if (guardianFormData.profileImage) {
+      //   try {
+      //     profileImageFile = await convertFileToBase64(guardianFormData.profileImage);
+      //   } catch (error) {
+      //     console.error('프로필 이미지 변환 실패:', error);
+      //     setError('프로필 이미지 처리에 실패했습니다.');
+      //     setIsLoading(false);
+      //     return;
+      //   }
+      // }
 
       const apiData = {
         name: guardianFormData.name,
@@ -324,7 +337,23 @@ const GuardianSignupModal: React.FC<GuardianSignupModalProps> = ({
         profileImageFile: profileImageFile, // Base64 문자열로 변환된 프로필 이미지
       };
 
-      const response = await register(apiData);
+      const fd = new FormData();
+      fd.append('email', guardianFormData.email);
+      fd.append('name', guardianFormData.name);
+      if (profileImageFile) {
+        // 파일명과 타입을 같이 넘기는 게 안전
+        fd.append('profileImage', profileImageFile, profileImageFile.name);
+      }
+      fd.append('phone', guardianFormData.phoneNumber);
+      fd.append('password', guardianFormData.password);
+      fd.append('birthDate', guardianFormData.birthDate);
+      fd.append('role', 'GUARDIAN' as const);
+
+      for (const [k, v] of fd.entries()) {
+        console.log('FD:', k, v instanceof File ? `${v.name} ${v.size} ${v.type}` : v);
+      }
+
+      const response = await register(fd);
       console.log('회원가입 성공:', response);
       setShowSuccessModal(true);
     } catch (err) {
