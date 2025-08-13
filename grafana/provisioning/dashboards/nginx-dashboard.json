@@ -1976,7 +1976,10 @@
         "multi": true,
         "name": "instance",
         "options": [],
-        "query": "label_values(system_uptime, instance)",
+        "query": {
+          "query": "label_values(system_uptime, instance)",
+          "refId": "StandardVariableQuery"
+        },
         "refresh": 1,
         "regex": "",
         "skipUrlSync": false,
