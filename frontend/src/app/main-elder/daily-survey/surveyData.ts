@@ -24,7 +24,7 @@ interface ServerSurveyQuestion {
   content: string;
   createdAt?: string;
 }
-export const SURVEY_API_URL = '${process.env.NEXT_PUBLIC_BACKEND_URL}/api/survey/questions';
+export const SURVEY_API_URL = `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/survey/questions`;
 
 // 서버에서 질문을 가져오되, 쿠키 세션을 포함해 요청
 export async function fetchSurveyQuestionsWithCredentials(): Promise<ServerSurveyQuestion[]> {

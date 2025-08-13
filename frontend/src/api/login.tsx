@@ -25,7 +25,7 @@ export interface User {
  */
 export const login = async (credentials: LoginCredentials): Promise<User> => {
   try {
-    const response = await fetch('https://recode-my-life.site/api/user/login', {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/user/login`, {
     // const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8088'}/api/user/login`, {
       method: 'POST',
       headers: {
@@ -61,7 +61,7 @@ export const login = async (credentials: LoginCredentials): Promise<User> => {
 
     // 로그인 성공 후 사용자 정보 조회 및 콘솔 출력
     try {
-      const userInfoResponse = await fetch('https://recode-my-life.site/api/user/', {
+      const userInfoResponse = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/user/`, {
       // const userInfoResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8088'}/api/user/`, {
         method: 'GET',
         headers: {
