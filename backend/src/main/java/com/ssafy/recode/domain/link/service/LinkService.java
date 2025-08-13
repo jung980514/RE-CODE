@@ -132,6 +132,7 @@ public class LinkService {
     }
 
     guardianElderRepository.deleteByGuardianIdAndElderId(guardianId, targetUserId);
+    linkRequestRepository.deleteByGuardianIdAndElderId(guardianId, targetUserId);
   }
 
   /**

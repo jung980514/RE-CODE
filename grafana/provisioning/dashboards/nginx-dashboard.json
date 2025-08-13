@@ -2071,7 +2071,7 @@
   },
   "timezone": "",
   "title": "Nginx",
-  "uid": "4DFTt9Wnk",
+  "uid": "${DS_PROMETHEUS}",
   "version": 6,
   "description": "Grafana Dashboard for Nginx Web Server."
 }
