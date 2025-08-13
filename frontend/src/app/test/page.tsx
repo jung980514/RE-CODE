@@ -277,7 +277,7 @@ export default function CameraRecorder() {
         </div>
 
         {/* 디버깅 정보 */}
-        {NODE_ENV === "development" && (
+        {process.env.NODE_ENV === "development" && (
           <Card>
             <CardHeader>
               <CardTitle>디버깅 정보</CardTitle>

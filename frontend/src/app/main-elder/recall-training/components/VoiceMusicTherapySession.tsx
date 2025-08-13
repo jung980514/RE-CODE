@@ -442,8 +442,8 @@ export function VoiceMusicTherapySession({ onBack }: { onBack: () => void }) {
     if (!rawUrl) return ''
     if (rawUrl.startsWith('http://') || rawUrl.startsWith('https://')) return rawUrl
     const DEFAULT_REGION = 'ap-northeast-2'
-    const REGION = NEXT_PUBLIC_S3_REGION || DEFAULT_REGION
-    const PUBLIC_DOMAIN = NEXT_PUBLIC_S3_PUBLIC_DOMAIN // 예: dxxxxx.cloudfront.net
+    const REGION = process.env.NEXT_PUBLIC_S3_REGION || DEFAULT_REGION
+    const PUBLIC_DOMAIN = process.env.NEXT_PUBLIC_S3_PUBLIC_DOMAIN // 예: dxxxxx.cloudfront.net
     const match = rawUrl.match(/^s3:\/\/([^\/]+)\/(.+)$/)
     if (!match) return rawUrl
     const bucket = match[1]
