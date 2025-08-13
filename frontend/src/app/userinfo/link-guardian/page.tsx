@@ -50,7 +50,7 @@ export default function GuardianLinkPage() {
       try {
         setIsLoadingLinked(true);
         setLinkedError(null);
-        const response = await fetch("${process.env.NEXT_PUBLIC_BACKEND_URL}/api/link/guardian/list", {
+        const response = await fetch(process.env.NEXT_PUBLIC_BACKEND_URL +"/api/link/guardian/list", {
           method: "GET",
           credentials: "include",
         });
@@ -90,7 +90,7 @@ export default function GuardianLinkPage() {
       return;
     }
     try {
-      const response = await fetch('${process.env.NEXT_PUBLIC_BACKEND_URL}/api/link/req', {
+      const response = await fetch(process.env.NEXT_PUBLIC_BACKEND_URL +'/api/link/req', {
         method: 'POST',
         credentials: 'include',
         headers: {
@@ -129,7 +129,7 @@ export default function GuardianLinkPage() {
       onConfirm: async () => {
         try {
           setUnlinkingId(id);
-          const response = await fetch('${process.env.NEXT_PUBLIC_BACKEND_URL}/api/link/unlink', {
+          const response = await fetch(process.env.NEXT_PUBLIC_BACKEND_URL +'/api/link/unlink', {
             method: 'DELETE',
             credentials: 'include',
             headers: {
