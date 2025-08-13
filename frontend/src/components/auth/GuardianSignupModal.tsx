@@ -265,6 +265,22 @@ const GuardianSignupModal: React.FC<GuardianSignupModalProps> = ({
     mouseDownTargetRef.current = null;
   };
 
+  // 파일을 Base64로 변환하는 함수
+  const convertFileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        if (typeof reader.result === 'string') {
+          resolve(reader.result);
+        } else {
+          reject(new Error('파일 변환에 실패했습니다.'));
+        }
+      };
+      reader.onerror = () => reject(new Error('파일 읽기에 실패했습니다.'));
+      reader.readAsDataURL(file);
+    });
+  };
+
   // 회원가입 제출 핸들러
   const handleGuardianSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -283,6 +299,19 @@ const GuardianSignupModal: React.FC<GuardianSignupModalProps> = ({
     setError(null);
 
     try {
+      // 프로필 이미지를 Base64로 변환
+      let profileImageFile = undefined;
+      if (guardianFormData.profileImage) {
+        try {
+          profileImageFile = await convertFileToBase64(guardianFormData.profileImage);
+        } catch (error) {
+          console.error('프로필 이미지 변환 실패:', error);
+          setError('프로필 이미지 처리에 실패했습니다.');
+          setIsLoading(false);
+          return;
+        }
+      }
+
       const apiData = {
         name: guardianFormData.name,
         email: guardianFormData.email,
@@ -290,6 +319,7 @@ const GuardianSignupModal: React.FC<GuardianSignupModalProps> = ({
         phone: guardianFormData.phoneNumber,
         birthDate: guardianFormData.birthDate, // Datepicker는 YYYY-MM-DD 형식으로 값을 제공합니다.
         role: 'GUARDIAN' as const,
+        profileImageFile: profileImageFile, // Base64 문자열로 변환된 프로필 이미지
       };
 
       const response = await register(apiData);
