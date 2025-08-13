@@ -548,7 +548,7 @@ export function VoiceStoryTellingSession({ onBack }: VoiceSessionProps) {
   const handleCompleteAndSubmitEmotion = async () => {
     try {
       const payload = { emotion: (finalEmotion || 'NEUTRAL').toUpperCase() }
-      await fetch(`${NEXT_PUBLIC_BACKEND_URL}/api/personal/emotions`, {
+      await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/personal/emotions`, {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
