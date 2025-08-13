@@ -126,13 +126,14 @@ export default function RecallTrainingMain() {
     return (
       <Card
         key={sessionId}
-        className={`bg-white/95 backdrop-blur border-0 shadow-xl overflow-hidden ${isCompleted ? 'opacity-25' : ''} cursor-pointer`}
+        className={`bg-white/95 backdrop-blur border-0 shadow-xl overflow-hidden ${isCompleted ? 'opacity-25 cursor-not-allowed' : 'cursor-pointer'}`}
         onClick={() => {
           if (!isCompleted) handleStartTraining(sessionId)
         }}
         tabIndex={0}
         role="button"
         aria-disabled={isCompleted}
+        style={isCompleted ? { pointerEvents: 'none' } : {}}
       >
         <div className={`bg-gradient-to-r ${config.gradient} p-6 text-white relative`}>
           {isCompleted && (
