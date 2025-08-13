@@ -181,7 +181,7 @@ services:
     image: prom/mysqld-exporter:v0.15.0
     container_name: mysqld-exporter
     environment:
-      - DATA_SOURCE_NAME=root:${DB_PASSWORD}@(mysql-container:3306)/
+      - DATA_SOURCE_NAME=root:${DB_PASSWORD}@tcp(mysql-container:3306)/
     ports:
       - "9104:9104"
     restart: unless-stopped
