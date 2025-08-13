@@ -15,6 +15,5 @@ public interface LinkRequestRepository extends JpaRepository<LinkRequest, Long> 
 
   List<LinkRequest> findAllByElderId(Long elderId);
 
-
-
+  void deleteByGuardianIdAndElderId(Long guardianId, Long elderId);
 }
