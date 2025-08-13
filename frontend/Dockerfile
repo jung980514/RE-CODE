@@ -19,6 +19,9 @@ WORKDIR /usr/src/app
 COPY --from=deps /usr/src/app/node_modules ./node_modules
 COPY . .
 
+ARG NEXT_PUBLIC_BACKEND_URL
+ENV NEXT_PUBLIC_BACKEND_URL=${NEXT_PUBLIC_BACKEND_URL}
+
 # next.js 애플리케이션 빌드
 RUN npm run build
 
@@ -31,6 +34,9 @@ WORKDIR /usr/src/app
 # container 환경에 시스템 사용자를 추가함
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
+
+ARG NEXT_PUBLIC_BACKEND_URL
+ENV NEXT_PUBLIC_BACKEND_URL=${NEXT_PUBLIC_BACKEND_URL}
 
 # next.config.js에서 output을 standalone으로 설정하면
 # 빌드에 필요한 최소한의 파일만 ./next/standalone로 출력이 된다.
