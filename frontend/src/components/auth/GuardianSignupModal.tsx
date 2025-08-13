@@ -19,12 +19,14 @@ interface GuardianSignupModalProps {
   isOpen: boolean;
   onClose: () => void;
   onBackToSignup: () => void; // 회원가입 선택 화면으로 돌아가기 위한 함수
+  onSignupSuccess?: () => void; // 회원가입 성공 시 호출될 함수
 }
 
 const GuardianSignupModal: React.FC<GuardianSignupModalProps> = ({ 
   isOpen, 
   onClose, 
-  onBackToSignup 
+  onBackToSignup,
+  onSignupSuccess 
 }) => {
   
   // 모달의 표시 상태와 애니메이션 상태를 분리
@@ -415,6 +417,20 @@ const GuardianSignupModal: React.FC<GuardianSignupModalProps> = ({
                 className={styles.profileInput}
               />
             </div>
+            
+            <div className={styles.inputGroup}>
+              <label className={styles.label}>이메일(아이디) *</label>
+              <input
+                type="email"
+                ref={emailInputRef}
+                onFocus={() => setActiveInput('email')}
+                value={guardianFormData.email}
+                onChange={(e) => handleGuardianInputChange('email', e.target.value)}
+                placeholder="이메일을 입력해주세요"
+                className={styles.input}
+              />
+            </div>
+
             <div className={styles.inputGroup}>
               <label className={styles.label}>이름 *</label>
               <input
@@ -444,6 +460,49 @@ const GuardianSignupModal: React.FC<GuardianSignupModalProps> = ({
               />
             </div>
             <div className={styles.inputGroup}>
+              <label className={styles.label}>비밀번호 *</label>
+              <input
+                type="password"
+                ref={passwordInputRef}
+                onFocus={() => setActiveInput('password')}
+                value={guardianFormData.password}
+                onChange={(e) => handleGuardianInputChange('password', e.target.value)}
+                placeholder="영문, 숫자, 특수문자 포함 8자 이상"
+                className={styles.input}
+                required
+              />
+            </div>
+
+            <div className={styles.inputGroup}>
+              <label className={styles.label}>비밀번호 확인 *</label>
+              <input
+                type="password"
+                ref={confirmPasswordInputRef}
+                onFocus={() => setActiveInput('confirmPassword')}
+                value={guardianFormData.confirmPassword}
+                onChange={(e) => handleGuardianInputChange('confirmPassword', e.target.value)}
+                placeholder="비밀번호를 다시 입력해주세요"
+                className={styles.input}
+                required
+              />
+            </div>
+      
+            <div className={styles.inputGroup}>
+              <label className={styles.label}>성별 *</label>
+              <select
+                value={guardianFormData.gender}
+                onChange={(e) => handleGuardianInputChange('gender', e.target.value)}
+                className={styles.select}
+                required
+              >
+                <option value="">성별을 선택해주세요</option>
+                <option value="male">남성</option>
+                <option value="female">여성</option>
+              </select>
+            </div>
+          
+
+            <div className={styles.inputGroup}>
               <label className={styles.label}>생년월일 *</label>
               <div className="relative w-full">
                 <input
@@ -458,60 +517,6 @@ const GuardianSignupModal: React.FC<GuardianSignupModalProps> = ({
               </div>
             </div>
 
-            {/* 3행: 비밀번호(왼) - 이메일(오) */}
-            <div className={styles.inputGroup}>
-              <label className={styles.label}>비밀번호 *</label>
-              <input
-                type="password"
-                ref={passwordInputRef}
-                onFocus={() => setActiveInput('password')}
-                value={guardianFormData.password}
-                onChange={(e) => handleGuardianInputChange('password', e.target.value)}
-                placeholder="영문, 숫자, 특수문자 포함 8자 이상"
-                className={styles.input}
-                required
-              />
-            </div>
-            <div className={styles.inputGroup}>
-              <label className={styles.label}>비밀번호 확인 *</label>
-              <input
-                type="password"
-                ref={confirmPasswordInputRef}
-                onFocus={() => setActiveInput('confirmPassword')}
-                value={guardianFormData.confirmPassword}
-                onChange={(e) => handleGuardianInputChange('confirmPassword', e.target.value)}
-                placeholder="비밀번호를 다시 입력해주세요"
-                className={styles.input}
-                required
-              />
-            </div>
-
-            {/* 4행: 성별(왼) - 비밀번호 확인(오) */}
-            <div className={styles.inputGroup}>
-              <label className={styles.label}>성별 *</label>
-              <select
-                value={guardianFormData.gender}
-                onChange={(e) => handleGuardianInputChange('gender', e.target.value)}
-                className={styles.select}
-                required
-              >
-                <option value="">성별을 선택해주세요</option>
-                <option value="male">남성</option>
-                <option value="female">여성</option>
-              </select>
-            </div>
-            <div className={styles.inputGroup}>
-              <label className={styles.label}>이메일</label>
-              <input
-                type="email"
-                ref={emailInputRef}
-                onFocus={() => setActiveInput('email')}
-                value={guardianFormData.email}
-                onChange={(e) => handleGuardianInputChange('email', e.target.value)}
-                placeholder="이메일을 입력해주세요"
-                className={styles.input}
-              />
-            </div>
           </div>
 
           {/* 약관 동의 */}
@@ -593,7 +598,11 @@ const GuardianSignupModal: React.FC<GuardianSignupModalProps> = ({
         isOpen={showSuccessModal}
         onClose={() => {
           setShowSuccessModal(false);
-          onClose();
+          if (onSignupSuccess) {
+            onSignupSuccess();
+          } else {
+            onClose();
+          }
         }}
       />
     </div>

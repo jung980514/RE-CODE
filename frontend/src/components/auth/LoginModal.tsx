@@ -50,11 +50,43 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLoginSuccess
   // 마우스 다운 시작 위치를 추적하기 위한 ref
   const mouseDownTargetRef = useRef<EventTarget | null>(null);
 
+  // 스크롤바 너비 계산 함수
+  const getScrollbarWidth = () => {
+    // 임시 div 생성하여 스크롤바 너비 측정
+    const scrollDiv = document.createElement('div');
+    scrollDiv.style.position = 'absolute';
+    scrollDiv.style.top = '-9999px';
+    scrollDiv.style.width = '50px';
+    scrollDiv.style.height = '50px';
+    scrollDiv.style.overflow = 'scroll';
+    document.body.appendChild(scrollDiv);
+    
+    const scrollbarWidth = scrollDiv.offsetWidth - scrollDiv.clientWidth;
+    document.body.removeChild(scrollDiv);
+    
+    return scrollbarWidth;
+  };
+
   // isOpen 상태 변화에 따른 애니메이션 처리
   useEffect(() => {
     if (isOpen) {
+      // 현재 스크롤 위치 저장
+      const scrollY = window.scrollY;
+      
+      // 스크롤바 너비 계산
+      const scrollbarWidth = getScrollbarWidth();
+      
       // 모달 열기
       setIsVisible(true);
+      
+      // 배경 스크롤 방지 - 레이아웃 시프트 방지
+      document.body.style.overflow = 'hidden';
+      document.body.style.position = 'fixed';
+      document.body.style.top = `-${scrollY}px`;
+      document.body.style.width = '100%';
+      document.body.style.paddingRight = `${scrollbarWidth}px`;
+      document.documentElement.style.overflow = 'hidden';
+      
       // 약간의 지연 후 애니메이션 시작
       const timer = setTimeout(() => {
         setIsAnimating(true);
@@ -64,6 +96,20 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLoginSuccess
     } else {
       // 모달 닫기 애니메이션 시작
       setIsAnimating(false);
+      
+      // 배경 스크롤 복원
+      const scrollY = document.body.style.top;
+      document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.top = '';
+      document.body.style.width = '';
+      document.body.style.paddingRight = '';
+      document.documentElement.style.overflow = '';
+      
+      // 스크롤 위치 복원
+      if (scrollY) {
+        window.scrollTo(0, parseInt(scrollY || '0') * -1);
+      }
 
       // 애니메이션 완료 후 모달 숨기기
       const timer = setTimeout(() => {
@@ -74,6 +120,18 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLoginSuccess
       return () => clearTimeout(timer);
     }
   }, [isOpen]);
+
+  // 컴포넌트 언마운트 시 스크롤 복원
+  useEffect(() => {
+    return () => {
+      document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.top = '';
+      document.body.style.width = '';
+      document.body.style.paddingRight = '';
+      document.documentElement.style.overflow = '';
+    };
+  }, []);
 
   const handleInputChange = (field: 'email' | 'password', value: string) => {
     if (error) {
@@ -228,6 +286,18 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLoginSuccess
     mouseDownTargetRef.current = null;
   };
 
+  // 휠 이벤트 방지
+  const handleWheel = (e: React.WheelEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  // 터치 이벤트 방지 (모바일)
+  const handleTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
   // 모달이 완전히 숨겨진 상태에서는 렌더링하지 않음
   if (!isVisible) return null;
 
@@ -236,6 +306,8 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLoginSuccess
       className={`${styles.overlay} ${isAnimating ? styles.overlayOpen : styles.overlayClose}`}
       onMouseDown={handleMouseDown}
       onMouseUp={handleMouseUp}
+      onWheel={handleWheel}
+      onTouchMove={handleTouchMove}
     >
       <div className={`${styles.modal} ${isAnimating ? styles.modalOpen : styles.modalClose}`}>
         <div className={styles.header}>
