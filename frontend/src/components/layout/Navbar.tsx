@@ -110,7 +110,7 @@ return (
               priority
               className={styles.logo}
             />
-            <span className={styles.logoText}>RE:CORD</span>
+            <span className={styles.logoText}>RE:CODE</span>
           </Link>
         </div>
         

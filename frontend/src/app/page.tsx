@@ -70,7 +70,7 @@ export default function Home() {
             행복한 추억으로 오늘의 기억을 지켜주세요!
           </h2>
           <p className={`${styles.description} ${styles.animateOnScroll}`}>
-            RE:CORD는 사랑하는 사람들이 추억을 공유하며, 부모님・지인 등 소중한 분의 기억을 지켜주는 애플리케이션입니다.
+            RE:CODE는 사랑하는 사람들이 추억을 공유하며, 부모님・지인 등 소중한 분의 기억을 지켜주는 애플리케이션입니다.
             리:코드는 회상요법(Reminiscence Therapy)을 기반으로 한 웹 플랫폼으로 추억이 담긴 사진・영상・메시지 등을 공유함으로써, 잊혀진 기억을 되살려주도록 설계되었습니다.
             <br /><br />
             리:코드는 행복한 기억을 반복적으로 회상하게 해줌으로써, 기억력을 강화해주고 행복함을 느끼게 해줍니다. 기억력을 강화해주고 행복감을 느끼게 해줍니다. 부모님과 우리 가족의 행복, 리:코드로 지키세요.
@@ -80,7 +80,7 @@ export default function Home() {
 
       {/* Necessity Section */}
       <section className={styles.necessity}>
-        <h2 className={`${styles.sectionTitle} ${styles.animateOnScroll}`}>RE:CORD란?</h2>
+        <h2 className={`${styles.sectionTitle} ${styles.animateOnScroll}`}>RE:CODE란?</h2>
         <p className={`${styles.necessityText} ${styles.animateOnScroll}`}>
           전 세계적으로 고령화가 심각한 사회문제로 떠오르고 있습니다. 이에 따라, 나이가 들면서 기억력 감소와 경도인지장애 등으로 고민하고 힘들어하시는 분들이 늘어나고 있습니다.
           <br /><br />
