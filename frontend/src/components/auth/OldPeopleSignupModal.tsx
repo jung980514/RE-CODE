@@ -266,6 +266,22 @@ const OldPeopleSignupModal: React.FC<OldPeopleSignupModalProps> = ({
     mouseDownTargetRef.current = null;
   };
 
+  // 파일을 Base64로 변환하는 함수
+  const convertFileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        if (typeof reader.result === 'string') {
+          resolve(reader.result);
+        } else {
+          reject(new Error('파일 변환에 실패했습니다.'));
+        }
+      };
+      reader.onerror = () => reject(new Error('파일 읽기에 실패했습니다.'));
+      reader.readAsDataURL(file);
+    });
+  };
+
   // 회원가입 제출 핸들러
   const handleOldPeopleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -282,6 +298,19 @@ const OldPeopleSignupModal: React.FC<OldPeopleSignupModalProps> = ({
     setError(null);
 
     try {
+      // 프로필 이미지를 Base64로 변환
+      let profileImageFile = undefined;
+      if (oldPeopleFormData.profileImage) {
+        try {
+          profileImageFile = await convertFileToBase64(oldPeopleFormData.profileImage);
+        } catch (error) {
+          console.error('프로필 이미지 변환 실패:', error);
+          setError('프로필 이미지 처리에 실패했습니다.');
+          setIsLoading(false);
+          return;
+        }
+      }
+
       const apiData = {
         name: oldPeopleFormData.name,
         email: oldPeopleFormData.email,
@@ -289,6 +318,7 @@ const OldPeopleSignupModal: React.FC<OldPeopleSignupModalProps> = ({
         phone: oldPeopleFormData.phoneNumber,
         birthDate: oldPeopleFormData.birthDate,
         role: 'ELDER' as const,
+        profileImageFile: profileImageFile, // Base64 문자열로 변환된 프로필 이미지
       };
       const response = await register(apiData);
       console.log('회원가입 성공:', response);
