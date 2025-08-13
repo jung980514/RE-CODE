@@ -182,9 +182,12 @@ export function ReminiscenceCalendar({ trainingRecords, onDateClick }: Reminisce
                 >
                   <span className="absolute top-2 left-2 text-lg font-semibold">{day.date.getDate()}</span>
                   {record && (
-                    <span className="absolute bottom-2 text-4xl" aria-hidden="true">
-                      {record.overallEmotionEmoji}
-                    </span>
+                    <img 
+                      src="/images/참 잘했어요.png" 
+                      alt="참 잘했어요" 
+                      className="absolute bottom-2 w-12 h-12 object-contain"
+                      aria-hidden="true"
+                    />
                   )}
                 </div>
               )
