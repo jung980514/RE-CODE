@@ -55,6 +55,7 @@ const OldPeopleSignupModal: React.FC<OldPeopleSignupModalProps> = ({
   const mouseDownTargetRef = useRef<EventTarget | null>(null);
 
   // 폼 상태 관리 - Figma 디자인에 맞춘 초기값
+  const [profileImageFile, setProfileImageFile] = useState<File | null>(null);
   const [oldPeopleFormData, setOldPeopleFormData] = useState({
     name: '',
     phoneNumber: '',
@@ -155,6 +156,18 @@ const OldPeopleSignupModal: React.FC<OldPeopleSignupModalProps> = ({
     if (file) {
       handleInputChange('profileImage', file);
     }
+    if (!file) return;
+
+    if (file.size > 2 * 1024 * 1024) {
+      console.error('❌ 파일 크기 초과(2MB)');
+      return;
+    }
+    if (!file.type.startsWith('image/')) {
+      console.error('❌ 이미지 파일이 아닙니다');
+      return;
+    }
+
+    setProfileImageFile(file);
   };
 
   // 가상키보드 토글 핸들러
@@ -301,28 +314,45 @@ const OldPeopleSignupModal: React.FC<OldPeopleSignupModalProps> = ({
 
     try {
       // 프로필 이미지를 Base64로 변환
-      let profileImageFile = undefined;
-      if (oldPeopleFormData.profileImage) {
-        try {
-          profileImageFile = await convertFileToBase64(oldPeopleFormData.profileImage);
-        } catch (error) {
-          console.error('프로필 이미지 변환 실패:', error);
-          setError('프로필 이미지 처리에 실패했습니다.');
-          setIsLoading(false);
-          return;
-        }
+      // let profileImageFile = undefined;
+      // if (oldPeopleFormData.profileImage) {
+      //   try {
+      //     profileImageFile = await convertFileToBase64(oldPeopleFormData.profileImage);
+      //   } catch (error) {
+      //     console.error('프로필 이미지 변환 실패:', error);
+      //     setError('프로필 이미지 처리에 실패했습니다.');
+      //     setIsLoading(false);
+      //     return;
+      //   }
+      // }
+
+      // const apiData = {
+      //   name: oldPeopleFormData.name,
+      //   email: oldPeopleFormData.email,
+      //   password: oldPeopleFormData.password,
+      //   phone: oldPeopleFormData.phoneNumber,
+      //   birthDate: oldPeopleFormData.birthDate,
+      //   role: 'ELDER' as const,
+      //   profileImageFile: profileImageFile, // Base64 문자열로 변환된 프로필 이미지
+      // };
+
+      const fd = new FormData();
+      fd.append('email', oldPeopleFormData.email);
+      fd.append('name', oldPeopleFormData.name);
+      if (profileImageFile) {
+        // 파일명과 타입을 같이 넘기는 게 안전
+        fd.append('profileImage', profileImageFile, profileImageFile.name);
+      }
+      fd.append('phone', oldPeopleFormData.phoneNumber);
+      fd.append('password', oldPeopleFormData.password);
+      fd.append('birthDate', oldPeopleFormData.birthDate);
+      fd.append('role', 'ELDER' as const);
+
+      for (const [k, v] of fd.entries()) {
+        console.log('FD:', k, v instanceof File ? `${v.name} ${v.size} ${v.type}` : v);
       }
 
-      const apiData = {
-        name: oldPeopleFormData.name,
-        email: oldPeopleFormData.email,
-        password: oldPeopleFormData.password,
-        phone: oldPeopleFormData.phoneNumber,
-        birthDate: oldPeopleFormData.birthDate,
-        role: 'ELDER' as const,
-        profileImageFile: profileImageFile, // Base64 문자열로 변환된 프로필 이미지
-      };
-      const response = await register(apiData);
+      const response = await register(fd);
       console.log('회원가입 성공:', response);
       setShowSuccessModal(true);
     } catch (err) {
