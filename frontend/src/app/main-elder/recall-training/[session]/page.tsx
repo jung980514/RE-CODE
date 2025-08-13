@@ -28,7 +28,7 @@ const VoiceMusicTherapySession = dynamic(
 const VoiceStoryTellingSession = dynamic(
   () =>
     import("../components/VoiceStoryTellingSession").then(
-      (mod) => mod.VoiceStoryTellingSession,
+      (mod) => mod.default,
     ),
   { ssr: false },
 )
