@@ -186,9 +186,9 @@ services:
       - "9104:9104"
     restart: unless-stopped
     networks:
-      - app-network
-          aliases:
-            - mysqld-exporter
+      app-network:
+        aliases:
+          - mysqld-exporter
 
   node-exporter:
     image: prom/node-exporter:v1.6.1
