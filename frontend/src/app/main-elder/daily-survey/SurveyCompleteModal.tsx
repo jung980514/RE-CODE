@@ -43,7 +43,7 @@ export default function SurveyCompleteModal({ isOpen, onConfirm }: SurveyComplet
   const handleConfirm = () => {
     try {
       // 응답은 기다리지 않고 바로 네비게이션 (fire-and-forget)
-      void fetch('https://recode-my-life.site/api/survey/generate/personal', {
+      void fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/survey/generate/personal`, {
         method: 'POST',
         credentials: 'include',
         headers: { 'Accept': 'application/json' },
