@@ -130,7 +130,7 @@ body {
 }
 
 html {
-  overflow-y: scroll;
+  overflow-y: auto;
 }
 
 .large-cursor, .large-cursor * {
