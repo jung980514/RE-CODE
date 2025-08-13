@@ -10,11 +10,13 @@ import { useRouter } from "next/navigation"
 import { synthesizeSpeech, playAudio, stopCurrentAudio } from "@/api/googleTTS/googleTTSService"
 import { markRecallTrainingSessionAsCompleted } from "@/lib/auth"
 
+
 interface VoiceSessionProps {
+
   onBack: () => void
 }
 
-export function VoiceMemoryTrainingSession({ onBack }: VoiceSessionProps) {
+export function VoiceStoryTellingSession({ onBack }: VoiceSessionProps) {
   const router = useRouter()
   const [isRecording, setIsRecording] = useState(false)
   const [cameraLoading, setCameraLoading] = useState(true)
@@ -970,4 +972,4 @@ export function VoiceMemoryTrainingSession({ onBack }: VoiceSessionProps) {
   )
 }
 
-export default VoiceMemoryTrainingSession
+export default VoiceStoryTellingSession
