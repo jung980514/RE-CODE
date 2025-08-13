@@ -33,8 +33,7 @@ export default function RecallTrainingMain() {
   const router = useRouter()
   const [completedSessions, setCompletedSessions] = useState<RecallTrainingSession[]>([])
   const [incompleteSessions, setIncompleteSessions] = useState<RecallTrainingSession[]>([])
-  const [showOnlyIncomplete, setShowOnlyIncomplete] = useState(false)
-  const [showIncompleteList, setShowIncompleteList] = useState(false)
+
 
   useEffect(() => {
     updateSessionStatus()
@@ -55,17 +54,7 @@ export default function RecallTrainingMain() {
     router.push(`/main-elder/recall-training/${sessionId}`)
   }
 
-  const handleResetProgress = () => {
-    clearRecallTrainingProgress()
-    updateSessionStatus()
-    setShowOnlyIncomplete(false)
-    setShowIncompleteList(false)
-  }
 
-  const handleShowIncomplete = () => {
-    setShowIncompleteList(!showIncompleteList)
-    setShowOnlyIncomplete(!showOnlyIncomplete)
-  }
 
   const sessionConfig = {
     memory: {
@@ -202,51 +191,9 @@ export default function RecallTrainingMain() {
     )
   }
 
-  const renderIncompleteSessionCard = (sessionId: RecallTrainingSession) => {
-    const config = sessionConfig[sessionId]
-    const IconComponent = config.icon
 
-    return (
-      <Card key={sessionId} className="bg-white/95 backdrop-blur border-0 shadow-lg overflow-hidden">
-        <div className={`bg-gradient-to-r ${config.gradient} p-4 text-white`}>
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
-              <span className="text-white font-bold text-sm">{config.step}</span>
-            </div>
-            <div className="flex-1">
-              <h3 className="text-lg font-bold">{config.title}</h3>
-              <p className="text-white/90 text-sm">{config.description}</p>
-            </div>
-            <IconComponent className="w-5 h-5" />
-          </div>
-        </div>
-        <CardContent className="p-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4 text-sm text-gray-600">
-              <div className="flex items-center gap-1">
-                <Clock className="w-3 h-3" />
-                <span>15분</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <MessageCircle className="w-3 h-3" />
-                <span>{config.category}</span>
-              </div>
-            </div>
-            <Button 
-              onClick={() => handleStartTraining(sessionId)}
-              size="sm"
-              className={`bg-gradient-to-r ${config.gradient} text-white hover:opacity-90`}
-            >
-              <Play className="w-3 h-3 mr-1" />
-              시작하기
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-    )
-  }
 
-  const sessionsToShow = showOnlyIncomplete ? incompleteSessions : Object.keys(sessionConfig) as RecallTrainingSession[]
+  const sessionsToShow = Object.keys(sessionConfig) as RecallTrainingSession[]
 
   return (
     <>
@@ -259,78 +206,8 @@ export default function RecallTrainingMain() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8 }}
           >
-            {/* 상단 메시지 */}
-            <div className="mb-8 flex justify-center w-full">
-              <div className="inline-flex items-center gap-2 bg-blue-100 border border-blue-200 rounded-lg px-4 py-2 mb-6">
-                <Star className="w-4 h-4 text-blue-600" />
-                <span className="text-blue-800 text-sm">오늘도 소중한 기억을 만들어가요</span>
-              </div>
-            </div>
-
-            {/* 진행 상황 표시 */}
-            {completedSessions.length > 0 && (
-              <div className="mb-6">
-                <div className="flex items-center justify-between bg-white/80 backdrop-blur rounded-lg p-4 border border-green-200">
-                  <div className="flex items-center gap-3">
-                    <CheckCircle className="w-6 h-6 text-green-600" aria-hidden="true" />
-                    <div>
-                      <p className="font-medium text-green-800">진행 상황</p>
-                      <p className="text-sm text-green-600">
-                        {completedSessions.length}/4 세션 완료 ({Math.round((completedSessions.length / 4) * 100)}%)
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleShowIncomplete}
-                      className="text-sm"
-                    >
-                      {showOnlyIncomplete ? '전체 보기' : '미완료만 보기'}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleResetProgress}
-                      className="text-sm text-red-600 hover:text-red-700"
-                    >
-                      <RefreshCw className="w-4 h-4 mr-1" />
-                      초기화
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* 미완료 세션 목록 */}
-            {showIncompleteList && incompleteSessions.length > 0 && (
-              <motion.div 
-                className="mb-8"
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-                transition={{ duration: 0.3 }}
-              >
-                <div className="bg-white/80 backdrop-blur rounded-lg p-6 border border-orange-200">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center">
-                      <span className="text-orange-600 font-bold text-sm">!</span>
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-orange-800">아직 완료하지 않은 세션</h3>
-                      <p className="text-sm text-orange-600">아래 세션들을 완료해보세요</p>
-                    </div>
-                  </div>
-                  <div className="grid md:grid-cols-2 gap-4">
-                    {incompleteSessions.map(sessionId => renderIncompleteSessionCard(sessionId))}
-                  </div>
-                </div>
-              </motion.div>
-            )}
-
-            {/* 메인 질문 */}
-            <div className="mb-12">
+                        {/* 메인 질문 */}
+                        <div className="mb-12">
               <h1 className="text-5xl font-bold text-gray-800 mb-6 text-center" style={{ fontFamily: "Paperlogy, sans-serif" }}>
                 어떤 <span className="text-purple-600">추억 여행</span>을 떠나고 싶으신가요?
               </h1>
@@ -338,36 +215,232 @@ export default function RecallTrainingMain() {
                 개인 맞춤형 회상 훈련 프로그램으로 소중한 기억들을 되살리고 새로운 추억을 만들어보세요
               </p>
             </div>
-
-            {/* 추천 프로그램 순서 */}
-            <div className="w-full max-w-4xl mx-auto">
-              <Card className="bg-white/95 backdrop-blur border-0 shadow-xl">
-                <CardContent className="p-8">
-                  <div className="flex items-center gap-3 mb-6">
-                    <Star className="w-6 h-6 text-yellow-500" />
-                    <h2 className="text-2xl font-bold text-gray-800">추천 프로그램 순서</h2>
+            {/* 통합 진행도 및 추천 순서 그래프 섹션 */}
+            <div className="w-full max-w-5xl mx-auto mb-8">
+              <Card className="bg-white/95 backdrop-blur border-0 shadow-xl overflow-hidden">
+                <CardContent className="p-0">
+                  {/* 헤더 섹션 */}
+                  <div className="bg-gradient-to-r from-purple-600 to-blue-600 p-6 text-white">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
+                          <Star className="w-6 h-6 text-white" />
+                        </div>
+                        <div>
+                          <h2 className="text-2xl font-bold">나의 추억 여행 진행도</h2>
+                          <p className="text-white/90">
+                            {completedSessions.length > 0 
+                              ? `${completedSessions.length}/4 세션 완료 (${Math.round((completedSessions.length / 4) * 100)}%)`
+                              : "추억 여행을 시작해보세요!"
+                            }
+                          </p>
+                        </div>
+                      </div>
+                      
+                    </div>
                   </div>
-                  <p className="text-gray-600 mb-8">
-                    기초질문 → 개인화질문 → 인지자극질문 순서로 진행하시면 더욱 효과적입니다
-                  </p>
-                  <div className="flex items-center justify-center gap-4">
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 bg-blue-500 rounded-lg flex items-center justify-center">
-                        <span className="text-white font-bold">기초</span>
+
+                  {/* 메인 그래프 섹션 */}
+                  <div className="p-8">
+                    {/* 진행도 바 */}
+                    <div className="mb-8">
+                      <div className="flex items-center justify-between mb-3">
+                        <span className="text-sm font-medium text-gray-700">전체 진행률</span>
+                        <span className="text-sm font-bold text-purple-600">
+                          {Math.round((completedSessions.length / 4) * 100)}%
+                        </span>
                       </div>
-                      <div className="text-gray-400">→</div>
-                      <div className="w-12 h-12 bg-orange-500 rounded-lg flex items-center justify-center">
-                        <span className="text-white font-bold">개인화</span>
-                      </div>
-                      <div className="text-gray-400">→</div>
-                      <div className="w-12 h-12 bg-green-500 rounded-lg flex items-center justify-center">
-                        <span className="text-white font-bold">소리</span>
-                      </div>
-                      <div className="text-gray-400">→</div>
-                      <div className="w-12 h-12 bg-purple-500 rounded-lg flex items-center justify-center">
-                        <span className="text-white font-bold">이미지</span>
+                      <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+                        <motion.div 
+                          className="h-full bg-gradient-to-r from-purple-500 to-blue-500 rounded-full"
+                          initial={{ width: 0 }}
+                          animate={{ width: `${(completedSessions.length / 4) * 100}%` }}
+                          transition={{ duration: 1.2, ease: "easeOut" }}
+                        />
                       </div>
                     </div>
+
+                    {/* 프로그램 단계별 그래프 */}
+                    <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                      {(Object.keys(sessionConfig) as RecallTrainingSession[]).map((sessionId, index) => {
+                        const config = sessionConfig[sessionId]
+                        const IconComponent = config.icon
+                        const isCompleted = isRecallTrainingSessionCompleted(sessionId)
+                        const isNext = !isCompleted && completedSessions.length === index
+                        const isLocked = !isCompleted && completedSessions.length < index
+
+                        return (
+                          <motion.div
+                            key={sessionId}
+                            className={`relative ${!isLocked ? 'cursor-pointer' : 'cursor-not-allowed'}`}
+                            onClick={() => {
+                              if (!isLocked) handleStartTraining(sessionId)
+                            }}
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: index * 0.2, duration: 0.6 }}
+                            whileHover={!isLocked ? { scale: 1.05 } : {}}
+                          >
+                            {/* 연결 화살표 (마지막 제외) */}
+                            {index < 3 && (
+                              <div className="hidden lg:block absolute top-1/2 -right-3 transform -translate-y-1/2 z-10">
+                                <div className={`w-6 h-0.5 ${isCompleted ? 'bg-green-400' : 'bg-gray-300'}`}>
+                                  <div className={`w-0 h-0 border-l-[6px] border-t-[3px] border-b-[3px] border-t-transparent border-b-transparent absolute right-0 top-1/2 transform -translate-y-1/2 ${isCompleted ? 'border-l-green-400' : 'border-l-gray-300'}`}></div>
+                                </div>
+                              </div>
+                            )}
+
+                            {/* 카드 */}
+                            <div className={`relative overflow-hidden rounded-xl border-2 transition-all duration-300 ${
+                              isCompleted 
+                                ? 'border-green-400 bg-green-50' 
+                                : isNext 
+                                  ? 'border-yellow-400 bg-yellow-50 shadow-lg' 
+                                  : isLocked 
+                                    ? 'border-gray-200 bg-gray-50 opacity-60' 
+                                    : 'border-gray-200 bg-white hover:border-purple-300'
+                            }`}>
+                              {/* 상단 색상 바 */}
+                              <div className={`h-2 bg-gradient-to-r ${config.gradient}`} />
+                              
+                              {/* 컨텐츠 */}
+                              <div className="p-4">
+                                {/* 아이콘과 단계 */}
+                                <div className="flex items-center justify-between mb-3">
+                                  <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                                    isCompleted 
+                                      ? 'bg-green-100 text-green-600' 
+                                      : isNext 
+                                        ? 'bg-yellow-100 text-yellow-600' 
+                                        : `bg-gradient-to-r ${config.gradient} text-white`
+                                  }`}>
+                                    {isCompleted ? (
+                                      <CheckCircle className="w-5 h-5" />
+                                    ) : (
+                                      <IconComponent className="w-5 h-5" />
+                                    )}
+                                  </div>
+                                  <div className={`text-xs font-bold px-2 py-1 rounded-full ${
+                                    isCompleted 
+                                      ? 'bg-green-100 text-green-600' 
+                                      : isNext 
+                                        ? 'bg-yellow-100 text-yellow-600' 
+                                        : 'bg-gray-100 text-gray-600'
+                                  }`}>
+                                    STEP {config.step}
+                                  </div>
+                                </div>
+
+                                {/* 제목과 설명 */}
+                                <h3 className={`font-bold mb-2 ${
+                                  isLocked ? 'text-gray-400' : 'text-gray-800'
+                                }`}>
+                                  {config.title}
+                                </h3>
+                                <p className={`text-xs mb-3 ${
+                                  isLocked ? 'text-gray-400' : 'text-gray-600'
+                                }`}>
+                                  {config.description}
+                                </p>
+
+                                {/* 상태 표시 */}
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-1 text-xs text-gray-500">
+                                    <Clock className="w-3 h-3" />
+                                    <span>15분</span>
+                                  </div>
+                                  <div className={`text-xs font-medium ${
+                                    isCompleted 
+                                      ? 'text-green-600' 
+                                      : isNext 
+                                        ? 'text-yellow-600' 
+                                        : isLocked 
+                                          ? 'text-gray-400' 
+                                          : 'text-purple-600'
+                                  }`}>
+                                    {isCompleted 
+                                      ? '완료' 
+                                      : isNext 
+                                        ? '다음 단계' 
+                                        : isLocked 
+                                          ? '잠김' 
+                                          : '시작 가능'
+                                    }
+                                  </div>
+                                </div>
+
+                                {/* 액션 버튼 */}
+                                {!isLocked && (
+                                  <Button 
+                                    className={`w-full mt-3 text-xs py-2 ${
+                                      isCompleted 
+                                        ? 'bg-green-100 text-green-700 hover:bg-green-200' 
+                                        : isNext 
+                                          ? 'bg-yellow-400 text-yellow-900 hover:bg-yellow-500 shadow-md' 
+                                          : `bg-gradient-to-r ${config.gradient} text-white hover:opacity-90`
+                                    }`}
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      handleStartTraining(sessionId)
+                                    }}
+                                    disabled={isLocked}
+                                  >
+                                    {isCompleted ? (
+                                      <>
+                                        <CheckCircle className="w-3 h-3 mr-1" />
+                                        다시하기
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Play className="w-3 h-3 mr-1" />
+                                        {isNext ? '지금 시작!' : '시작하기'}
+                                      </>
+                                    )}
+                                  </Button>
+                                )}
+                              </div>
+
+                              {/* 특별 효과 */}
+                              {isNext && (
+                                <motion.div
+                                  className="absolute -inset-1 bg-gradient-to-r from-yellow-400 to-orange-400 rounded-xl opacity-20"
+                                  animate={{ 
+                                    opacity: [0.2, 0.4, 0.2],
+                                    scale: [1, 1.02, 1]
+                                  }}
+                                  transition={{ 
+                                    duration: 2, 
+                                    repeat: Infinity,
+                                    ease: "easeInOut"
+                                  }}
+                                />
+                              )}
+                            </div>
+                          </motion.div>
+                        )
+                      })}
+                    </div>
+
+                    {/* 하단 설명 */}
+                    <div className="mt-8 p-4 bg-purple-50 rounded-lg border border-purple-100">
+                      <div className="flex items-start gap-3">
+                        <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                          <span className="text-purple-600 text-sm">💡</span>
+                        </div>
+                        <div>
+                          <h4 className="font-medium text-purple-800 mb-1">추천 진행 순서</h4>
+                          <p className="text-sm text-purple-700">
+                            <span className="font-medium">기초질문</span>으로 시작해서 
+                            <span className="font-medium"> 개인화질문</span>, 
+                            <span className="font-medium"> 들려오는 추억</span>, 
+                            <span className="font-medium"> 추억의 시대</span> 순서로 진행하시면 
+                            가장 효과적으로 기억을 되살릴 수 있습니다.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+
                   </div>
                 </CardContent>
               </Card>

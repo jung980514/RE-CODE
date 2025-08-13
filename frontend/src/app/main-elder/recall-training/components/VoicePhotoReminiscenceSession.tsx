@@ -7,6 +7,7 @@ import { RotateCcw, Mic, ChevronRight, Camera, MessageCircleQuestionMark } from 
 import { synthesizeSpeech, playAudio, stopCurrentAudio } from "@/api/googleTTS/googleTTSService"
 import TrainingCompleteModal from "@/app/main-elder/recall-training/components/TrainingCompleteModal"
 import { useRouter } from "next/navigation"
+import { markRecallTrainingSessionAsCompleted } from "@/lib/auth"
 
 // 감정 분석 타입 및 훅
 type FaceExpressions = {
@@ -196,6 +197,34 @@ export function VoicePhotoReminiscenceSession({ onBack }: { onBack: () => void }
   const [sessionActive, setSessionActive] = useState<boolean>(false)
   const [showCompleteModal, setShowCompleteModal] = useState<boolean>(false)
   const [finalEmotion, setFinalEmotion] = useState<string>('NEUTRAL')
+  
+  // GIF 이미지 관련 상태
+  const [isSpeaking, setIsSpeaking] = useState(false)
+  const audioContextGifRef = useRef<AudioContext | null>(null)
+  const analyserGifRef = useRef<AnalyserNode | null>(null)
+  const micStreamGifRef = useRef<MediaStream | null>(null)
+  const rafGifRef = useRef<number | null>(null)
+  const lastAboveThresholdMsGifRef = useRef<number>(0)
+  
+  // 말풍선 이미지 상태
+  const [currentBalloonImage, setCurrentBalloonImage] = useState<string>('')
+
+  // 랜덤 말풍선 이미지 선택 함수
+  const getRandomBalloonImage = (isSpeaking: boolean): string => {
+    const randomNumber = Math.floor(Math.random() * 5) + 1 // 1~5 랜덤
+    const folder = isSpeaking ? 'talk' : 'nottalk'
+    return `/images/talkballoon/${folder}/${randomNumber}.png`
+  }
+
+  // isSpeaking 상태 변경 시 랜덤 이미지 업데이트
+  useEffect(() => {
+    setCurrentBalloonImage(getRandomBalloonImage(isSpeaking))
+  }, [isSpeaking])
+
+  // 컴포넌트 마운트 시 초기 이미지 설정
+  useEffect(() => {
+    setCurrentBalloonImage(getRandomBalloonImage(false))
+  }, [])
 
   const { emotion, confidence } = useEmotionDetection(
     videoRef,
@@ -211,7 +240,7 @@ export function VoicePhotoReminiscenceSession({ onBack }: { onBack: () => void }
       try {
         setQuestionsLoading(true)
         setQuestionsError(null)
-        const res = await fetch('https://recode-my-life.site/api/cognitive/questions/image', {
+        const res = await fetch('http://localhost:8088/api/cognitive/questions/image', {
           method: 'GET',
           credentials: 'include',
         })
@@ -235,6 +264,101 @@ export function VoicePhotoReminiscenceSession({ onBack }: { onBack: () => void }
       }
     }
   }, [])
+
+  // 음성 감지 초기화 (GIF 이미지용)
+  useEffect(() => {
+    let cancelled = false
+    const initAudioDetection = async () => {
+      try {
+        const micStream = await navigator.mediaDevices.getUserMedia({ audio: true })
+        if (cancelled) {
+          micStream.getTracks().forEach(t => t.stop())
+          return
+        }
+        micStreamGifRef.current = micStream
+        
+        // 호환: 표준 AudioContext 우선, 없으면 webkitAudioContext 사용
+        let audioContext: AudioContext
+        if ('AudioContext' in window) {
+          const Ctor = window.AudioContext as {
+            new (contextOptions?: AudioContextOptions): AudioContext
+          }
+          audioContext = new Ctor()
+        } else if ('webkitAudioContext' in window) {
+          const Ctor = (window as unknown as {
+            webkitAudioContext: { new (contextOptions?: AudioContextOptions): AudioContext }
+          }).webkitAudioContext
+          audioContext = new Ctor()
+        } else {
+          throw new Error('Web Audio API not supported')
+        }
+        audioContextGifRef.current = audioContext
+        const source = audioContext.createMediaStreamSource(micStream)
+        const analyser = audioContext.createAnalyser()
+        analyser.fftSize = 2048
+        analyser.smoothingTimeConstant = 0.8
+        analyserGifRef.current = analyser
+        source.connect(analyser)
+
+        const data = new Uint8Array(analyser.frequencyBinCount)
+        const SPEAKING_THRESHOLD = 12 // 임계값(조정 가능)
+        const SILENCE_HOLD_MS = 3000  // 무음 3초 유지 시에만 비발화로 전환
+
+        const loop = () => {
+          if (!analyserGifRef.current) return
+          analyserGifRef.current.getByteTimeDomainData(data)
+          // 128 기준으로 편차 RMS 계산
+          let sumSquares = 0
+          for (let i = 0; i < data.length; i++) {
+            const v = data[i] - 128
+            sumSquares += v * v
+          }
+          const rms = Math.sqrt(sumSquares / data.length)
+          const isNowSpeaking = rms > SPEAKING_THRESHOLD
+          const now = performance.now()
+          if (isNowSpeaking) {
+            // 발화 감지: 즉시 speaking 전환, 타임스탬프 갱신
+            if (!isSpeaking) {
+              setIsSpeaking(true)
+            }
+            lastAboveThresholdMsGifRef.current = now
+          } else {
+            // 무음: 마지막 발화 시점으로부터 3초 경과 시에만 speaking 해제
+            if (isSpeaking) {
+              if (now - lastAboveThresholdMsGifRef.current >= SILENCE_HOLD_MS) {
+                setIsSpeaking(false)
+              }
+            }
+          }
+          rafGifRef.current = requestAnimationFrame(loop)
+        }
+        rafGifRef.current = requestAnimationFrame(loop)
+      } catch (e) {
+        console.warn('마이크 접근/분석 초기화 실패:', e)
+      }
+    }
+
+    initAudioDetection()
+    return () => {
+      cancelled = true
+      if (rafGifRef.current) {
+        cancelAnimationFrame(rafGifRef.current)
+        rafGifRef.current = null
+      }
+      if (analyserGifRef.current) {
+        try { analyserGifRef.current.disconnect() } catch {}
+        analyserGifRef.current = null
+      }
+      if (audioContextGifRef.current) {
+        try { audioContextGifRef.current.close() } catch {}
+        audioContextGifRef.current = null
+      }
+      if (micStreamGifRef.current) {
+        try { micStreamGifRef.current.getTracks().forEach(t => t.stop()) } catch {}
+        micStreamGifRef.current = null
+      }
+    }
+  }, [isSpeaking])
 
   const initializeCamera = async () => {
     try {
@@ -426,7 +550,7 @@ export function VoicePhotoReminiscenceSession({ onBack }: { onBack: () => void }
       formData.append('videoFile', file)
 
       setIsUploading(true)
-      const res = await fetch('https://recode-my-life.site/api/cognitive/answers', {
+      const res = await fetch('http://localhost:8088/api/cognitive/answers', {
         method: 'POST',
         credentials: 'include',
         body: formData,
@@ -504,6 +628,8 @@ export function VoicePhotoReminiscenceSession({ onBack }: { onBack: () => void }
         console.error('세션 감정 요약 계산 오류:', e)
         setFinalEmotion('NEUTRAL')
       }
+      // 포토 세션 완료 플래그 저장
+      markRecallTrainingSessionAsCompleted('photo')
       setShowCompleteModal(true)
       return
     }
@@ -554,26 +680,6 @@ export function VoicePhotoReminiscenceSession({ onBack }: { onBack: () => void }
     }
   }
 
-  const getEmotionEmoji = (emotionLabel: string) => {
-    switch (emotionLabel) {
-      case '행복':
-        return '😊'
-      case '슬픔':
-        return '😢'
-      case '화남':
-        return '😠'
-      case '두려움':
-        return '😨'
-      case '혐오':
-        return '🤢'
-      case '놀람':
-        return '😲'
-      case '중립':
-      default:
-        return '😐'
-    }
-  }
-
   const getEmotionProgressColor = (emotionLabel: string) => {
     switch (emotionLabel) {
       case '행복':
@@ -595,32 +701,58 @@ export function VoicePhotoReminiscenceSession({ onBack }: { onBack: () => void }
   }
 
   return (
-    <div className="bg-gray-50 p-2 md:p-4">
+    <div className="bg-gray-50 p-1 md:p-2 relative">
+      {/* 말풍선 오버레이 - 디자인에 영향 없음 */}
+      <div className="absolute inset-0 z-50 pointer-events-none">
+        <div className="relative w-full h-full">
+          {/* 우하단 말풍선 이미지 영역 - 녹화 중일 때만 표시 */}
+          {isRecording && (
+            <div className="absolute bottom-50 right-90 w-60 h-50">
+              <div className="h-full flex items-center justify-center">
+                {/* 랜덤 말풍선 이미지 표시 */}
+                {currentBalloonImage && (
+                  <img
+                    src={currentBalloonImage}
+                    alt={isSpeaking ? "말하는 중 말풍선" : "대기 중 말풍선"}
+                    className="max-w-full max-h-full object-contain"
+                    onError={(e) => {
+                      console.warn('말풍선 이미지 로드 실패:', currentBalloonImage)
+                      // 이미지 로드 실패 시 기본 이미지로 대체
+                      const target = e.target as HTMLImageElement
+                      target.src = '/images/talkballoon/nottalk/1.png'
+                    }}
+                  />
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
       {/* Header */}
-      <div className="max-w-6xl mx-auto mb-4">
-        <div className="text-center">
-          <h1 className="text-3xl font-bold text-gray-800 mb-1">추억의 시대 훈련</h1>
-          <p className="text-gray-600">사진과 함께 소중한 추억을 되살려보세요</p>
+      <div className="max-w-6xl mx-auto mb-1">
+        <div>
+          <h1 className="text-xl font-bold text-gray-800" style={{ fontFamily: 'Pretendard' }}>추억의 시대 훈련</h1>
         </div>
       </div>
 
       {/* Main Content */}
-      <div className="max-w-6xl mx-auto grid lg:grid-cols-2 gap-4">
+      <div className="max-w-6xl mx-auto grid lg:grid-cols-3 gap-2">
         {/* Left Panel - Photo Exercise */}
-        <Card className="p-4 bg-white shadow-lg">
-          <div className="text-center mb-4">
-            <div className="inline-flex items-center gap-2 bg-purple-100 text-purple-700 px-4 py-2 rounded-full text-sm font-medium mb-3">
-              <MessageCircleQuestionMark className="w-4 h-4" />
+        <Card className="lg:col-span-2 p-2 bg-white shadow-lg">
+          <div className="text-center mb-2">
+            <div className="inline-flex items-center gap-1 bg-purple-100 text-purple-700 px-2 py-1 rounded-full text- font-medium mb-1" style={{ fontFamily: 'Pretendard' }}>
+              <MessageCircleQuestionMark className="w-3 h-3" />
               사진 {questions.length > 0 ? currentIndex + 1 : 0}/{questions.length}
             </div>
           </div>
 
           {/* Photo Display */}
-          <div className="relative bg-gray-200 rounded-2xl overflow-hidden mb-4" style={{ aspectRatio: "4/3" }}>
+          <div className="relative bg-gray-200 rounded-xl overflow-hidden mb-2" style={{ aspectRatio: "16/9" }}>
             {questionsLoading ? (
-              <div className="absolute inset-0 flex items-center justify-center text-gray-500">불러오는 중...</div>
+              <div className="absolute inset-0 flex items-center justify-center text-gray-500 text-sm" style={{ fontFamily: 'Pretendard' }}>불러오는 중...</div>
             ) : questionsError ? (
-              <div className="absolute inset-0 flex items-center justify-center text-red-600">{questionsError}</div>
+              <div className="absolute inset-0 flex items-center justify-center text-red-600 text-sm" style={{ fontFamily: 'Pretendard' }}>{questionsError}</div>
             ) : questions.length > 0 ? (
               <img
                 src={resolveMediaUrl(questions[currentIndex].mediaUrl)}
@@ -637,72 +769,73 @@ export function VoicePhotoReminiscenceSession({ onBack }: { onBack: () => void }
           </div>
 
           {/* Question */}
-          <div className="mb-4">
-            <div className="flex items-start gap-3 mb-2">
+          <div className="mb-1">
+            <div className="flex items-start gap-2">
               <div>
-                <h3 className="font-semibold text-purple-600 mb-1">RECODE는 궁금해요</h3>
+                <h3 className="font-semibold text-purple-600 text-sm mb-1" style={{ fontFamily: 'Pretendard' }}>RECODE는 궁금해요</h3>
                 {questionsLoading ? (
-                  <p className="text-gray-600">질문을 불러오는 중입니다...</p>
+                  <p className="text-gray-600 text-sm" style={{ fontFamily: 'Pretendard' }}>질문을 불러오는 중입니다...</p>
                 ) : questionsError ? (
-                  <p className="text-red-600">{questionsError}</p>
+                  <p className="text-red-600 text-sm" style={{ fontFamily: 'Pretendard' }}>{questionsError}</p>
                 ) : questions.length > 0 ? (
-                  <p className="text-gray-700 leading-relaxed">
+                  <p className="text-gray-700 leading-relaxed text-3xl" style={{ fontFamily: 'Pretendard' }}>
                     {questions[currentIndex].content}
                     <br />
                     준비가 완료되면 대답하기 버튼을 눌러 대답해주세요
                   </p>
                 ) : (
-                  <p className="text-gray-600">표시할 질문이 없습니다.</p>
+                  <p className="text-gray-600 text-sm" style={{ fontFamily: 'Pretendard' }}>표시할 질문이 없습니다.</p>
                 )}
               </div>
             </div>
-            {/* URL 제출 기능 제거됨 */}
           </div>
 
           {/* Control Buttons */}
-          <div className="flex gap-3">
+          <div className="flex gap-2">
             <Button
               variant="outline"
               onClick={replayQuestionTTS}
-              className="flex-1 border-purple-200 text-purple-700 hover:bg-purple-50 bg-transparent"
+              className="flex-1 border-purple-200 text-purple-700 hover:bg-purple-50 bg-transparent h-12 text-base text-2xl"
+              style={{ fontFamily: 'Pretendard' }}
             >
-              <RotateCcw className="w-4 h-4 mr-2" />
+              <RotateCcw className="w-5 h-5 mr-2" />
               다시재생
             </Button>
 
             <Button
-              className={`flex-1 ${isRecording ? "bg-red-500 hover:bg-red-600" : "bg-green-500 hover:bg-green-600"}`}
+              className={`flex-1 h-12 text-base text-2xl ${isRecording ? "bg-red-500 hover:bg-red-600" : "bg-green-500 hover:bg-green-600"}`}
               onClick={handleAnswerClick}
+              style={{ fontFamily: 'Pretendard' }}
             >
-              <Mic className="w-4 h-4 mr-2" />
+              <Mic className="w-5 h-5 mr-2 " />
               {isRecording ? "녹화중지" : "대답하기"}
             </Button>
 
-            <Button className="flex-1 bg-purple-500 hover:bg-purple-600 text-white disabled:opacity-60 disabled:cursor-not-allowed" onClick={handleNext} disabled={questions.length === 0 || isRecording || !hasRecorded || isUploading}>
+            <Button className="flex-1 h-12 text-base bg-purple-500 hover:bg-purple-600 text-white disabled:opacity-60 disabled:cursor-not-allowed text-2xl" onClick={handleNext} disabled={questions.length === 0 || isRecording || !hasRecorded || isUploading} style={{ fontFamily: 'Pretendard' }}>
               {questions.length > 0 && currentIndex === questions.length - 1 ? '완료하기' : '다음 사진'}
-              <ChevronRight className="w-4 h-4 ml-2" />
+              <ChevronRight className="w-5 h-5 ml-2" />
             </Button>
           </div>
         </Card>
 
         {/* Right Panel - Webcam */}
-        <Card className="p-4 bg-white shadow-lg">
-          <h3 className="text-lg font-semibold text-gray-800 mb-3 text-center">내 화면</h3>
+        <Card className="lg:col-span-1 p-2 bg-white shadow-lg">
+          <h3 className="text-lg font-semibold text-gray-800 mb-1 text-center" style={{ fontFamily: 'Pretendard' }}>내 화면</h3>
 
           {/* Webcam Display */}
-          <div className="relative bg-gray-900 rounded-2xl overflow-hidden mb-4" style={{ aspectRatio: "4/3" }}>
+          <div className="relative bg-gray-900 rounded-xl overflow-hidden mb-2" style={{ aspectRatio: "4/3" }}>
             {cameraLoading && (
               <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-400">
-                <Camera className="w-16 h-16 mb-4 opacity-50" />
-                <p className="text-sm">카메라를 불러오는 중...</p>
+                <Camera className="w-8 h-8 mb-2 opacity-50" />
+                <p className="text-xs" style={{ fontFamily: 'Pretendard' }}>카메라를 불러오는 중...</p>
               </div>
             )}
 
             {cameraError && (
               <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-400">
-                <Camera className="w-16 h-16 mb-4 opacity-50" />
-                <p className="text-sm">카메라 접근 실패</p>
-                <Button variant="outline" size="sm" className="mt-2 bg-transparent" onClick={initializeCamera}>
+                <Camera className="w-8 h-8 mb-2 opacity-50" />
+                <p className="text-xs" style={{ fontFamily: 'Pretendard' }}>카메라 접근 실패</p>
+                <Button variant="outline" size="sm" className="mt-1 bg-transparent text-xs h-6" onClick={initializeCamera} style={{ fontFamily: 'Pretendard' }}>
                   다시 시도
                 </Button>
               </div>
@@ -717,40 +850,38 @@ export function VoicePhotoReminiscenceSession({ onBack }: { onBack: () => void }
             />
 
             {isRecording && (
-              <div className="absolute top-4 right-4 flex items-center gap-2 bg-red-500 text-white px-3 py-1 rounded-full text-sm">
-                <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
+              <div className="absolute top-2 right-2 flex items-center gap-1 bg-red-500 text-white px-2 py-1 rounded-full text-xs" style={{ fontFamily: 'Pretendard' }}>
+                <div className="w-1 h-1 bg-white rounded-full animate-pulse" />
                 녹화중
               </div>
             )}
           </div>
 
           {/* Status */}
-          <div className="space-y-2">
-            <h4 className="font-semibold text-gray-800">감정 분석</h4>
-
+          <div className="space-y-4 mb-8">
             <div className="flex justify-between items-center">
-              <span className="text-gray-600">현재 감정:</span>
-              <span className={`font-medium ${getEmotionColor(emotion)} flex items-center gap-2`}>
-                <span className="text-lg">{getEmotionEmoji(emotion)}</span>
+              <span className="text-gray-600 text-lg" style={{ fontFamily: 'Pretendard' }}>현재 감정:</span>
+              <span className={`font-medium text-lg ${getEmotionColor(emotion)} flex items-center gap-1`} style={{ fontFamily: 'Pretendard' }}>
                 {emotion}
               </span>
             </div>
+          </div>
 
-            <div className="flex justify-between items-center">
-              <span className="text-gray-600">신뢰도:</span>
-              <span className="text-emerald-600 font-medium">{confidence}%</span>
-            </div>
-
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-600">감정 강도</span>
-                <span className="text-gray-600">{confidence}%</span>
+          {/* GIF Image Area */}
+          <div className="flex-1">
+            <div className="h-full bg-white rounded-2xl overflow-hidden relative min-h-[300px]">
+              {/* 음성 감지에 따른 GIF 이미지 표시 */}
+              <div className="flex items-center justify-center h-full">
+                <img
+                  src={isSpeaking ? "/images/hearfox.gif" : "/images/speepfox.gif"}
+                  alt={isSpeaking ? "말하는 중" : "대기 중"}
+                  className="w-4/5 h-4/5 object-contain"
+                />
               </div>
-              <div className="w-full bg-gray-200 rounded-full h-2">
-                <div
-                  className={`h-2 rounded-full transition-all duration-300 ${getEmotionProgressColor(emotion)}`}
-                  style={{ width: `${Math.min(confidence, 100)}%` }}
-                ></div>
+              
+              {/* 플레이스홀더 (이미지 로드 실패 시 대체) */}
+              <div className="absolute inset-0 flex items-center justify-center text-gray-400" style={{ display: 'none' }}>
+                <Camera className="w-16 h-16 opacity-50" aria-hidden="true" />
               </div>
             </div>
           </div>
@@ -765,7 +896,7 @@ export function VoicePhotoReminiscenceSession({ onBack }: { onBack: () => void }
         primaryActionLabel="확인"
         onPrimaryAction={async () => {
           try {
-            await fetch('https://recode-my-life.site/api/cogntive/emotions?answerType=COGNITIVE_IMAGE', {
+            await fetch('http://localhost:8088/api/cognitive/emotions?answerType=COGNITIVE_IMAGE', {
               method: 'POST',
               credentials: 'include',
               headers: { 'Content-Type': 'application/json' },
