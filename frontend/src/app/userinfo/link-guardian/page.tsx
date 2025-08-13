@@ -2,7 +2,10 @@
 
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Link, Users, Send, Eye, X } from "lucide-react";
+import { Heart, Users, Link, Send, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { AlertModal, ConfirmModal } from "@/components/ui/modal";
 
 interface LinkedElder {
@@ -163,112 +166,140 @@ export default function GuardianLinkPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Main Content */}
-      <main className="max-w-4xl mx-auto p-6 pt-8">
-        {/* Page Title */}
-        <div className="mb-6">
-          <h2 className="text-2xl font-bold text-gray-800 mb-2">보호자 연동 관리</h2>
-          <p className="text-gray-600">어르신과의 연동을 관리할 수 있습니다</p>
+    <div className="min-h-screen bg-slate-50 p-6">
+      <div className="max-w-4xl mx-auto">
+        {/* Header with icon - consistent with profile page design */}
+        <div className="mb-8">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center">
+              <Heart className="w-6 h-6 text-blue-600" />
+            </div>
+            <h1 className="text-3xl font-bold text-gray-900">보호자 연동 관리</h1>
+          </div>
+          <p className="text-lg text-gray-600">어르신과의 연동을 관리할 수 있습니다</p>
         </div>
 
-        {/* 연동 토큰 입력창 섹션 */}
-        <div className="bg-white rounded-lg p-6 mb-6 shadow-sm">
-          <div className="flex items-center space-x-2 mb-4">
-            <Link size={20} className="text-gray-600" />
-            <h3 className="text-lg font-semibold text-gray-800">연동 토큰 입력창</h3>
-          </div>
-          <p className="text-gray-600 mb-4">
-            어르신이 발급한 연동 토큰을 입력하여 연동을 요청하세요
-          </p>
-          
-          <form onSubmit={handleTokenSubmit} className="mb-4">
-            <div className="flex space-x-3">
-              <input
-                type="text"
-                value={token}
-                onChange={(e) => setToken(e.target.value)}
-                placeholder="토큰을 입력하세요 (예: SXNPYS)"
-                className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                maxLength={6}
-              />
-              <button
-                type="submit"
-                className="flex items-center space-x-2 bg-orange-500 text-white px-6 py-3 rounded-lg hover:bg-orange-600"
-              >
-                <Send size={16} />
-                <span>연동 요청</span>
-              </button>
-            </div>
-          </form>
-
-          {/* 안내 정보 */}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <p className="text-sm text-blue-700">
-              안내: 어르신께서 생성한 6자리 토큰을 정확히 입력해주세요. 토큰은 생성 후 10분간 유효합니다.
-            </p>
-          </div>
-        </div>
-
-        {/* 연동된 노인 목록 보기 섹션 */}
-        <div className="bg-white rounded-lg p-6 shadow-sm">
-          <div className="flex items-center space-x-2 mb-4">
-            <Users size={20} className="text-gray-600" />
-            <h3 className="text-lg font-semibold text-gray-800">연동된 노인 목록 보기</h3>
-          </div>
-          <p className="text-gray-600 mb-6">
-            연동 완료된 노인분들의 정보를 확인하고 관리할 수 있습니다
-          </p>
-          
-          {isLoadingLinked ? (
-            <div className="text-center py-8 text-gray-500">불러오는 중...</div>
-          ) : linkedError ? (
-            <div className="text-center py-8 text-red-600">{linkedError}</div>
-          ) : linkedElders.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
-              <Users size={48} className="mx-auto mb-4 text-gray-300" />
-              <p>연동된 어르신이 없습니다.</p>
-              <p className="text-sm">위의 토큰 입력창을 통해 어르신과 연동해보세요.</p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {linkedElders.map((elder) => (
-                <div key={elder.id} className="border border-gray-200 rounded-lg p-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-4">
-                      <div className="w-12 h-12 bg-gray-300 rounded-full flex items-center justify-center">
-                        <span className="text-gray-600 font-semibold">
-                          {elder.name.charAt(0)}
-                        </span>
-                      </div>
-                      <div>
-                        <div className="flex items-center space-x-2 mb-1">
-                          <h4 className="font-semibold text-gray-800">{elder.name}</h4>
-                          <span className="bg-green-100 text-green-700 px-2 py-1 rounded text-xs">연동됨</span>
-                        </div>
-                        <div className="space-y-1 text-sm text-gray-600">
-                          <div>생년월일: {elder.birthDate}</div>
-                          <div>연락처: {elder.phone}</div>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex space-x-2">
-                      <button
-                        onClick={() => handleUnlink(elder.id)}
-                        disabled={unlinkingId === elder.id}
-                        className={`flex items-center space-x-1 px-3 py-2 rounded text-white ${unlinkingId === elder.id ? 'bg-red-400 cursor-not-allowed' : 'bg-red-600 hover:bg-red-700'}`}
-                      >
-                        <X size={14} />
-                        <span className="text-sm">{unlinkingId === elder.id ? '처리중...' : '연동해제'}</span>
-                      </button>
-                    </div>
-                  </div>
+        <div className="space-y-6">
+          {/* 연동 토큰 입력창 */}
+          <Card className="shadow-sm border-0">
+            <CardHeader className="pb-4">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
+                  <Link className="w-5 h-5 text-green-600" />
                 </div>
-              ))}
-            </div>
-          )}
+                <CardTitle className="text-xl">연동 토큰 입력창</CardTitle>
+              </div>
+              <CardDescription className="text-base">어르신이 발급한 연동 토큰을 입력하여 연동을 요청하세요</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <form onSubmit={handleTokenSubmit}>
+                <div className="flex gap-3">
+                  <input
+                    type="text"
+                    value={token}
+                    onChange={(e) => setToken(e.target.value)}
+                    placeholder="토큰을 입력하세요 (예: SXNPYS)"
+                    className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-lg"
+                    maxLength={6}
+                  />
+                  <Button
+                    type="submit"
+                    className="bg-orange-500 hover:bg-orange-600 text-white px-8 py-3 h-auto"
+                    size="lg"
+                  >
+                    <Send className="w-5 h-5 mr-2" />
+                    연동 요청
+                  </Button>
+                </div>
+              </form>
+
+              {/* 안내 정보 */}
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <p className="text-base text-blue-700">
+                  <strong>안내:</strong> 어르신께서 생성한 6자리 토큰을 정확히 입력해주세요. 토큰은 생성 후 10분간 유효합니다.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* 연동된 노인 목록 보기 */}
+          <Card className="shadow-sm border-0">
+            <CardHeader className="pb-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
+                    <Users className="w-5 h-5 text-purple-600" />
+                  </div>
+                  <CardTitle className="text-xl">연동된 노인 목록 보기</CardTitle>
+                </div>
+                <Badge variant="secondary" className="text-base">{linkedElders.length}명 연동됨</Badge>
+              </div>
+              <CardDescription className="text-base">연동 완료된 노인분들의 정보를 확인하고 관리할 수 있습니다</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {isLoadingLinked ? (
+                <div className="text-center py-12">
+                  <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Users className="w-8 h-8 text-gray-400" />
+                  </div>
+                  <p className="text-gray-500">불러오는 중...</p>
+                </div>
+              ) : linkedError ? (
+                <div className="text-center py-12">
+                  <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <X className="w-8 h-8 text-red-400" />
+                  </div>
+                  <p className="text-red-600">{linkedError}</p>
+                </div>
+              ) : linkedElders.length === 0 ? (
+                <div className="text-center py-12">
+                  <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Users className="w-8 h-8 text-gray-400" />
+                  </div>
+                  <p className="text-gray-500 mb-2">연동된 어르신이 없습니다</p>
+                  <p className="text-sm text-gray-400">위의 토큰 입력창을 통해 어르신과 연동해보세요</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {linkedElders.map((elder) => (
+                    <div key={elder.id} className="border rounded-lg p-4 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                            <Users className="w-5 h-5 text-green-600" />
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2 mb-1">
+                              <h4 className="font-medium text-gray-900">{elder.name}</h4>
+                              <Badge variant="secondary" className="bg-green-100 text-green-700">연동됨</Badge>
+                            </div>
+                            <div className="space-y-1 text-sm text-gray-600">
+                              <div>생년월일: {elder.birthDate}</div>
+                              <div>연락처: {elder.phone}</div>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button
+                            onClick={() => handleUnlink(elder.id)}
+                            disabled={unlinkingId === elder.id}
+                            variant="outline"
+                            size="sm"
+                            className="text-red-600 hover:text-red-700 bg-transparent"
+                          >
+                            <X className="w-4 h-4 mr-1" />
+                            {unlinkingId === elder.id ? '처리중...' : '연동해제'}
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
-      </main>
+      </div>
 
       {/* 모달들 */}
       <AlertModal
