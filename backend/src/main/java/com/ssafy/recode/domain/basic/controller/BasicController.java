@@ -78,7 +78,7 @@ public class BasicController {
   @PostMapping("/emotions")
   public ResponseEntity<?> addEmotions(
       @Parameter(hidden = true) @LoginUser User user,
-      @ModelAttribute EmotionRequset requset
+      @org.springframework.web.bind.annotation.RequestBody EmotionRequset requset
   ){
     basicService.addEmotions(user,requset);
     return ResponseEntity.ok(ApiResponse.successResponseWithMessage("", null));

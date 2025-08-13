@@ -2,10 +2,13 @@ package com.ssafy.recode.domain.auth.service;
 
 import com.ssafy.recode.domain.auth.entity.User;
 import com.ssafy.recode.domain.auth.repository.UserRepository;
+import com.ssafy.recode.domain.common.service.S3UploaderService;
+import com.ssafy.recode.domain.common.service.VideoTranscriptionService;
 import com.ssafy.recode.global.constant.AuthConstant;
 import com.ssafy.recode.global.dto.request.DeleteUserRequest;
 import com.ssafy.recode.global.dto.request.RegisterRequest;
 import com.ssafy.recode.global.dto.request.UpdateUserRequest;
+import com.ssafy.recode.global.dto.response.UserProfileResponse;
 import com.ssafy.recode.global.enums.Provider;
 import com.ssafy.recode.global.enums.Role;
 import com.ssafy.recode.global.error.CustomException;
@@ -15,6 +18,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 /**
  * AuthService 일반 회원가입 기능 (역할 기반)
@@ -25,6 +29,17 @@ public class AuthService {
 
   private final UserRepository userRepository;
   private final PasswordEncoder passwordEncoder;
+  private final S3UploaderService s3UploaderService;
+  private final VideoTranscriptionService videoTranscriptionService;
+
+  public UserProfileResponse getUser(User user) {
+    String profileImageUrl = user.getProfileImageUrl();
+    String presignedUrl = null;
+    if (profileImageUrl != null && !profileImageUrl.isEmpty()) {
+      presignedUrl = videoTranscriptionService.presign(videoTranscriptionService.toS3Key(profileImageUrl), "image/jpeg", 15);
+     }
+     return new UserProfileResponse(user, presignedUrl);
+    }
 
   @Transactional
   public void register(RegisterRequest request) {
@@ -43,6 +58,13 @@ public class AuthService {
     // 비밀번호 암호화
     String encodedPassword = passwordEncoder.encode(request.getPassword());
 
+    //프로필 이미지
+    String profileImageUrl = null;
+    MultipartFile profileImageFile = request.getProfileImageFile();
+    if (profileImageFile != null && !profileImageFile.isEmpty()) {
+      profileImageUrl = s3UploaderService.uploadRawMedia(profileImageFile, "profile");
+    }
+
     // 유저 엔티티 생성
     User user = User.fullBuilder()
         .name(request.getName())
@@ -50,6 +72,7 @@ public class AuthService {
         .password(encodedPassword)
         .phone(request.getPhone())
         .birthDate(request.getBirthDate())
+        .profileImageUrl(profileImageUrl)
         .role(request.getRole())
         .provider(Provider.LOCAL)
         .providerId(request.getEmail())
@@ -87,9 +110,11 @@ public class AuthService {
     }
 
     // 4) 프로필 이미지 변경
-    String profile = request.getProfileImageUrl();
-    if (profile != null && !(profile = profile.trim()).isEmpty()) {
-      user.setProfileImageUrl(profile);
+    String profileImageUrl = null;
+    MultipartFile profileImageFile = request.getProfileImageFile();
+    if (profileImageFile != null && !profileImageFile.isEmpty()) {
+      profileImageUrl = s3UploaderService.uploadRawMedia(profileImageFile, "profile");
+      user.setProfileImageUrl(profileImageUrl);
     }
 
     // 5) 전화번호 변경 (중복 검사 + DB 유니크 충돌 처리)
@@ -129,10 +154,8 @@ public class AuthService {
 
     // 7) [카카오 처음 로그인시] 노인/보호자
     Role role = request.getRole();
-    if(!role.equals(null)){
-      if(reqUser.getProvider().equals(Provider.KAKAO)){
-        user.setRole(role);
-      }
+    if(role != null && reqUser.getProvider() == Provider.KAKAO){
+      user.setRole(role);
     }
 
     // 8) JPA Dirty Checking에 의해 자동 반영

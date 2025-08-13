@@ -86,7 +86,7 @@ public class CognitiveController {
   @PostMapping("/emotions")
   public ResponseEntity<?> addEmotions(
       @Parameter(hidden = true) @LoginUser User user,
-      @ModelAttribute EmotionRequset requset,
+      @org.springframework.web.bind.annotation.RequestBody EmotionRequset requset,
       @RequestParam AnswerType answerType
   ){
     cognitiveService.addEmotions(user,requset,answerType);

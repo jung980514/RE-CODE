@@ -19,6 +19,7 @@ import com.ssafy.recode.global.enums.AnswerType;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
@@ -107,8 +108,24 @@ public class CognitiveService {
           questionRepo.findTop3ByMediaTypeOrderByQuestionIdAsc(mediaType);
       next.addAll(head.subList(0, Math.min(needed, head.size())));
     }
-    return next;
+    return  next.stream()
+        .map(question -> {
+          String presignedUrl = null;
+          if(question.getMediaUrl() != null && !question.getMediaUrl().isEmpty()){
+            String s3Key = transcriptionService.toS3Key(question.getMediaUrl());
+            String contentType = "audio".equals(mediaType) ? "audio/mpeg" : "image/jpeg";
+            presignedUrl = transcriptionService.presign(s3Key, contentType, 15);
+          }
+          return CognitiveQuestion.builder()
+              .questionId(question.getQuestionId())
+              .mediaType(question.getMediaType())
+              .content(question.getContent())
+              .mediaUrl(presignedUrl)
+              .createdAt(question.getCreatedAt())
+              .build();
+        }).collect(Collectors.toList());
   }
+
   public boolean isCognitiveCompleted(Long userId, String mediaType) {
     LocalDate today = LocalDate.now();  // 시스템 로컬타임(Asia/Seoul)
     LocalDateTime startOfDay = today.atStartOfDay();
@@ -145,7 +162,7 @@ public class CognitiveService {
             r.getAnswerId(),
             r.getQuestionId(),
             r.getContent(),
-            transcriptionService.presign(transcriptionService.toS3Key(r.getVideoPath())),
+            transcriptionService.presign(transcriptionService.toS3Key(r.getVideoPath()),"video/mp4", 60),
             r.getScore(),
             r.getIsMatch(),
             r.getCreatedAt()
