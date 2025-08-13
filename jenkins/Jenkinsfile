@@ -53,6 +53,7 @@ pipeline {
                         string(credentialsId: 'DB_PASSWORD',        variable: 'DB_PASSWORD'),
                         string(credentialsId: 'GRAFANA_USER',        variable: 'GRAFANA_USER'),
                         string(credentialsId: 'GRAFANA_PW',        variable: 'GRAFANA_PW'),
+                        string(credentialsId: 'DATA_SOURCE_NAME',        variable: 'DATA_SOURCE_NAME'),
                     ]) {
                         // 환경변수로 주입된 값을 docker-compose가 .env 또는 직접 참조하도록 구성
                         sh 'docker-compose up --build -d'
