@@ -75,6 +75,24 @@ export const handleKakaoCallback = async (): Promise<KakaoLoginResponse> => {
       };
     }
 
+    // 🔍 쿠키 디버깅: 현재 페이지의 모든 쿠키 확인
+    console.log('🍪 현재 페이지 쿠키 확인:');
+    console.log('🍪 document.cookie:', document.cookie);
+    console.log('🍪 현재 도메인:', window.location.hostname);
+    console.log('🍪 현재 프로토콜:', window.location.protocol);
+    
+    // 특정 쿠키들 확인
+    const cookies = document.cookie.split(';').reduce((acc, cookie) => {
+      const [key, value] = cookie.trim().split('=');
+      acc[key] = value;
+      return acc;
+    }, {} as Record<string, string>);
+    
+    console.log('🍪 파싱된 쿠키들:', cookies);
+    console.log('🍪 access_token 쿠키:', cookies['access_token']);
+    console.log('🍪 refresh_token 쿠키:', cookies['refresh_token']);
+    console.log('🍪 uuid 쿠키:', cookies['uuid']);
+
     // 백엔드에서 설정한 쿠키에서 사용자 정보 확인
     const response = await axios.get(`${KAKAO_CONFIG.API_BASE_URL}/api/user`, {
       withCredentials: true // 쿠키 포함
