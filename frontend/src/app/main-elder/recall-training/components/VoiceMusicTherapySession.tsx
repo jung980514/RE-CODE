@@ -363,7 +363,7 @@ export function VoiceMusicTherapySession({ onBack }: { onBack: () => void }) {
       try {
         setQuestionsLoading(true)
         setQuestionsError(null)
-            const res = await fetch('https://recode-my-life.site/api/cognitive/questions/audio', {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/cognitive/questions/audio`, {
           method: 'GET',
           credentials: 'include',
         })
@@ -651,7 +651,7 @@ export function VoiceMusicTherapySession({ onBack }: { onBack: () => void }) {
       formData.append('videoFile', file)
 
       setIsUploading(true)
-  const res = await fetch('https://recode-my-life.site/api/cognitive/answers', {
+              const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/cognitive/answers`, {
         method: 'POST',
         credentials: 'include',
         body: formData,
@@ -987,7 +987,7 @@ export function VoiceMusicTherapySession({ onBack }: { onBack: () => void }) {
         primaryActionLabel="확인"
         onPrimaryAction={async () => {
           try {
-            await fetch('https://recode-my-life.site/api/cognitive/emotions?answerType=COGNITIVE_AUDIO', {
+            await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/cognitive/emotions?answerType=COGNITIVE_AUDIO`, {
               method: 'POST',
               credentials: 'include',
               headers: { 'Content-Type': 'application/json' },

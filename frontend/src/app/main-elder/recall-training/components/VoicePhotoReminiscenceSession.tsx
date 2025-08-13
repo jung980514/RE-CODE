@@ -240,7 +240,7 @@ export function VoicePhotoReminiscenceSession({ onBack }: { onBack: () => void }
       try {
         setQuestionsLoading(true)
         setQuestionsError(null)
-        const res = await fetch('http://localhost:8088/api/cognitive/questions/image', {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/cognitive/questions/image`, {
           method: 'GET',
           credentials: 'include',
         })
@@ -550,7 +550,7 @@ export function VoicePhotoReminiscenceSession({ onBack }: { onBack: () => void }
       formData.append('videoFile', file)
 
       setIsUploading(true)
-      const res = await fetch('http://localhost:8088/api/cognitive/answers', {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/cognitive/answers`, {
         method: 'POST',
         credentials: 'include',
         body: formData,
@@ -896,7 +896,7 @@ export function VoicePhotoReminiscenceSession({ onBack }: { onBack: () => void }
         primaryActionLabel="확인"
         onPrimaryAction={async () => {
           try {
-            await fetch('http://localhost:8088/api/cognitive/emotions?answerType=COGNITIVE_IMAGE', {
+            await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/cogntive/emotions?answerType=COGNITIVE_IMAGE`, {
               method: 'POST',
               credentials: 'include',
               headers: { 'Content-Type': 'application/json' },
