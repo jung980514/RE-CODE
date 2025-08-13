@@ -8,6 +8,8 @@ import { Card } from "@/components/ui/card"
 import { Play, RotateCcw, Mic, ChevronRight, Camera, Pause } from "lucide-react"
 import TrainingCompleteModal from "@/app/main-elder/recall-training/components/TrainingCompleteModal"
 import { useRouter } from "next/navigation"
+import { synthesizeSpeech, playAudio, stopCurrentAudio } from "@/api/googleTTS/googleTTSService"
+import { markRecallTrainingSessionAsCompleted } from "@/lib/auth"
 
 // 감정 분석 훅
 interface EmotionRecord {
@@ -221,6 +223,34 @@ export function VoiceMusicTherapySession({ onBack }: { onBack: () => void }) {
   const sessionEmotionHistory = useRef<Array<{ timestamp: number; emotion: string; confidence: number }>>([])
   const [sessionActive, setSessionActive] = useState<boolean>(false)
   
+  // GIF 이미지 관련 상태
+  const [isSpeaking, setIsSpeaking] = useState(false)
+  const audioContextGifRef = useRef<AudioContext | null>(null)
+  const analyserGifRef = useRef<AnalyserNode | null>(null)
+  const micStreamGifRef = useRef<MediaStream | null>(null)
+  const rafGifRef = useRef<number | null>(null)
+  const lastAboveThresholdMsGifRef = useRef<number>(0)
+  
+  // 말풍선 랜덤 이미지 상태
+  const [currentBalloonImage, setCurrentBalloonImage] = useState<string>('')
+
+  // 랜덤 말풍선 이미지 선택 함수
+  const getRandomBalloonImage = (isSpeaking: boolean): string => {
+    const randomNumber = Math.floor(Math.random() * 5) + 1 // 1~5 랜덤
+    const folder = isSpeaking ? 'talk' : 'nottalk'
+    return `/images/talkballoon/${folder}/${randomNumber}.png`
+  }
+
+  // isSpeaking 상태 변경 시 랜덤 이미지 업데이트
+  useEffect(() => {
+    setCurrentBalloonImage(getRandomBalloonImage(isSpeaking))
+  }, [isSpeaking])
+
+  // 컴포넌트 마운트 시 초기 이미지 설정
+  useEffect(() => {
+    setCurrentBalloonImage(getRandomBalloonImage(false))
+  }, [])
+  
   // 감정 분석 훅 사용
   const { emotion, confidence } = useEmotionDetection(
     videoRef,
@@ -232,13 +262,108 @@ export function VoiceMusicTherapySession({ onBack }: { onBack: () => void }) {
     }
   )
 
+  // 음성 감지 초기화 (GIF 이미지용)
+  useEffect(() => {
+    let cancelled = false
+    const initAudioDetection = async () => {
+      try {
+        const micStream = await navigator.mediaDevices.getUserMedia({ audio: true })
+        if (cancelled) {
+          micStream.getTracks().forEach(t => t.stop())
+          return
+        }
+        micStreamGifRef.current = micStream
+        
+        // 호환: 표준 AudioContext 우선, 없으면 webkitAudioContext 사용
+        let audioContext: AudioContext
+        if ('AudioContext' in window) {
+          const Ctor = window.AudioContext as {
+            new (contextOptions?: AudioContextOptions): AudioContext
+          }
+          audioContext = new Ctor()
+        } else if ('webkitAudioContext' in window) {
+          const Ctor = (window as unknown as {
+            webkitAudioContext: { new (contextOptions?: AudioContextOptions): AudioContext }
+          }).webkitAudioContext
+          audioContext = new Ctor()
+        } else {
+          throw new Error('Web Audio API not supported')
+        }
+        audioContextGifRef.current = audioContext
+        const source = audioContext.createMediaStreamSource(micStream)
+        const analyser = audioContext.createAnalyser()
+        analyser.fftSize = 2048
+        analyser.smoothingTimeConstant = 0.8
+        analyserGifRef.current = analyser
+        source.connect(analyser)
+
+        const data = new Uint8Array(analyser.frequencyBinCount)
+        const SPEAKING_THRESHOLD = 12 // 임계값(조정 가능)
+        const SILENCE_HOLD_MS = 3000  // 무음 3초 유지 시에만 비발화로 전환
+
+        const loop = () => {
+          if (!analyserGifRef.current) return
+          analyserGifRef.current.getByteTimeDomainData(data)
+          // 128 기준으로 편차 RMS 계산
+          let sumSquares = 0
+          for (let i = 0; i < data.length; i++) {
+            const v = data[i] - 128
+            sumSquares += v * v
+          }
+          const rms = Math.sqrt(sumSquares / data.length)
+          const isNowSpeaking = rms > SPEAKING_THRESHOLD
+          const now = performance.now()
+          if (isNowSpeaking) {
+            // 발화 감지: 즉시 speaking 전환, 타임스탬프 갱신
+            if (!isSpeaking) {
+              setIsSpeaking(true)
+            }
+            lastAboveThresholdMsGifRef.current = now
+          } else {
+            // 무음: 마지막 발화 시점으로부터 3초 경과 시에만 speaking 해제
+            if (isSpeaking) {
+              if (now - lastAboveThresholdMsGifRef.current >= SILENCE_HOLD_MS) {
+                setIsSpeaking(false)
+              }
+            }
+          }
+          rafGifRef.current = requestAnimationFrame(loop)
+        }
+        rafGifRef.current = requestAnimationFrame(loop)
+      } catch (e) {
+        console.warn('마이크 접근/분석 초기화 실패:', e)
+      }
+    }
+
+    initAudioDetection()
+    return () => {
+      cancelled = true
+      if (rafGifRef.current) {
+        cancelAnimationFrame(rafGifRef.current)
+        rafGifRef.current = null
+      }
+      if (analyserGifRef.current) {
+        try { analyserGifRef.current.disconnect() } catch {}
+        analyserGifRef.current = null
+      }
+      if (audioContextGifRef.current) {
+        try { audioContextGifRef.current.close() } catch {}
+        audioContextGifRef.current = null
+      }
+      if (micStreamGifRef.current) {
+        try { micStreamGifRef.current.getTracks().forEach(t => t.stop()) } catch {}
+        micStreamGifRef.current = null
+      }
+    }
+  }, [isSpeaking])
+
   useEffect(() => {
     initializeCamera()
     const fetchQuestions = async () => {
       try {
         setQuestionsLoading(true)
         setQuestionsError(null)
-            const res = await fetch(process.env.NEXT_PUBLIC_BACKEND_URL + '/api/cognitive/questions/audio', {
+            const res = await fetch('https://recode-my-life.site/api/cognitive/questions/audio', {
           method: 'GET',
           credentials: 'include',
         })
@@ -259,6 +384,8 @@ export function VoiceMusicTherapySession({ onBack }: { onBack: () => void }) {
     fetchQuestions()
 
     return () => {
+      // 컴포넌트 언마운트 시 모든 오디오 중지
+      stopCurrentAudio()
       if (streamRef.current) {
         streamRef.current.getTracks().forEach((track) => track.stop())
       }
@@ -303,6 +430,13 @@ export function VoiceMusicTherapySession({ onBack }: { onBack: () => void }) {
     if (!streamRef.current) return
 
     try {
+      // 녹화 시작 시 TTS와 음악 모두 중지
+      stopCurrentAudio()
+      const el = audioRef.current
+      if (el) {
+        el.pause()
+        setIsPlaying(false)
+      }
       const videoTracks = streamRef.current.getVideoTracks()
       const audioTracks = streamRef.current.getAudioTracks()
 
@@ -426,12 +560,9 @@ export function VoiceMusicTherapySession({ onBack }: { onBack: () => void }) {
   }
 
   const replayAudio = async () => {
-    const el = audioRef.current
-    if (!el) return
     try {
-      el.currentTime = 0
-      await el.play()
-      setIsPlaying(true)
+      // 음악과 TTS 함께 다시 재생
+      await playMusicAndTTS()
     } catch (e) {
       console.error('오디오 다시재생 오류:', e)
     }
@@ -454,7 +585,36 @@ export function VoiceMusicTherapySession({ onBack }: { onBack: () => void }) {
     return `https://${bucket}.s3.${REGION}.amazonaws.com/${key}`
   }
 
-  // 질문 전환 시 오디오 상태 초기화
+  // 자동 음악 재생 및 TTS 함수
+  const playMusicAndTTS = async () => {
+    if (questions.length === 0 || questionsLoading) return
+    
+    try {
+      // 기존 오디오와 TTS 중지
+      stopCurrentAudio()
+      const el = audioRef.current
+      if (el) {
+        el.pause()
+        el.currentTime = 0
+      }
+      
+      // 음악 자동 재생
+      if (el && questions[currentIndex]?.mediaUrl) {
+        await el.play()
+        setIsPlaying(true)
+      }
+      
+      // TTS 재생 (음악과 동시에)
+      const question = questions[currentIndex]?.content || ''
+      const ttsText = `${question}\n준비가 완료되면 답변하기를 눌러 말씀해주세요.`
+      const audioContent = await synthesizeSpeech(ttsText)
+      await playAudio(audioContent)
+    } catch (error) {
+      console.error('음악 또는 TTS 재생 실패:', error)
+    }
+  }
+
+  // 질문 전환 시 오디오 상태 초기화 및 자동 재생
   useEffect(() => {
     const el = audioRef.current
     if (!el) return
@@ -462,7 +622,15 @@ export function VoiceMusicTherapySession({ onBack }: { onBack: () => void }) {
     el.currentTime = 0
     setIsPlaying(false)
     setHasRecorded(false)
-  }, [currentIndex])
+    
+    // 질문이 로드된 후 자동 재생
+    if (!questionsLoading && questions.length > 0) {
+      // 약간의 지연 후 재생 (DOM 업데이트 대기)
+      setTimeout(() => {
+        playMusicAndTTS()
+      }, 500)
+    }
+  }, [currentIndex, questionsLoading, questions.length])
 
   // 현재 질문 답변 업로드
   const uploadCurrentAnswer = async (): Promise<void> => {
@@ -483,7 +651,7 @@ export function VoiceMusicTherapySession({ onBack }: { onBack: () => void }) {
       formData.append('videoFile', file)
 
       setIsUploading(true)
-  const res = await fetch(process.env.NEXT_PUBLIC_BACKEND_URL + '/api/cognitive/answers', {
+  const res = await fetch('https://recode-my-life.site/api/cognitive/answers', {
         method: 'POST',
         credentials: 'include',
         body: formData,
@@ -502,6 +670,9 @@ export function VoiceMusicTherapySession({ onBack }: { onBack: () => void }) {
 
   const handleNext = () => {
     if (questions.length === 0) return
+    
+    // 기존 오디오와 TTS 중지
+    stopCurrentAudio()
     const el = audioRef.current
     if (el) {
       el.pause()
@@ -511,6 +682,7 @@ export function VoiceMusicTherapySession({ onBack }: { onBack: () => void }) {
       stopRecording()
     }
     setIsPlaying(false)
+    
     // 업로드 후 다음 또는 완료 처리
     void (async () => {
       await uploadCurrentAnswer()
@@ -591,63 +763,50 @@ export function VoiceMusicTherapySession({ onBack }: { onBack: () => void }) {
     }
   }
 
-  const getEmotionEmoji = (emotion: string) => {
-    switch (emotion) {
-      case '행복':
-        return '😊'
-      case '슬픔':
-        return '😢'
-      case '화남':
-        return '😠'
-      case '두려움':
-        return '😨'
-      case '혐오':
-        return '🤢'
-      case '놀람':
-        return '😲'
-      case '중립':
-      default:
-        return '😐'
-    }
-  }
-
-  const getEmotionProgressColor = (emotion: string) => {
-    switch (emotion) {
-      case '행복':
-        return 'bg-yellow-500'
-      case '슬픔':
-        return 'bg-blue-500'
-      case '화남':
-        return 'bg-red-500'
-      case '두려움':
-        return 'bg-purple-500'
-      case '혐오':
-        return 'bg-green-600'
-      case '놀람':
-        return 'bg-orange-500'
-      case '중립':
-      default:
-        return 'bg-emerald-500'
-    }
-  }
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-teal-50 p-4">
-      {/* Header */}
-      <div className="max-w-6xl mx-auto mb-8">
+    <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-teal-50 p-4 relative">
+      {/* 절대위치 회색 사각형 오버레이 - 디자인에 영향 없음 */}
+      <div className="absolute inset-0 z-50 pointer-events-none">
+        <div className="relative w-full h-full">
 
-        <div className="text-center">
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">들려오는 추억 훈련</h1>
-          <p className="text-gray-600">음악과 함께 소중한 추억을 되살려보세요</p>
+          {/* 우상단 말풍선 영역 - 녹화 중일 때만 표시 */}
+          {isRecording && (
+            <div className="absolute top-125 right-50 w-45 h-40">
+              <div className="h-full flex items-center justify-center">
+                {/* 랜덤 말풍선 이미지 표시 */}
+                {currentBalloonImage && (
+                  <img
+                    src={currentBalloonImage}
+                    alt={isSpeaking ? "말하는 중 말풍선" : "대기 중 말풍선"}
+                    className="max-w-full max-h-full object-contain"
+                    onError={(e) => {
+                      console.warn('말풍선 이미지 로드 실패:', currentBalloonImage)
+                      // 이미지 로드 실패 시 기본 이미지로 대체
+                      const target = e.target as HTMLImageElement
+                      target.src = '/images/talkballoon/nottalk/1.png'
+                    }}
+                  />
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="max-w-6xl mx-auto grid lg:grid-cols-2 gap-8">
-        {/* Left Panel - Audio Exercise */}
-        <Card className="p-8 bg-white/80 backdrop-blur-sm shadow-lg">
-          <div className="text-center mb-8">
-            <div className="inline-flex items-center gap-2 bg-emerald-100 text-emerald-700 px-4 py-2 rounded-full text-sm font-medium mb-6">
+      {/* Header */}
+      <div className="max-w-6xl mx-auto mb-8">
+
+        <div>
+          <h1 className="text-4xl font-bold text-gray-800 mb-2" style={{ fontFamily: 'Pretendard' }}>들려오는 추억 훈련</h1>
+        </div>
+      </div>
+
+              {/* Main Content */}
+        <div className="max-w-6xl mx-auto grid lg:grid-cols-3 gap-6">
+          {/* Left Panel - Audio Exercise */}
+                     <Card className="lg:col-span-2 p-5 md:p-6 bg-white shadow-2xl rounded-2xl min-h-[500px]">
+          <div className="text-center mb-4">
+            <div className="inline-flex items-center gap-2 bg-emerald-100 text-emerald-700 px-4 py-2 rounded-full text-lg font-medium mb-3" style={{ fontFamily: 'Pretendard' }}>
               <span>🎵</span>
               {questionsLoading ? (
                 <span>불러오는 중...</span>
@@ -658,19 +817,18 @@ export function VoiceMusicTherapySession({ onBack }: { onBack: () => void }) {
               )}
             </div>
 
-            <h2 className="text-2xl font-bold text-gray-800 mb-2">인지자극훈련</h2>
-            <p className="text-emerald-600 font-medium">소리</p>
+            <h2 className="text-2xl font-bold text-emerald-600 mb-2" style={{ fontFamily: 'Pretendard' }}>인지자극훈련 (소리)</h2>
           </div>
 
-          {/* Audio Player */}
-          <div className="flex items-center justify-between bg-gray-50 rounded-2xl p-6 mb-8">
+                      {/* Audio Player */}
+            <div className="flex items-center justify-between bg-gray-50 rounded-2xl p-4 mb-5">
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 bg-emerald-500 rounded-full flex items-center justify-center">
                 <span className="text-white font-bold text-sm">🎵</span>
               </div>
               <div>
-                <h3 className="font-semibold text-gray-800">인지자극훈련</h3>
-                <p className="text-emerald-600 text-sm">소리</p>
+                <h3 className="font-semibold text-gray-800 text-lg" style={{ fontFamily: 'Pretendard' }}>인지자극훈련</h3>
+                <p className="text-emerald-600 text-base" style={{ fontFamily: 'Pretendard' }}>소리</p>
               </div>
             </div>
 
@@ -691,68 +849,74 @@ export function VoiceMusicTherapySession({ onBack }: { onBack: () => void }) {
             preload="none"
           />
 
-          {/* Question */}
-          <div className="mb-8">
+                      {/* Question */}
+            <div className="mb-5">
             <div className="flex items-start gap-3 mb-4">
-              <div className="w-10 h-10 bg-emerald-500 rounded-full flex items-center justify-center flex-shrink-0">
-                <span className="text-white font-bold text-sm">🎵</span>
-              </div>
               <div>
-                <h3 className="font-semibold text-emerald-600 mb-2">RE:CODE는 궁금해요</h3>
+                <h3 className="font-bold text-emerald-700 text-2xl mb-4" style={{ fontFamily: 'Pretendard' }}>RE:CODE는 궁금해요!</h3>
                 {questionsLoading ? (
-                  <p className="text-gray-600">질문을 불러오는 중입니다...</p>
+                  <p className="text-gray-600 text-xl" style={{ fontFamily: 'Pretendard' }}>질문을 불러오는 중입니다...</p>
                 ) : questionsError ? (
-                  <p className="text-red-600">{questionsError}</p>
+                  <p className="text-red-600 text-xl" style={{ fontFamily: 'Pretendard' }}>{questionsError}</p>
                 ) : questions.length > 0 ? (
-                  <p className="text-gray-700 leading-relaxed">
-                    {questions[currentIndex].content}
-                    <br />
-                    준비가 완료되면 답변하기를 눌러 말씀해주세요
-                  </p>
+                  <div className="text-gray-900 leading-relaxed text-2xl space-y-4" style={{ fontFamily: 'Pretendard' }}>
+                    <p className="mb-4">
+                      {questions[currentIndex].content}
+                    </p>
+                    <p className="text-xl text-gray-700">
+                      준비가 완료되면 <strong className="text-emerald-700">답변하기</strong>를 눌러 말씀해주세요
+                    </p>
+                  </div>
                 ) : (
-                  <p className="text-gray-600">표시할 질문이 없습니다.</p>
+                  <p className="text-gray-600 text-xl" style={{ fontFamily: 'Pretendard' }}>표시할 질문이 없습니다.</p>
                 )}
               </div>
             </div>
           </div>
 
           {/* Control Buttons */}
-          <div className="flex gap-3">
+          <div className="flex gap-6">
             <Button
               variant="outline"
-              className="flex-1 border-emerald-200 text-emerald-700 hover:bg-emerald-50 bg-transparent disabled:opacity-60 disabled:cursor-not-allowed"
+              className="flex-1 h-16 text-2xl border-2 border-emerald-400 text-emerald-800 hover:bg-emerald-50 bg-white focus-visible:ring-4 focus-visible:ring-emerald-300 rounded-xl disabled:opacity-60 disabled:cursor-not-allowed"
+              style={{ fontFamily: 'Pretendard' }}
               onClick={replayAudio}
               disabled={questionsLoading || questions.length === 0}
+              aria-label="음악 다시 재생"
             >
-              <RotateCcw className="w-4 h-4 mr-2" />
-              다시재생
+              다시 재생
             </Button>
 
             <Button
-              className={`flex-1 ${isRecording ? "bg-red-500 hover:bg-red-600" : "bg-emerald-500 hover:bg-emerald-600"}`}
+              className={`flex-1 h-16 text-2xl text-white focus-visible:ring-4 focus-visible:ring-emerald-300 rounded-xl ${
+                isRecording ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'
+              }`}
+              style={{ fontFamily: 'Pretendard' }}
               onClick={handleAnswerClick}
+              aria-pressed={isRecording}
+              aria-label={isRecording ? '녹화중지' : (hasRecorded ? '다시답변' : '답변하기')}
             >
-              <Mic className="w-4 h-4 mr-2" />
-              {isRecording ? "녹화중지" : "답변하기"}
+              {isRecording ? '녹화중지' : (hasRecorded ? '다시답변' : '답변하기')}
             </Button>
 
             <Button
-              className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white disabled:opacity-60 disabled:cursor-not-allowed"
+              className="flex-1 h-16 text-2xl bg-emerald-700 hover:bg-emerald-800 text-white focus-visible:ring-4 focus-visible:ring-emerald-300 disabled:opacity-60 disabled:cursor-not-allowed rounded-xl"
+              style={{ fontFamily: 'Pretendard' }}
               onClick={handleNext}
               disabled={questions.length === 0 || isRecording || !hasRecorded || isUploading}
+              aria-label={questions.length > 0 && currentIndex === questions.length - 1 ? '완료하기' : '다음 노래로 이동'}
             >
-              {questions.length > 0 && currentIndex === questions.length - 1 ? '완료하기' : '다음노래'}
-              <ChevronRight className="w-4 h-4 ml-2" />
+              {questions.length > 0 && currentIndex === questions.length - 1 ? '완료하기' : '다음 노래'}
             </Button>
           </div>
         </Card>
 
-        {/* Right Panel - Webcam */}
-        <Card className="p-6 bg-white/80 backdrop-blur-sm shadow-lg">
-          <h3 className="text-lg font-semibold text-gray-800 mb-4">내 화면(김수정)</h3>
+                  {/* Right Panel - Webcam */}
+                     <Card className="lg:col-span-1 p-5 md:p-6 bg-white shadow-2xl rounded-2xl min-h-[400px]" aria-label="영상 미리보기">
+            <h3 className="text-2xl text-center font-extrabold text-gray-900 mb-4" style={{ fontFamily: 'Pretendard' }}>내 화면</h3>
 
           {/* Webcam Display */}
-          <div className="relative bg-gray-900 rounded-2xl overflow-hidden mb-6" style={{ aspectRatio: "4/3" }}>
+          <div className="relative bg-gray-900 rounded-2xl overflow-hidden mb-4" style={{ aspectRatio: "4/3" }}>
             {cameraLoading && (
               <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-400">
                 <Camera className="w-16 h-16 mb-4 opacity-50" />
@@ -786,37 +950,32 @@ export function VoiceMusicTherapySession({ onBack }: { onBack: () => void }) {
             )}
           </div>
 
-          {/* Status */}
-          <div className="space-y-4">
-            <h4 className="font-semibold text-gray-800">감정 분석</h4>
-
-            <div className="flex justify-between items-center">
-              <span className="text-gray-600">현재 감정:</span>
-              <span className={`font-medium ${getEmotionColor(emotion)} flex items-center gap-2`}>
-                <span className="text-lg">{getEmotionEmoji(emotion)}</span>
-                {emotion}
-              </span>
-            </div>
-
-            <div className="flex justify-between items-center">
-              <span className="text-gray-600">신뢰도:</span>
-              <span className="text-emerald-600 font-medium">{confidence}%</span>
-            </div>
-
-            {/* 감정 진행바 */}
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-600">감정 강도</span>
-                <span className="text-gray-600">{confidence}%</span>
-              </div>
-              <div className="w-full bg-gray-200 rounded-full h-2">
-                <div 
-                  className={`h-2 rounded-full transition-all duration-300 ${getEmotionProgressColor(emotion)}`}
-                  style={{ width: `${Math.min(confidence, 100)}%` }}
-                ></div>
+                      {/* Status */}
+            <div className="space-y-4 mb-4">
+              <div className="flex justify-between items-center text-xl">
+                <span className="text-gray-800" style={{ fontFamily: 'Pretendard' }}>현재 감정</span>
+                <span className="text-emerald-700 font-extrabold" style={{ fontFamily: 'Pretendard' }}>{emotion}</span>
               </div>
             </div>
-          </div>
+
+            {/* Image Area */}
+            <div className="flex-1">
+              <div className="h-full bg-white rounded-2xl overflow-hidden relative min-h-[200px]">
+                {/* 음성 감지에 따른 GIF 이미지 표시 */}
+                <div className="flex items-center justify-center h-full">
+                  <img
+                    src={isSpeaking ? "/images/hearfox.gif" : "/images/speepfox.gif"}
+                    alt={isSpeaking ? "말하는 중" : "대기 중"}
+                    className="w-4/5 h-4/5 object-contain"
+                  />
+                </div>
+                
+                {/* 플레이스홀더 (이미지 로드 실패 시 대체) */}
+                <div className="absolute inset-0 flex items-center justify-center text-gray-400" style={{ display: 'none' }}>
+                  <Camera className="w-16 h-16 opacity-50" aria-hidden="true" />
+                </div>
+              </div>
+            </div>
         </Card>
       </div>
       {/* 완료 모달 */}
@@ -828,12 +987,14 @@ export function VoiceMusicTherapySession({ onBack }: { onBack: () => void }) {
         primaryActionLabel="확인"
         onPrimaryAction={async () => {
           try {
-            await fetch(process.env.NEXT_PUBLIC_BACKEND_URL + '/api/cogntive/emotions?answerType=COGNITIVE_AUDIO', {
+            await fetch('https://recode-my-life.site/api/cognitive/emotions?answerType=COGNITIVE_AUDIO', {
               method: 'POST',
               credentials: 'include',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ emotion: (finalEmotion || 'NEUTRAL').toUpperCase() }),
             })
+            // 감정 데이터 전송 성공 시 로컬스토리지에 완료 상태 저장
+            markRecallTrainingSessionAsCompleted('music')
           } catch (e) {
             console.error('감정 전송 실패:', e)
           } finally {
