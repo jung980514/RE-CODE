@@ -145,7 +145,7 @@ export const login = async (credentials: LoginCredentials): Promise<User> => {
           }
         }
         
-        // 회상훈련 세션 상태를 localStorage에 저장
+        // 회상훈련 세션 상태를 localStorage에 저장 / 
         const completed: string[] = []
         if (statusData.basic) completed.push('memory')
         if (statusData.personal) completed.push('story')
