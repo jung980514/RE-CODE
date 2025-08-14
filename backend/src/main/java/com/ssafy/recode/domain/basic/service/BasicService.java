@@ -12,10 +12,13 @@ import com.ssafy.recode.domain.common.service.AiPromptService;
 import com.ssafy.recode.domain.common.service.GenericPersistenceService;
 import com.ssafy.recode.domain.common.service.S3UploaderService;
 import com.ssafy.recode.domain.common.service.VideoTranscriptionService;
+import com.ssafy.recode.domain.link.repository.GuardianElderRepository;
 import com.ssafy.recode.global.dto.request.EmotionRequset;
 import com.ssafy.recode.global.dto.response.calendar.VideoListResponse;
 import com.ssafy.recode.global.dto.response.calendar.VideoUrlItem;
+import com.ssafy.recode.global.dto.response.link.ElderSummaryResponse;
 import com.ssafy.recode.global.enums.AnswerType;
+import com.ssafy.recode.global.enums.Role;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -40,6 +43,7 @@ public class BasicService {
   private final GenericPersistenceService    genericPersistenceService;
   private final BasicAnswerRepository        basicAnswerRepository;
   private final DailyEmotionSummaryRepository dailyEmotionSummaryRepository;
+  private final GuardianElderRepository guardianElderRepository;
 
   /** MP4 파일을 S3에 업로드하고 key 반환 */
   public String uploadMedia(MultipartFile file) {
@@ -124,8 +128,14 @@ public class BasicService {
   }
 
   public VideoListResponse getBasicVideosByDate(User user, LocalDate date) {
+    Long elderId = user.getId();
+    if(user.getRole() != Role.ELDER){
+      List<ElderSummaryResponse> list = guardianElderRepository.findLinkedEldersByGuardianId(user.getId());
+      elderId = list.get(0).id();
+    }
+
     // 1) DB에서 저장된 video_path(키 또는 URL) 조회
-    List<BasicVideoRow> rows = basicAnswerRepository.findVideoPathsByDate(user.getId(), date);
+    List<BasicVideoRow> rows = basicAnswerRepository.findVideoPathsByDate(elderId, date);
 
     // 2) videoPath → S3 key 정규화 후 presign, answerId와 함께 DTO로
     List<VideoUrlItem> items = rows.stream()
