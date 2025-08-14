@@ -26,8 +26,7 @@ import {
   getIncompleteRecallTrainingSessions,
   isRecallTrainingSessionCompleted,
   clearRecallTrainingProgress,
-  type RecallTrainingSession,
-  syncRecallTrainingSessionsFromStatus // 추가
+  type RecallTrainingSession
 } from "@/lib/auth"
 
 export default function RecallTrainingMain() {
@@ -37,18 +36,8 @@ export default function RecallTrainingMain() {
 
 
   useEffect(() => {
-    // recall-training status 동기화
-    fetch("https://recode-my-life.site/api/user/status", { credentials: "include" })
-      .then(res => res.json())
-      .then(json => {
-        if (json.status === "success" && json.data) {
-          syncRecallTrainingSessionsFromStatus(json.data)
-        }
-        updateSessionStatus()
-      })
-      .catch(() => {
-        updateSessionStatus()
-      })
+    // 로컬스토리지에서 세션 상태 로드
+    updateSessionStatus()
   }, [])
 
   const updateSessionStatus = () => {
@@ -375,7 +364,7 @@ export default function RecallTrainingMain() {
                                       : isNext 
                                         ? '다음 단계' 
                                         : isLocked 
-                                          ? '잠김' 
+                                          ? '' 
                                           : '시작 가능'
                                     }
                                   </div>
