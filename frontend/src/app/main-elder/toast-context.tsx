@@ -9,11 +9,12 @@ interface Toast {
   id: number
   message: string
   type: ToastType
+  autoClose?: boolean
 }
 
 interface ToastContextType {
   toasts: Toast[]
-  addToast: (message: string, type: ToastType) => void
+  addToast: (message: string, type: ToastType, options?: { autoClose?: boolean }) => void
   removeToast: (id: number) => void
 }
 
@@ -30,8 +31,9 @@ export const useToast = () => {
 export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [toasts, setToasts] = useState<Toast[]>([])
 
-  const addToast = useCallback((message: string, type: ToastType) => {
-    setToasts((prevToasts) => [...prevToasts, { id: Date.now(), message, type }])
+  const addToast = useCallback((message: string, type: ToastType, options?: { autoClose?: boolean }) => {
+    const autoClose = options?.autoClose !== false // 기본값은 true, false로 설정하면 자동으로 닫히지 않음
+    setToasts((prevToasts) => [...prevToasts, { id: Date.now(), message, type, autoClose }])
   }, [])
 
   const removeToast = useCallback((id: number) => {
