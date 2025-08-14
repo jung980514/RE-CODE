@@ -772,16 +772,15 @@ export function VoicePhotoReminiscenceSession({ onBack }: { onBack: () => void }
           <div className="mb-1">
             <div className="flex items-start gap-2">
               <div>
-                <h3 className="font-semibold text-purple-600 text-sm mb-1" style={{ fontFamily: 'Pretendard' }}>RECODE는 궁금해요</h3>
                 {questionsLoading ? (
                   <p className="text-gray-600 text-sm" style={{ fontFamily: 'Pretendard' }}>질문을 불러오는 중입니다...</p>
                 ) : questionsError ? (
                   <p className="text-red-600 text-sm" style={{ fontFamily: 'Pretendard' }}>{questionsError}</p>
                 ) : questions.length > 0 ? (
-                  <p className="text-gray-700 leading-relaxed text-3xl" style={{ fontFamily: 'Pretendard' }}>
+                  <p className="text-gray-700 leading-relaxed text-3xl" style={{ fontFamily: 'Paperlogy' }}>
                     {questions[currentIndex].content}
                     <br />
-                    준비가 완료되면 대답하기 버튼을 눌러 대답해주세요
+                   <p className="text-gray-700 leading-relaxed text-xl"  style={{ fontFamily: 'Pretendard'}}>준비가 완료되면 <strong className="text-purple-600">대답하기</strong> 버튼을 눌러 대답해주세요</p> 
                   </p>
                 ) : (
                   <p className="text-gray-600 text-sm" style={{ fontFamily: 'Pretendard' }}>표시할 질문이 없습니다.</p>
@@ -798,7 +797,6 @@ export function VoicePhotoReminiscenceSession({ onBack }: { onBack: () => void }
               className="flex-1 border-purple-200 text-purple-700 hover:bg-purple-50 bg-transparent h-12 text-base text-2xl"
               style={{ fontFamily: 'Pretendard' }}
             >
-              <RotateCcw className="w-5 h-5 mr-2" />
               다시재생
             </Button>
 
@@ -807,13 +805,11 @@ export function VoicePhotoReminiscenceSession({ onBack }: { onBack: () => void }
               onClick={handleAnswerClick}
               style={{ fontFamily: 'Pretendard' }}
             >
-              <Mic className="w-5 h-5 mr-2 " />
               {isRecording ? "녹화중지" : "대답하기"}
             </Button>
 
             <Button className="flex-1 h-12 text-base bg-purple-500 hover:bg-purple-600 text-white disabled:opacity-60 disabled:cursor-not-allowed text-2xl" onClick={handleNext} disabled={questions.length === 0 || isRecording || !hasRecorded || isUploading} style={{ fontFamily: 'Pretendard' }}>
               {questions.length > 0 && currentIndex === questions.length - 1 ? '완료하기' : '다음 사진'}
-              <ChevronRight className="w-5 h-5 ml-2" />
             </Button>
           </div>
         </Card>
@@ -896,7 +892,7 @@ export function VoicePhotoReminiscenceSession({ onBack }: { onBack: () => void }
         primaryActionLabel="확인"
         onPrimaryAction={async () => {
           try {
-            await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/cogntive/emotions?answerType=COGNITIVE_IMAGE`, {
+            await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/cognitive/emotions?answerType=COGNITIVE_IMAGE`, {
               method: 'POST',
               credentials: 'include',
               headers: { 'Content-Type': 'application/json' },
@@ -910,6 +906,9 @@ export function VoicePhotoReminiscenceSession({ onBack }: { onBack: () => void }
           }
         }}
       />
+      
+      {/* 플로팅 버튼 */}
+      <FloatingButtons />
     </div>
   )
 }
