@@ -2,7 +2,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  output: "standalone",
+  // output: "standalone", // 환경변수 로딩 문제로 인해 제거
 
   // ✅ S3(또는 CloudFront) 외부 이미지를 허용.
   images: {
