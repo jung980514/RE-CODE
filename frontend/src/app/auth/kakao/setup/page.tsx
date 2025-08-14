@@ -9,8 +9,10 @@ import styles from './page.module.css';
 import PrivacyPolicyModal from "@/components/common/PrivacyPolicyModal";
 import { authApi } from '@/lib/api';
 import SensitivePolicyModal from '@/components/common/SensitivePolicyModal';
-import Datepicker, { DateValueType } from 'react-tailwindcss-datepicker';
 import { VirtualKeyboard } from '@/components/common/VirtualKeyboard';
+
+// flatpickr 타입 정의
+type FlatpickrController = { destroy: () => void } | null;
 
 const KakaoSetupPage: React.FC = () => {
   const router = useRouter();
@@ -21,6 +23,10 @@ const KakaoSetupPage: React.FC = () => {
   // 가상키보드 상태
   const [showVirtualKeyboard, setShowVirtualKeyboard] = useState(false);
   const [activeInput, setActiveInput] = useState<string | null>(null);
+
+  // flatpickr 관련
+  const flatpickrRef = useRef<FlatpickrController>(null);
+  const birthInputRef = useRef<HTMLInputElement>(null);
 
   // 개인정보 동의서 모달 상태
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
@@ -40,10 +46,85 @@ const KakaoSetupPage: React.FC = () => {
     agreeToSensitive: false
   });
 
-  const [birthDateValue, setBirthDateValue] = useState<DateValueType>({
-    startDate: null,
-    endDate: null,
-  });
+  // 가상키보드 토글 핸들러
+  const handleVirtualKeyboardToggle = () => {
+    const newState = !showVirtualKeyboard;
+    setShowVirtualKeyboard(newState);
+    
+    // 가상 키보드가 활성화되면 flatpickr 비활성화
+    if (newState && flatpickrRef.current) {
+      try {
+        flatpickrRef.current.destroy();
+        flatpickrRef.current = null;
+      } catch {}
+    } else if (!newState && birthInputRef.current) {
+      // 가상 키보드가 비활성화되면 flatpickr 다시 초기화
+      setTimeout(() => {
+        initFlatpickr();
+      }, 100);
+    }
+  };
+
+  // flatpickr 초기화 함수
+  const initFlatpickr = async () => {
+    if (!birthInputRef.current) return;
+
+    try {
+      const fpModule = await import('flatpickr');
+      const localeModule = await import('flatpickr/dist/l10n/ko.js');
+      const flatpickr = (fpModule as { default: (el: HTMLElement, opts?: unknown) => { destroy: () => void } }).default;
+      const Korean = (localeModule as { Korean: unknown }).Korean;
+
+      // 기존 인스턴스 제거
+      if (flatpickrRef.current) {
+        try { flatpickrRef.current.destroy(); } catch {}
+        flatpickrRef.current = null;
+      }
+
+      flatpickrRef.current = flatpickr(birthInputRef.current, {
+        dateFormat: 'Y-m-d',
+        maxDate: 'today',
+        locale: Korean,
+        allowInput: false,
+        onChange: (_selectedDates: Date[], dateStr: string) => {
+          handleInputChange('birthDate', dateStr || '');
+        }
+      });
+    } catch (e) {
+      console.warn('flatpickr 초기화 실패', e);
+    }
+  };
+
+  // flatpickr 초기화
+  useEffect(() => {
+    let isMounted = true;
+
+    if (currentStep === 'userInfo' && !showVirtualKeyboard) {
+      // 약간의 지연을 두어 DOM이 완전히 렌더링된 후 초기화
+      const timer = setTimeout(() => {
+        if (isMounted) {
+          initFlatpickr();
+        }
+      }, 100);
+
+      return () => {
+        clearTimeout(timer);
+        isMounted = false;
+        if (flatpickrRef.current) {
+          flatpickrRef.current.destroy();
+          flatpickrRef.current = null;
+        }
+      };
+    }
+
+    return () => {
+      isMounted = false;
+      if (flatpickrRef.current) {
+        flatpickrRef.current.destroy();
+        flatpickrRef.current = null;
+      }
+    };
+  }, [currentStep, showVirtualKeyboard]);
 
   // 로그인 상태 확인
   useEffect(() => {
@@ -88,26 +169,6 @@ const KakaoSetupPage: React.FC = () => {
       ...prev,
       [field]: value
     }));
-  };
-
-  const handleBirthDateChange = (newValue: DateValueType) => {
-    setBirthDateValue(newValue);
-    if (newValue?.startDate) {
-      // Date 객체를 YYYY-MM-DD 형식으로 변환
-      const date = new Date(newValue.startDate);
-      const year = date.getFullYear();
-      const month = String(date.getMonth() + 1).padStart(2, '0');
-      const day = String(date.getDate()).padStart(2, '0');
-      const formattedDate = `${year}-${month}-${day}`;
-      handleInputChange('birthDate', formattedDate);
-    }
-  };
-
-
-
-  // 가상키보드 토글 핸들러
-  const handleVirtualKeyboardToggle = () => {
-    setShowVirtualKeyboard(!showVirtualKeyboard);
   };
 
   // 가상키보드에서 입력 처리
@@ -412,19 +473,22 @@ const KakaoSetupPage: React.FC = () => {
                   {/* 생년월일 */}
                   <div className={styles.inputGroup}>
                     <label className={styles.label}>생년월일 *</label>
-                    <Datepicker
-                      i18n="ko"
-                      asSingle={true}
-                      useRange={false}
-                      value={birthDateValue}
-                      onChange={(value) => handleBirthDateChange(value)}
-                      placeholder="생년월일을 선택해주세요."
-                      inputClassName={styles.input}
-                      toggleClassName="absolute right-3 top-1/2 -translate-y-1/2"
-                      toggleIcon={() => <CalendarIcon className="h-6 w-6 text-gray-500" />}
-                      displayFormat="YYYY/MM/DD"
-                      primaryColor="blue"
-                      containerClassName="relative w-full"
+                    <input
+                      type="text"
+                      ref={birthInputRef}
+                      value={formData.birthDate}
+                      onChange={(e) => handleInputChange('birthDate', e.target.value)}
+                      onFocus={() => {
+                        setActiveInput('birthDate');
+                        // flatpickr가 활성화되어 있으면 가상 키보드 대신 flatpickr 사용
+                        if (flatpickrRef.current) {
+                          // flatpickr가 활성화되어 있으므로 가상 키보드는 비활성화
+                        }
+                      }}
+                      placeholder="YYYY-MM-DD"
+                      className={styles.input}
+                      readOnly
+                      required
                     />
                   </div>
                 </div>
