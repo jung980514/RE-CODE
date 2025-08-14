@@ -906,9 +906,6 @@ export function VoicePhotoReminiscenceSession({ onBack }: { onBack: () => void }
           }
         }}
       />
-      
-      {/* 플로팅 버튼 */}
-      <FloatingButtons />
     </div>
   )
 }
