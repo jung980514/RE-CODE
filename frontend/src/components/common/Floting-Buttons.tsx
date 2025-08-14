@@ -27,31 +27,31 @@ export function FloatingButtons() {
   }
 
   return (
-    <div className="fixed right-4 top-1/2 -translate-y-1/2 flex flex-col gap-4 z-50">
+    <div className="fixed right-6 top-1/2 -translate-y-1/2 flex flex-col gap-6 z-50">
       <Button
         variant="outline"
         size="icon"
-        className="rounded-full w-12 h-12 shadow-md bg-white hover:bg-gray-50"
+        className="rounded-full w-20 h-20 shadow-lg bg-white hover:bg-gray-50 border-2"
         aria-label={isZoomed ? "Zoom Out" : "Zoom In"}
         onClick={handleZoomToggle}
       >
         {isZoomed ? (
-          <ZoomOut className="h-6 w-6" />
+          <ZoomOut className="h-10 w-10" />
         ) : (
-          <ZoomIn className="h-6 w-6" />
+          <ZoomIn className="h-10 w-10" />
         )}
       </Button>
       
       <Button
         variant="outline"
         size="icon"
-        className={`rounded-full w-12 h-12 shadow-md hover:bg-gray-50 ${
+        className={`rounded-full w-20 h-20 shadow-lg hover:bg-gray-50 border-2 ${
           isCustomCursor ? 'bg-blue-100 border-blue-300' : 'bg-white'
         }`}
         aria-label={isCustomCursor ? "Reset Cursor" : "Change Cursor"}
         onClick={handleCursorToggle}
       >
-        <MousePointer2 className="h-6 w-6" />
+        <MousePointer2 className="h-10 w-10" />
       </Button>
     </div>
   )
