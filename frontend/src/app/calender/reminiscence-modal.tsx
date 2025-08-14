@@ -50,26 +50,23 @@ interface ReminiscenceModalProps {
 const getEmotionEmoji = (answerType: string, dominantEmotion: string | null): string => {
   if (dominantEmotion) {
     // dominantEmotion이 있으면 해당 감정에 맞는 이모지 반환
-    switch(dominantEmotion.toLowerCase()) {
-      case 'happy':
-      case 'joy':
+    switch(dominantEmotion) {
+      case 'HAPPY':
         return '😊'
-      case 'sad':
-      case 'sadness':
+      case 'SAD':
         return '😢'
-      case 'angry':
-      case 'anger':
+      case 'ANGRY':
         return '😠'
-      case 'fear':
+      case 'FEARFUL':
         return '😨'
-      case 'surprise':
+      case 'SURPRISED':
         return '😲'
-      case 'disgust':
+      case 'DISGUSTED':
         return '🤢'
-      case 'neutral':
+      case 'NEUTRAL':
         return '😐'
       default:
-        return '😊'
+        return '😐'
     }
   }
   
@@ -98,14 +95,6 @@ export function ReminiscenceModal({ isOpen, onClose, record }: ReminiscenceModal
   const [videoData, setVideoData] = useState<VideoData | null>(null)
   const [loading, setLoading] = useState(false)
   const [expandedVideos, setExpandedVideos] = useState<Record<string, number>>({})
-
-  if (!record) return null
-
-  const formattedDate = new Date(record.date).toLocaleDateString("ko-KR", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  })
 
   // API 호출 함수
   const fetchEmotionAndVideoData = async (date: string) => {
@@ -152,10 +141,10 @@ export function ReminiscenceModal({ isOpen, onClose, record }: ReminiscenceModal
 
   // 모달이 열릴 때 API 호출
   useEffect(() => {
-    if (isOpen && record.date) {
+    if (isOpen && record?.date) {
       fetchEmotionAndVideoData(record.date)
     }
-  }, [isOpen, record.date])
+  }, [isOpen, record?.date])
 
   // 해당 섹션으로 스크롤하는 함수
   const scrollToSection = (answerType: string) => {
@@ -186,7 +175,14 @@ export function ReminiscenceModal({ isOpen, onClose, record }: ReminiscenceModal
     }
   }
 
+  // record가 없으면 아무것도 렌더링하지 않음
+  if (!record) return null
 
+  const formattedDate = new Date(record.date).toLocaleDateString("ko-KR", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  })
 
   const renderVideoSection = (categoryKey: string, category: VideoCategory, emotionForCategory?: EmotionData) => {
     if (!category.hasData || category.items.length === 0) {
