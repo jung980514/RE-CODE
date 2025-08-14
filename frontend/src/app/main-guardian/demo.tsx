@@ -1,9 +1,12 @@
 "use client"
 import { motion } from "framer-motion"
+import { useState } from "react"
 import { ToastProvider, useToast } from "@/app/main-elder/toast-context"
 import { ToastContainer } from "@/app/main-elder/animated-toast"
 import { Carousel } from "@/app/main-guardian/carousel"
 import { HelpCircle, ContactRound, CalendarDays,} from "lucide-react"
+import { useRouter } from 'next/navigation'
+import HelpDialog from "@/components/common/help-dialog"
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -27,25 +30,27 @@ const itemVariants = {
 
 const FlowersAndSaintsUI = () => {
   const { addToast } = useToast()
-
+  const router = useRouter()
+  const [isHelpDialogOpen, setIsHelpDialogOpen] = useState(false)
+  
   const items = [
     {
       Icon: ContactRound,
       title: "회원정보",
       description: "소중한 개인정보와 보호자 정보를 안전하게 보호하며 관리합니다",
-      action: () => addToast("St. Francis is known for his love of nature", "saint"),
+      action: () => router.push('/userinfo'),
     },
     {
       Icon: CalendarDays,
       title: "회상캘린더",
       description: "우리가 함께 나눈 이야기와 되살린 기억들이 담긴 감성적인 달력입니다.",
-      action: () => addToast("Sunflowers always face the sun", "flower"),
+      action: () => router.push('/calender'),
     },
-        {
+    {
       Icon: HelpCircle,
       title: "도움말",
       description: "서비스를 활용하는 방법을 알려드립니다.",
-      action: () => addToast("Roses symbolize love and passion", "flower"),
+      action: () => setIsHelpDialogOpen(true),
     },
   ]
 
@@ -72,6 +77,14 @@ const FlowersAndSaintsUI = () => {
       <motion.div className="flex justify-center">
         <Carousel items={items} />
       </motion.div>
+      
+      {/* 도움말 모달 */}
+      <HelpDialog
+        isOpen={isHelpDialogOpen}
+        onOpenChange={setIsHelpDialogOpen}
+        programs={[]}
+      />
+      
       <ToastContainer />
     </motion.div>
   )
