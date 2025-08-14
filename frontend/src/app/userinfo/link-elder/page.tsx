@@ -11,6 +11,9 @@ import { AlertModal, ConfirmModal } from '@/components/ui/modal';
 export default function GuardianLinkPage() {
   const router = useRouter();
   
+  // 사용자 역할 확인
+  const [userRole, setUserRole] = useState<string>('');
+  
   // 연동 토큰 관련 상태
   const [generatedToken, setGeneratedToken] = useState<string>('');
   const [tokenExpiry, setTokenExpiry] = useState<number>(0);
@@ -54,6 +57,12 @@ export default function GuardianLinkPage() {
     phone: string;
   };
   const [linkedGuardians, setLinkedGuardians] = useState<LinkedGuardian[]>([]);
+
+  // 사용자 역할 가져오기
+  useEffect(() => {
+    const role = localStorage.getItem('role');
+    setUserRole(role || '');
+  }, []);
 
   // 토큰 만료 시간 카운트다운
   useEffect(() => {
@@ -433,13 +442,17 @@ export default function GuardianLinkPage() {
                           </div>
                         </div>
                         <div className="flex gap-2">
-                          <Button variant="outline" size="sm">
-                            <Eye className="w-4 h-4 mr-1" />
-                            권한 보기
-                          </Button>
-                          <Button variant="outline" size="sm" className="text-red-600 hover:text-red-700 bg-transparent">
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
+                          {userRole !== 'ELDER' && (
+                            <>
+                              <Button variant="outline" size="sm">
+                                <Eye className="w-4 h-4 mr-1" />
+                                권한 보기
+                              </Button>
+                              <Button variant="outline" size="sm" className="text-red-600 hover:text-red-700 bg-transparent">
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </>
+                          )}
                         </div>
                       </div>
                     </div>
