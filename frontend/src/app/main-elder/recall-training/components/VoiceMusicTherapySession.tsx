@@ -10,6 +10,7 @@ import TrainingCompleteModal from "@/app/main-elder/recall-training/components/T
 import { useRouter } from "next/navigation"
 import { synthesizeSpeech, playAudio, stopCurrentAudio } from "@/api/googleTTS/googleTTSService"
 import { markRecallTrainingSessionAsCompleted } from "@/lib/auth"
+import { FloatingButtons } from "@/components/common/Floting-Buttons"
 
 // 감정 분석 훅
 interface EmotionRecord {
@@ -769,16 +770,16 @@ export function VoiceMusicTherapySession({ onBack }: { onBack: () => void }) {
       <div className="absolute inset-0 z-50 pointer-events-none">
         <div className="relative w-full h-full">
 
-          {/* 우상단 말풍선 영역 - 녹화 중일 때만 표시 */}
+                    {/* 말풍선 영역 - 녹화 중일 때만 표시, 반응형으로 여우 위에 배치 */}
           {isRecording && (
-            <div className="absolute top-125 right-50 w-45 h-40">
+            <div className="absolute bottom-[25vh] right-[70vw] sm:bottom-[15vh] sm:right-[24vw] md:bottom-[20vh] md:right-[22vw] lg:bottom-[25vh] lg:right-[20vw] xl:bottom-[35vh] xl:right-[18vw] w-[120px] h-[100px] sm:w-[140px] sm:h-[120px] md:w-[160px] md:h-[140px] lg:w-[180px] lg:h-[160px] xl:w-[200px] xl:h-[180px]">
               <div className="h-full flex items-center justify-center">
                 {/* 랜덤 말풍선 이미지 표시 */}
                 {currentBalloonImage && (
                   <img
                     src={currentBalloonImage}
                     alt={isSpeaking ? "말하는 중 말풍선" : "대기 중 말풍선"}
-                    className="max-w-full max-h-full object-contain"
+                    className="max-w-full max-h-full object-contain transition-all duration-300"
                     onError={(e) => {
                       console.warn('말풍선 이미지 로드 실패:', currentBalloonImage)
                       // 이미지 로드 실패 시 기본 이미지로 대체
@@ -853,13 +854,12 @@ export function VoiceMusicTherapySession({ onBack }: { onBack: () => void }) {
             <div className="mb-5">
             <div className="flex items-start gap-3 mb-4">
               <div>
-                <h3 className="font-bold text-emerald-700 text-2xl mb-4" style={{ fontFamily: 'Pretendard' }}>RE:CODE는 궁금해요!</h3>
                 {questionsLoading ? (
                   <p className="text-gray-600 text-xl" style={{ fontFamily: 'Pretendard' }}>질문을 불러오는 중입니다...</p>
                 ) : questionsError ? (
                   <p className="text-red-600 text-xl" style={{ fontFamily: 'Pretendard' }}>{questionsError}</p>
                 ) : questions.length > 0 ? (
-                  <div className="text-gray-900 leading-relaxed text-2xl space-y-4" style={{ fontFamily: 'Pretendard' }}>
+                  <div className="text-gray-900 leading-relaxed text-3xl space-y-4" style={{ fontFamily: 'Paperlogy' }}>
                     <p className="mb-4">
                       {questions[currentIndex].content}
                     </p>
@@ -1003,6 +1003,9 @@ export function VoiceMusicTherapySession({ onBack }: { onBack: () => void }) {
           }
         }}
       />
+      
+      {/* 플로팅 버튼 */}
+      <FloatingButtons />
     </div>
   )
 }
