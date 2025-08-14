@@ -1,4 +1,4 @@
-package com.ssafy.recode.global.dto.response.calender;
+package com.ssafy.recode.global.dto.response.calendar;
 
 import java.time.LocalDateTime;
 import lombok.AllArgsConstructor;
