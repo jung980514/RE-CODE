@@ -12,10 +12,13 @@ import com.ssafy.recode.domain.common.service.AiPromptService;
 import com.ssafy.recode.domain.common.service.GenericPersistenceService;
 import com.ssafy.recode.domain.common.service.S3UploaderService;
 import com.ssafy.recode.domain.common.service.VideoTranscriptionService;
+import com.ssafy.recode.domain.link.repository.GuardianElderRepository;
 import com.ssafy.recode.global.dto.request.EmotionRequset;
 import com.ssafy.recode.global.dto.response.calendar.VideoListResponse;
 import com.ssafy.recode.global.dto.response.calendar.VideoUrlItem;
+import com.ssafy.recode.global.dto.response.link.ElderSummaryResponse;
 import com.ssafy.recode.global.enums.AnswerType;
+import com.ssafy.recode.global.enums.Role;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -42,6 +45,7 @@ public class CognitiveService {
   private final GenericPersistenceService   genericPersistenceService;
   private final CognitiveAnswerRepository cognitiveAnswerRepository;
   private final DailyEmotionSummaryRepository dailyEmotionSummaryRepository;
+  private final GuardianElderRepository guardianElderRepository;
 
   /**
    * mediaType에 따라 audio/mp4 또는 이미지 파일을 S3에 업로드
@@ -151,9 +155,14 @@ public class CognitiveService {
   }
 
   public VideoListResponse getCognitiveVideosByDate(User user, LocalDate date, AnswerType answerType) {
+    Long elderId = user.getId();
+    if(user.getRole() != Role.ELDER){
+      List<ElderSummaryResponse> list = guardianElderRepository.findLinkedEldersByGuardianId(user.getId());
+      elderId = list.get(0).id();
+    }
     String answerTypeStr = answerType.equals(AnswerType.COGNITIVE_AUDIO) ? "audio" : "image";
     // 1) DB에서 저장된 video_path(키 또는 URL) 조회
-    List<CognitiveVideoRow> rows = cognitiveAnswerRepository.findVideoPathsByDate(user.getId(), date, answerTypeStr);
+    List<CognitiveVideoRow> rows = cognitiveAnswerRepository.findVideoPathsByDate(elderId, date, answerTypeStr);
 
     // 2) videoPath → S3 key 정규화 후 presign, answerId와 함께 DTO로
     List<VideoUrlItem> items = rows.stream()
