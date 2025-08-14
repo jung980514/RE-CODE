@@ -16,7 +16,7 @@ const nextConfig: NextConfig = {
       // { protocol: "https", hostname: "dXXXXXXXX.cloudfront.net", pathname: "/**" },
     ],
 
-    // Presigned URL(만료되는 URL)이라면 캐시 충돌 피하려면 전역으로 끄는 것도 방법
+    // Presigned URL(만료되는 URL)이라면 캐시 충돌 피하려면 전역으로 끄는 것도 방법.
     // 컴포넌트에서 <Image unoptimized />로 꺼도 됩니다.
     // unoptimized: true,
   },
