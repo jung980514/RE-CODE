@@ -9,7 +9,7 @@ import com.ssafy.recode.domain.survey.entity.SurveyAnswer;
 import com.ssafy.recode.domain.survey.entity.SurveyQuestion;
 import com.ssafy.recode.domain.survey.repository.SurveyAnswerRepository;
 import com.ssafy.recode.domain.survey.repository.SurveyRepository;
-import com.ssafy.recode.global.dto.response.calender.MonthlyCalendarResponse;
+import com.ssafy.recode.global.dto.response.calendar.MonthlyCalendarResponse;
 import com.ssafy.recode.global.dto.response.survey.SurveyQAResponse;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -114,10 +114,7 @@ public class SurveyService {
   }
 
   public List<MonthlyCalendarResponse> getMonthlyCalendar(User user, int year, int month) {
-    LocalDate startDate = LocalDate.of(year, month, 1);
-    System.out.println(user.getId());
-
-    return surveyAnswerRepository.findMonthlyCalendarWithFlags(user.getId(), startDate).stream()
+    return surveyAnswerRepository.findMonthlyCalendarWithFlags(user.getId(), year, month).stream()
         .map(r -> new MonthlyCalendarResponse(
             r.getCalDate().toLocalDate(),
             r.getHasData() != null && r.getHasData() == 1

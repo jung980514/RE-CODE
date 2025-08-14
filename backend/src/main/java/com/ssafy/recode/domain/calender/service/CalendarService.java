@@ -2,7 +2,7 @@ package com.ssafy.recode.domain.calender.service;
 
 import com.ssafy.recode.domain.auth.entity.User;
 import com.ssafy.recode.domain.calender.repository.DailyEmotionSummaryRepository;
-import com.ssafy.recode.global.dto.response.calender.EmotionByTypeResponse;
+import com.ssafy.recode.global.dto.response.calendar.EmotionByTypeResponse;
 import java.sql.Date;
 import java.sql.Timestamp;
 import java.time.LocalDate;
@@ -13,7 +13,7 @@ import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
-public class CalenderService {
+public class CalendarService {
 
   private final DailyEmotionSummaryRepository dailyEmotionSummaryRepository;
 
