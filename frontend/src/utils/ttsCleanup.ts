@@ -1,8 +1,8 @@
 import { googleTTSService } from "@/api/googleTTS/googleTTSService"
 
-/**
+/*
  * 페이지 이탈 시 GTTS를 중지하는 유틸리티 함수들
- */
+*/
 
 // 모든 오디오 요소를 강제로 중지
 export const forceStopAllAudio = () => {
