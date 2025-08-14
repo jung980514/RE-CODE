@@ -4,7 +4,7 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   output: "standalone",
 
-  // ✅ S3(또는 CloudFront) 외부 이미지를 허용
+  // ✅ S3(또는 CloudFront) 외부 이미지를 허용.
   images: {
     remotePatterns: [
       {
