@@ -112,6 +112,70 @@ export const handleKakaoCallback = async (): Promise<KakaoLoginResponse> => {
       localStorage.setItem('name', userData.name || '');
       localStorage.setItem('email', userData.email || '');
 
+      // 로그인 성공 후 일일 설문 완료 여부 조회 → 로컬스토리지 플래그 저장
+      try {
+        const dailySurveyResp = await axios.get(`${KAKAO_CONFIG.API_BASE_URL}/api/user/daily-survey`, {
+          withCredentials: true
+        });
+        if (dailySurveyResp.status === 200) {
+          const json = dailySurveyResp.data;
+          let isCompleted = false;
+          if (typeof json === 'boolean') {
+            isCompleted = json;
+          } else if (typeof json === 'string') {
+            isCompleted = json === 'true';
+          } else if (typeof json === 'object' && json !== null) {
+            const root = json as Record<string, unknown>;
+            const direct = root['data'];
+            if (typeof direct === 'boolean') {
+              isCompleted = direct;
+            } else if (typeof direct === 'string') {
+              isCompleted = direct === 'true';
+            }
+          }
+          localStorage.setItem('isdailysurveycompleted', isCompleted ? '1' : '0');
+        } else {
+          localStorage.setItem('isdailysurveycompleted', '0');
+        }
+      } catch (e) {
+        console.error('일일 설문 완료 여부 조회 실패:', e);
+        try { localStorage.setItem('isdailysurveycompleted', '0'); } catch {}
+      }
+
+      // 로그인 성공 후 회상훈련 상태 조회 → 로컬스토리지에 저장
+      try {
+        const statusResp = await axios.get(`${KAKAO_CONFIG.API_BASE_URL}/api/user/status`, {
+          withCredentials: true
+        });
+        if (statusResp.status === 200) {
+          const json = statusResp.data;
+          let statusData: { basic?: boolean; personal?: boolean; cognitiveAudio?: boolean; cognitiveImage?: boolean } = {};
+          
+          if (typeof json === 'object' && json !== null) {
+            const root = json as Record<string, unknown>;
+            const direct = root['data'];
+            if (typeof direct === 'object' && direct !== null) {
+              statusData = direct as { basic?: boolean; personal?: boolean; cognitiveAudio?: boolean; cognitiveImage?: boolean };
+            }
+          }
+          
+          // 회상훈련 세션 상태를 localStorage에 저장
+          const completed: string[] = [];
+          if (statusData.basic) completed.push('memory');
+          if (statusData.personal) completed.push('story');
+          if (statusData.cognitiveAudio) completed.push('music');
+          if (statusData.cognitiveImage) completed.push('photo');
+          
+          localStorage.setItem('completedRecallTrainingSessions', JSON.stringify(completed));
+          console.log('카카오 로그인 - 회상훈련 상태 저장 완료:', completed);
+        } else {
+          localStorage.setItem('completedRecallTrainingSessions', JSON.stringify([]));
+        }
+      } catch (e) {
+        console.error('카카오 로그인 - 회상훈련 상태 조회 실패:', e);
+        try { localStorage.setItem('completedRecallTrainingSessions', JSON.stringify([])); } catch {}
+      }
+
       // 최초 로그인 사용자인 경우 설문조사 완료 여부 확인
       if (role === 'USER') {
         // 카카오 설문조사 완료 여부 확인 (이메일별)
@@ -138,6 +202,38 @@ export const handleKakaoCallback = async (): Promise<KakaoLoginResponse> => {
           if (savedRole && (savedRole === 'ELDER' || savedRole === 'GUARDIAN')) {
             console.log('✅ 이전에 설정한 역할 발견:', savedRole);
             localStorage.setItem('role', savedRole);
+            
+            // 이미 역할이 설정된 사용자의 경우 회상훈련 상태도 다시 조회
+            try {
+              const statusResp = await axios.get(`${KAKAO_CONFIG.API_BASE_URL}/api/user/status`, {
+                withCredentials: true
+              });
+              if (statusResp.status === 200) {
+                const json = statusResp.data;
+                let statusData: { basic?: boolean; personal?: boolean; cognitiveAudio?: boolean; cognitiveImage?: boolean } = {};
+                
+                if (typeof json === 'object' && json !== null) {
+                  const root = json as Record<string, unknown>;
+                  const direct = root['data'];
+                  if (typeof direct === 'object' && direct !== null) {
+                    statusData = direct as { basic?: boolean; personal?: boolean; cognitiveAudio?: boolean; cognitiveImage?: boolean };
+                  }
+                }
+                
+                // 회상훈련 세션 상태를 localStorage에 저장
+                const completed: string[] = [];
+                if (statusData.basic) completed.push('memory');
+                if (statusData.personal) completed.push('story');
+                if (statusData.cognitiveAudio) completed.push('music');
+                if (statusData.cognitiveImage) completed.push('photo');
+                
+                localStorage.setItem('completedRecallTrainingSessions', JSON.stringify(completed));
+                console.log('이미 역할 설정된 카카오 사용자 - 회상훈련 상태 저장 완료:', completed);
+              }
+            } catch (e) {
+              console.error('이미 역할 설정된 카카오 사용자 - 회상훈련 상태 조회 실패:', e);
+            }
+            
             // role 값을 업데이트하여 콜백 페이지에서 올바른 페이지로 이동하도록 함
             const result = {
               success: true,
@@ -152,6 +248,37 @@ export const handleKakaoCallback = async (): Promise<KakaoLoginResponse> => {
             console.log('✅ 최종 반환 결과 (저장된 역할 사용):', result);
             return result;
           }
+        }
+      } else if (role === 'ELDER' || role === 'GUARDIAN') {
+        // 이미 역할이 설정된 사용자의 경우 회상훈련 상태도 다시 조회
+        try {
+          const statusResp = await axios.get(`${KAKAO_CONFIG.API_BASE_URL}/api/user/status`, {
+            withCredentials: true
+          });
+          if (statusResp.status === 200) {
+            const json = statusResp.data;
+            let statusData: { basic?: boolean; personal?: boolean; cognitiveAudio?: boolean; cognitiveImage?: boolean } = {};
+            
+            if (typeof json === 'object' && json !== null) {
+              const root = json as Record<string, unknown>;
+              const direct = root['data'];
+              if (typeof direct === 'object' && direct !== null) {
+                statusData = direct as { basic?: boolean; personal?: boolean; cognitiveAudio?: boolean; cognitiveImage?: boolean };
+              }
+            }
+            
+            // 회상훈련 세션 상태를 localStorage에 저장
+            const completed: string[] = [];
+            if (statusData.basic) completed.push('memory');
+            if (statusData.personal) completed.push('story');
+            if (statusData.cognitiveAudio) completed.push('music');
+            if (statusData.cognitiveImage) completed.push('photo');
+            
+            localStorage.setItem('completedRecallTrainingSessions', JSON.stringify(completed));
+            console.log('이미 역할 설정된 카카오 사용자 - 회상훈련 상태 저장 완료:', completed);
+          }
+        } catch (e) {
+          console.error('이미 역할 설정된 카카오 사용자 - 회상훈련 상태 조회 실패:', e);
         }
       }
 
@@ -252,5 +379,7 @@ export const kakaoLogout = async (): Promise<void> => {
     localStorage.removeItem('phone');
     localStorage.removeItem('birthDate');
     localStorage.removeItem('kakaoUserInfo');
+    localStorage.removeItem('isdailysurveycompleted');
+    localStorage.removeItem('completedRecallTrainingSessions');
   }
 };
