@@ -126,6 +126,42 @@ export const login = async (credentials: LoginCredentials): Promise<User> => {
       try { localStorage.setItem('isdailysurveycompleted', '0') } catch {}
     }
 
+    // 로그인 성공 후 회상훈련 상태 조회 → 로컬스토리지에 저장
+    try {
+      const statusResp = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/user/status`, {
+        method: 'GET',
+        credentials: 'include',
+        headers: { 'Accept': 'application/json' },
+      })
+      if (statusResp.ok) {
+        const json: unknown = await statusResp.json()
+        let statusData: { basic?: boolean; personal?: boolean; cognitiveAudio?: boolean; cognitiveImage?: boolean } = {}
+        
+        if (typeof json === 'object' && json !== null) {
+          const root = json as Record<string, unknown>
+          const direct = root['data']
+          if (typeof direct === 'object' && direct !== null) {
+            statusData = direct as { basic?: boolean; personal?: boolean; cognitiveAudio?: boolean; cognitiveImage?: boolean }
+          }
+        }
+        
+        // 회상훈련 세션 상태를 localStorage에 저장 / 
+        const completed: string[] = []
+        if (statusData.basic) completed.push('memory')
+        if (statusData.personal) completed.push('story')
+        if (statusData.cognitiveAudio) completed.push('music')
+        if (statusData.cognitiveImage) completed.push('photo')
+        
+        localStorage.setItem('completedRecallTrainingSessions', JSON.stringify(completed))
+        console.log('회상훈련 상태 저장 완료:', completed)
+      } else {
+        localStorage.setItem('completedRecallTrainingSessions', JSON.stringify([]))
+      }
+    } catch (e) {
+      console.error('회상훈련 상태 조회 실패:', e)
+      try { localStorage.setItem('completedRecallTrainingSessions', JSON.stringify([])) } catch {}
+    }
+
     return user;
   } catch (error) {
     console.error('Login API call failed:', error);
