@@ -18,9 +18,11 @@ import {
   Clock,
   MessageCircle,
   CheckCircle,
-  RefreshCw
+  RefreshCw,
+  HelpCircle
 } from "lucide-react"
 import { motion } from "framer-motion"
+import HelpModal from "./components/help-modal"
 import { 
   getCompletedRecallTrainingSessions, 
   getIncompleteRecallTrainingSessions,
@@ -33,7 +35,7 @@ export default function RecallTrainingMain() {
   const router = useRouter()
   const [completedSessions, setCompletedSessions] = useState<RecallTrainingSession[]>([])
   const [incompleteSessions, setIncompleteSessions] = useState<RecallTrainingSession[]>([])
-
+  const [isHelpModalOpen, setIsHelpModalOpen] = useState(false)
 
   useEffect(() => {
     // 로컬스토리지에서 세션 상태 로드
@@ -133,19 +135,19 @@ export default function RecallTrainingMain() {
           )}
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
-                <span className="text-white font-bold">{config.step}</span>
+              <div className="w-14 h-14 bg-white/20 rounded-full flex items-center justify-center">
+                <span className="text-white font-bold text-xl" style={{ fontFamily: "Paperlogy, sans-serif" }}>{config.step}</span>
               </div>
               <IconComponent className="w-6 h-6" />
             </div>
-            <div className="bg-white/20 px-3 py-1 rounded-full text-sm">
+            <div className="bg-white/20 px-4 py-2 rounded-full text-lg" style={{ fontFamily: "Paperlogy, sans-serif" }}>
               {config.category}
             </div>
           </div>
-          <h3 className="text-2xl font-bold mb-2">{config.title}</h3>
-          <p className="text-white/90">{config.description}</p>
+          <h3 className="text-4xl font-bold mb-4" style={{ fontFamily: "Paperlogy, sans-serif" }}>{config.title}</h3>
+          <p className="text-xl text-white/90" style={{ fontFamily: "Paperlogy, sans-serif" }}>{config.description}</p>
           {isCompleted && (
-            <div className="mt-2 text-white/80 text-sm">
+            <div className="mt-3 text-white/80 text-lg" style={{ fontFamily: "Paperlogy, sans-serif" }}>
               ✓ {config.questions}개 질문 완료
             </div>
           )}
@@ -156,15 +158,15 @@ export default function RecallTrainingMain() {
               <div className={`w-full h-48 rounded-lg flex items-center justify-center ${config.bgImage ? 'bg-cover bg-center' : `bg-gradient-to-br ${config.bgGradient}`}`} style={config.bgImage ? { backgroundImage: `url(${config.bgImage})` } : {}}></div>
             </div>
           </div>
-          <p className="text-gray-600 mb-6">{config.longDescription}</p>
+          <p className="text-xl text-gray-600 mb-8 leading-relaxed" style={{ fontFamily: "Paperlogy, sans-serif" }}>{config.longDescription}</p>
           <div className="flex items-center gap-6 mb-6">
             <div className="flex items-center gap-2 text-gray-500">
               <Clock className="w-4 h-4" />
-              <span className="text-sm">15분</span>
+              <span className="text-xl" style={{ fontFamily: "Paperlogy, sans-serif" }}>15분</span>
             </div>
             <div className="flex items-center gap-2 text-gray-500">
               <MessageCircle className="w-4 h-4" />
-              <span className="text-sm">{config.category}</span>
+              <span className="text-xl" style={{ fontFamily: "Paperlogy, sans-serif" }}>{config.category}</span>
             </div>
           </div>
           <Button 
@@ -172,18 +174,18 @@ export default function RecallTrainingMain() {
               e.stopPropagation()
               handleStartTraining(sessionId)
             }}
-            className={`w-full bg-gradient-to-r ${config.gradient} text-white hover:opacity-90 py-3 ${isCompleted ? 'opacity-50' : ''}`}
+            className={`w-full bg-gradient-to-r ${config.gradient} text-white hover:opacity-90 py-6 text-2xl ${isCompleted ? 'opacity-50' : ''}`}
             disabled={isCompleted}
           >
             {isCompleted ? (
               <>
-                <CheckCircle className="w-4 h-4 mr-2" aria-hidden="true" />
-                완료됨
+                <CheckCircle className="w-6 h-6 mr-3" aria-hidden="true" />
+                <span style={{ fontFamily: "Paperlogy, sans-serif" }}>완료됨</span>
               </>
             ) : (
               <>
-                <Play className="w-4 h-4 mr-2" />
-                시작하기
+                <Play className="w-6 h-6 mr-3" />
+                <span style={{ fontFamily: "Paperlogy, sans-serif" }}>시작하기</span>
               </>
             )}
           </Button>
@@ -208,11 +210,23 @@ export default function RecallTrainingMain() {
             transition={{ duration: 0.8 }}
           >
                         {/* 메인 질문 */}
-                        <div className="mb-12">
-              <h1 className="text-5xl font-bold text-gray-800 mb-6 text-center" style={{ fontFamily: "Paperlogy, sans-serif" }}>
-                어떤 <span className="text-purple-600">추억 여행</span>을 떠나고 싶으신가요?
-              </h1>
-              <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed text-center">
+                        <div className="mb-12 relative">
+              <div className="flex items-center justify-center relative">
+                <h1 className="text-5xl font-bold text-gray-800 mb-6 text-center" style={{ fontFamily: "Paperlogy, sans-serif" }}>
+                  어떤 <span className="text-purple-600">추억 여행</span>을 떠나고 싶으신가요?
+                </h1>
+                {/* 도움말 버튼 */}
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setIsHelpModalOpen(true)}
+                  className="absolute right-0 top-0 rounded-full w-16 h-16 shadow-md bg-white hover:bg-gray-50 border-purple-200 hover:border-purple-300"
+                  aria-label="도움말"
+                >
+                  <HelpCircle className="h-12 w-12 text-purple-600" />
+                </Button>
+              </div>
+              <p className="text-3xl text-gray-600 max-w-4xl mx-auto leading-relaxed text-center" style={{ fontFamily: "Paperlogy, sans-serif" }}>
                 개인 맞춤형 회상 훈련 프로그램으로 소중한 기억들을 되살리고 새로운 추억을 만들어보세요
               </p>
             </div>
@@ -228,8 +242,8 @@ export default function RecallTrainingMain() {
                           <Star className="w-6 h-6 text-white" />
                         </div>
                         <div>
-                          <h2 className="text-2xl font-bold">나의 추억 여행 진행도</h2>
-                          <p className="text-white/90">
+                          <h2 className="text-4xl font-bold" style={{ fontFamily: "Paperlogy, sans-serif" }}>나의 추억 여행 진행도</h2>
+                          <p className="text-2xl text-white/90" style={{ fontFamily: "Paperlogy, sans-serif" }}>
                             {completedSessions.length > 0 
                               ? `${completedSessions.length}/4 세션 완료 (${Math.round((completedSessions.length / 4) * 100)}%)`
                               : "추억 여행을 시작해보세요!"
@@ -246,12 +260,12 @@ export default function RecallTrainingMain() {
                     {/* 진행도 바 */}
                     <div className="mb-8">
                       <div className="flex items-center justify-between mb-3">
-                        <span className="text-sm font-medium text-gray-700">전체 진행률</span>
-                        <span className="text-sm font-bold text-purple-600">
+                        <span className="text-2xl font-medium text-gray-700" style={{ fontFamily: "Paperlogy, sans-serif" }}>전체 진행률</span>
+                        <span className="text-2xl font-bold text-purple-600" style={{ fontFamily: "Paperlogy, sans-serif" }}>
                           {Math.round((completedSessions.length / 4) * 100)}%
                         </span>
                       </div>
-                      <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+                      <div className="w-full bg-gray-200 rounded-full h-6 overflow-hidden">
                         <motion.div 
                           className="h-full bg-gradient-to-r from-purple-500 to-blue-500 rounded-full"
                           initial={{ width: 0 }}
@@ -261,166 +275,7 @@ export default function RecallTrainingMain() {
                       </div>
                     </div>
 
-                    {/* 프로그램 단계별 그래프 */}
-                    <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-                      {(Object.keys(sessionConfig) as RecallTrainingSession[]).map((sessionId, index) => {
-                        const config = sessionConfig[sessionId]
-                        const IconComponent = config.icon
-                        const isCompleted = isRecallTrainingSessionCompleted(sessionId)
-                        const isNext = !isCompleted && completedSessions.length === index
-                        const isLocked = !isCompleted && completedSessions.length < index
 
-                        return (
-                          <motion.div
-                            key={sessionId}
-                            className={`relative ${!isLocked ? 'cursor-pointer' : 'cursor-not-allowed'}`}
-                            onClick={() => {
-                              if (!isLocked) handleStartTraining(sessionId)
-                            }}
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: index * 0.2, duration: 0.6 }}
-                            whileHover={!isLocked ? { scale: 1.05 } : {}}
-                          >
-                            {/* 연결 화살표 (마지막 제외) */}
-                            {index < 3 && (
-                              <div className="hidden lg:block absolute top-1/2 -right-3 transform -translate-y-1/2 z-10">
-                                <div className={`w-6 h-0.5 ${isCompleted ? 'bg-green-400' : 'bg-gray-300'}`}>
-                                  <div className={`w-0 h-0 border-l-[6px] border-t-[3px] border-b-[3px] border-t-transparent border-b-transparent absolute right-0 top-1/2 transform -translate-y-1/2 ${isCompleted ? 'border-l-green-400' : 'border-l-gray-300'}`}></div>
-                                </div>
-                              </div>
-                            )}
-
-                            {/* 카드 */}
-                            <div className={`relative overflow-hidden rounded-xl border-2 transition-all duration-300 ${
-                              isCompleted 
-                                ? 'border-green-400 bg-green-50' 
-                                : isNext 
-                                  ? 'border-yellow-400 bg-yellow-50 shadow-lg' 
-                                  : isLocked 
-                                    ? 'border-gray-200 bg-gray-50 opacity-60' 
-                                    : 'border-gray-200 bg-white hover:border-purple-300'
-                            }`}>
-                              {/* 상단 색상 바 */}
-                              <div className={`h-2 bg-gradient-to-r ${config.gradient}`} />
-                              
-                              {/* 컨텐츠 */}
-                              <div className="p-4">
-                                {/* 아이콘과 단계 */}
-                                <div className="flex items-center justify-between mb-3">
-                                  <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                                    isCompleted 
-                                      ? 'bg-green-100 text-green-600' 
-                                      : isNext 
-                                        ? 'bg-yellow-100 text-yellow-600' 
-                                        : `bg-gradient-to-r ${config.gradient} text-white`
-                                  }`}>
-                                    {isCompleted ? (
-                                      <CheckCircle className="w-5 h-5" />
-                                    ) : (
-                                      <IconComponent className="w-5 h-5" />
-                                    )}
-                                  </div>
-                                  <div className={`text-xs font-bold px-2 py-1 rounded-full ${
-                                    isCompleted 
-                                      ? 'bg-green-100 text-green-600' 
-                                      : isNext 
-                                        ? 'bg-yellow-100 text-yellow-600' 
-                                        : 'bg-gray-100 text-gray-600'
-                                  }`}>
-                                    STEP {config.step}
-                                  </div>
-                                </div>
-
-                                {/* 제목과 설명 */}
-                                <h3 className={`font-bold mb-2 ${
-                                  isLocked ? 'text-gray-400' : 'text-gray-800'
-                                }`}>
-                                  {config.title}
-                                </h3>
-                                <p className={`text-xs mb-3 ${
-                                  isLocked ? 'text-gray-400' : 'text-gray-600'
-                                }`}>
-                                  {config.description}
-                                </p>
-
-                                {/* 상태 표시 */}
-                                <div className="flex items-center justify-between">
-                                  <div className="flex items-center gap-1 text-xs text-gray-500">
-                                    <Clock className="w-3 h-3" />
-                                    <span>15분</span>
-                                  </div>
-                                  <div className={`text-xs font-medium ${
-                                    isCompleted 
-                                      ? 'text-green-600' 
-                                      : isNext 
-                                        ? 'text-yellow-600' 
-                                        : isLocked 
-                                          ? 'text-gray-400' 
-                                          : 'text-purple-600'
-                                  }`}>
-                                    {isCompleted 
-                                      ? '완료' 
-                                      : isNext 
-                                        ? '다음 단계' 
-                                        : isLocked 
-                                          ? '' 
-                                          : '시작 가능'
-                                    }
-                                  </div>
-                                </div>
-
-                                {/* 액션 버튼 */}
-                                {!isLocked && (
-                                  <Button 
-                                    className={`w-full mt-3 text-xs py-2 ${
-                                      isCompleted 
-                                        ? 'bg-green-100 text-green-700 hover:bg-green-200' 
-                                        : isNext 
-                                          ? 'bg-yellow-400 text-yellow-900 hover:bg-yellow-500 shadow-md' 
-                                          : `bg-gradient-to-r ${config.gradient} text-white hover:opacity-90`
-                                    }`}
-                                    onClick={(e) => {
-                                      e.stopPropagation()
-                                      handleStartTraining(sessionId)
-                                    }}
-                                    disabled={isLocked}
-                                  >
-                                    {isCompleted ? (
-                                      <>
-                                        <CheckCircle className="w-3 h-3 mr-1" />
-                                        다시하기
-                                      </>
-                                    ) : (
-                                      <>
-                                        <Play className="w-3 h-3 mr-1" />
-                                        {isNext ? '지금 시작!' : '시작하기'}
-                                      </>
-                                    )}
-                                  </Button>
-                                )}
-                              </div>
-
-                              {/* 특별 효과 */}
-                              {isNext && (
-                                <motion.div
-                                  className="absolute -inset-1 bg-gradient-to-r from-yellow-400 to-orange-400 rounded-xl opacity-20"
-                                  animate={{ 
-                                    opacity: [0.2, 0.4, 0.2],
-                                    scale: [1, 1.02, 1]
-                                  }}
-                                  transition={{ 
-                                    duration: 2, 
-                                    repeat: Infinity,
-                                    ease: "easeInOut"
-                                  }}
-                                />
-                              )}
-                            </div>
-                          </motion.div>
-                        )
-                      })}
-                    </div>
 
                     {/* 하단 설명 */}
                     <div className="mt-8 p-4 bg-purple-50 rounded-lg border border-purple-100">
@@ -429,8 +284,8 @@ export default function RecallTrainingMain() {
                           <span className="text-purple-600 text-sm">💡</span>
                         </div>
                         <div>
-                          <h4 className="font-medium text-purple-800 mb-1">추천 진행 순서</h4>
-                          <p className="text-sm text-purple-700">
+                          <h4 className="font-bold text-purple-800 mb-3 text-3xl" style={{ fontFamily: "Paperlogy, sans-serif" }}>추천 진행 순서</h4>
+                          <p className="text-2xl text-purple-700 leading-relaxed" style={{ fontFamily: "Paperlogy, sans-serif" }}>
                             <span className="font-medium">기초질문</span>으로 시작해서 
                             <span className="font-medium"> 개인화질문</span>, 
                             <span className="font-medium"> 들려오는 추억</span>, 
@@ -478,6 +333,12 @@ export default function RecallTrainingMain() {
         </div> {/* max-w-6xl ... */}
       </div> {/* min-h-screen ... */}
       <FloatingButtons />
+      
+      {/* 도움말 모달 */}
+      <HelpModal 
+        open={isHelpModalOpen} 
+        onOpenChange={setIsHelpModalOpen} 
+      />
     </>
   )
 }

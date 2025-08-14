@@ -8,80 +8,75 @@ export default function SurveyIntro({ onStartSurvey }: SurveyIntroProps) {
   const { questions, isLoading, error } = useDailySurveyQuestions()
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#F8FAFC' }}>
-      <div className="max-w-4xl mx-auto px-6 py-8">
+      <div className="max-w-6xl mx-auto px-8 py-12">
         {/* Header Section */}
-        <div className="text-center mb-8">
-          <div className="flex justify-center mb-4">
-            <div className="w-16 h-16 bg-blue-600 rounded-lg flex items-center justify-center">
-              <MessageSquare className="w-8 h-8 text-white" />
-            </div>
-          </div>
-          <h1 className="text-4xl font-bold text-blue-800 mb-2">
-            개인화 설문조사
+        <div className="text-center mb-16">
+          <h1 className="text-6xl font-bold text-purple-800 mb-6" style={{ fontFamily: "Paperlogy, sans-serif" }}>
+            오늘의 건강 설문
           </h1>
-          <p className="text-lg text-gray-600">
-            맞춤형 치매 예방 프로그램을 위한 개인 정보 수집
+          <p className="text-3xl text-gray-600 max-w-4xl mx-auto leading-relaxed" style={{ fontFamily: "Paperlogy, sans-serif" }}>
+            오늘 하루의 컨디션과 기분을 체크해보세요
           </p>
         </div>
 
         {/* Information Blocks */}
-        <div className="flex justify-center gap-8 mb-12">
+        <div className="flex justify-center gap-16 mb-20">
           {/* 3개 질문 - 파란색 */}
-          <div className="text-center">
-            <MessageSquare className="w-6 h-6 text-blue-500 mx-auto mb-2" />
-            <p className="font-semibold text-blue-800 text-lg">{questions.length}개 질문</p>
-            <p className="text-blue-600 text-sm">{surveyInfo.personalizedQuestions}</p>
+          <div className="text-center bg-blue-50 p-8 rounded-xl shadow-md">
+            <MessageSquare className="w-12 h-12 text-blue-500 mx-auto mb-4" />
+            <p className="font-bold text-blue-800 text-3xl mb-2" style={{ fontFamily: "Paperlogy, sans-serif" }}>{questions.length}개 질문</p>
+            <p className="text-blue-600 text-xl" style={{ fontFamily: "Paperlogy, sans-serif" }}>{surveyInfo.personalizedQuestions}</p>
           </div>
 
           {/* 음성 답변 - 연두색 */}
-          <div className="text-center">
-            <Mic className="w-6 h-6 text-green-400 mx-auto mb-2" />
-            <p className="font-semibold text-green-600 text-lg">{surveyInfo.voiceAnswer}</p>
-            <p className="text-green-500 text-sm">{surveyInfo.voiceAnswerDesc}</p>
+          <div className="text-center bg-green-50 p-8 rounded-xl shadow-md">
+            <Mic className="w-12 h-12 text-green-500 mx-auto mb-4" />
+            <p className="font-bold text-green-700 text-3xl mb-2" style={{ fontFamily: "Paperlogy, sans-serif" }}>{surveyInfo.voiceAnswer}</p>
+            <p className="text-green-600 text-xl" style={{ fontFamily: "Paperlogy, sans-serif" }}>{surveyInfo.voiceAnswerDesc}</p>
           </div>
 
           {/* 약 5분 - 보라(그대로) */}
-          <div className="text-center">
-            <Clock className="w-6 h-6 text-purple-600 mx-auto mb-2" />
-            <p className="font-semibold text-purple-800 text-lg">{surveyInfo.estimatedTime}</p>
-            <p className="text-purple-600 text-sm">예상 소요 시간</p>
+          <div className="text-center bg-purple-50 p-8 rounded-xl shadow-md">
+            <Clock className="w-12 h-12 text-purple-600 mx-auto mb-4" />
+            <p className="font-bold text-purple-800 text-3xl mb-2" style={{ fontFamily: "Paperlogy, sans-serif" }}>{surveyInfo.estimatedTime}</p>
+            <p className="text-purple-600 text-xl" style={{ fontFamily: "Paperlogy, sans-serif" }}>예상 소요 시간</p>
           </div>
         </div>
 
         {/* Question Preview Section */}
         <div>
-          <h2 className="text-2xl font-bold text-purple-800 mb-6 text-left">
+          <h2 className="text-5xl font-bold text-purple-800 mb-12 text-left" style={{ fontFamily: "Paperlogy, sans-serif" }}>
             질문 미리보기
           </h2>
           
-          <div className="space-y-4">
+          <div className="space-y-8">
             {isLoading && (
-              <div className="text-gray-600">질문을 불러오는 중...</div>
+              <div className="text-gray-600 text-2xl" style={{ fontFamily: "Paperlogy, sans-serif" }}>질문을 불러오는 중...</div>
             )}
             {error && !isLoading && (
-              <div className="text-red-600">{error}</div>
+              <div className="text-red-600 text-2xl" style={{ fontFamily: "Paperlogy, sans-serif" }}>{error}</div>
             )}
             {!isLoading && !error && questions.map((question, index) => (
               <div
                 key={question.id}
-                className="relative rounded-lg p-6 shadow-sm"
+                className="relative rounded-xl p-10 shadow-lg"
                 style={{ 
                   backgroundColor: question.color,
-                  borderLeft: `4px solid ${question.borderColor}`
+                  borderLeft: `6px solid ${question.borderColor}`
                 }}
               >
-                <div className="flex items-start gap-4">
-                  <div className="text-2xl mt-1">
+                <div className="flex items-start gap-8">
+                  <div className="text-5xl mt-2">
                     {question.icon}
                   </div>
                   <div className="flex-1">
-                    <p className="text-sm font-medium text-purple-800 mb-2">
-                      질문 {index + 1} {question.category}
+                    <p className="text-xl font-medium text-purple-800 mb-4" style={{ fontFamily: "Paperlogy, sans-serif" }}>
+                      질문 {index + 1} • {question.category}
                     </p>
-                    <h3 className="text-lg font-bold text-purple-800 mb-2">
+                    <h3 className="text-3xl font-bold text-purple-800 mb-4" style={{ fontFamily: "Paperlogy, sans-serif" }}>
                       {question.title}
                     </h3>
-                    <p className="text-purple-600 text-sm">
+                    <p className="text-purple-600 text-xl leading-relaxed" style={{ fontFamily: "Paperlogy, sans-serif" }}>
                       {question.description}
                     </p>
                   </div>
@@ -92,13 +87,14 @@ export default function SurveyIntro({ onStartSurvey }: SurveyIntroProps) {
         </div>
 
         {/* Start Survey Button */}
-        <div className="flex justify-center mt-12">
+        <div className="flex justify-center mt-20">
           <button
             onClick={onStartSurvey}
-            className="bg-purple-600 hover:bg-purple-700 text-white font-semibold py-4 px-8 rounded-lg flex items-center gap-2 transition-colors duration-200 shadow-lg"
+            className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-8 px-16 rounded-2xl flex items-center gap-4 transition-colors duration-200 shadow-xl text-3xl"
+            style={{ fontFamily: "Paperlogy, sans-serif" }}
           >
             설문 시작하기
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
           </button>

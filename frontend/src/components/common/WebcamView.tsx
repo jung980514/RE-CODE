@@ -338,7 +338,7 @@ export function WebcamView({
 
   return (
     <div className="text-center">
-      <h3 className="text-lg font-semibold text-gray-800 mb-4">AI상담사</h3>
+      <h3 className="text-lg font-semibold text-gray-800 mb-4">금호</h3>
 
       {/* 웹캠 화면 */}
       <div className="relative bg-gray-900 aspect-square rounded-xl overflow-hidden mb-6">
@@ -348,7 +348,7 @@ export function WebcamView({
               <div className="w-16 h-16 bg-gray-600 rounded-full flex items-center justify-center mx-auto mb-3">
                 <span className="text-2xl"><Camera /></span>
               </div>
-              <p className="text-sm">상담사를 불러오는 중...</p>
+              <p className="text-sm">금호를 불러오는 중...</p>
             </div>
           </div>
         ) : (
