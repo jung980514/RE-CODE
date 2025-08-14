@@ -5,12 +5,15 @@ import com.ssafy.recode.domain.auth.entity.User;
 import com.ssafy.recode.domain.common.service.GenericPersistenceService;
 import com.ssafy.recode.domain.common.service.S3UploaderService;
 import com.ssafy.recode.domain.common.service.VideoTranscriptionService;
+import com.ssafy.recode.domain.link.repository.GuardianElderRepository;
 import com.ssafy.recode.domain.survey.entity.SurveyAnswer;
 import com.ssafy.recode.domain.survey.entity.SurveyQuestion;
 import com.ssafy.recode.domain.survey.repository.SurveyAnswerRepository;
 import com.ssafy.recode.domain.survey.repository.SurveyRepository;
 import com.ssafy.recode.global.dto.response.calendar.MonthlyCalendarResponse;
+import com.ssafy.recode.global.dto.response.link.ElderSummaryResponse;
 import com.ssafy.recode.global.dto.response.survey.SurveyQAResponse;
+import com.ssafy.recode.global.enums.Role;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -33,6 +36,7 @@ public class SurveyService {
   private final VideoTranscriptionService transcriptionService;
   private final S3UploaderService uploader;
   private final GenericPersistenceService genericPersistenceService;
+  private final GuardianElderRepository guardianElderRepository;
 
   /**
    * 일일 설문 질문 조회
@@ -114,12 +118,17 @@ public class SurveyService {
   }
 
   public List<MonthlyCalendarResponse> getMonthlyCalendar(User user, int year, int month) {
-    return surveyAnswerRepository.findMonthlyCalendarWithFlags(user.getId(), year, month).stream()
+    Long elderId = user.getId();
+    if(user.getRole() != Role.ELDER){
+      List<ElderSummaryResponse> list = guardianElderRepository.findLinkedEldersByGuardianId(user.getId());
+      elderId = list.get(0).id();
+    }
+
+    return surveyAnswerRepository.findMonthlyCalendarWithFlags(elderId, year, month).stream()
         .map(r -> new MonthlyCalendarResponse(
             r.getCalDate().toLocalDate(),
             r.getHasData() != null && r.getHasData() == 1
         ))
         .toList();
   }
-
 }
