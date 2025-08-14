@@ -1,7 +1,6 @@
 package com.ssafy.recode.domain.survey.repository;
 
 import com.ssafy.recode.domain.survey.entity.SurveyAnswer;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -33,25 +32,47 @@ public interface SurveyAnswerRepository extends JpaRepository<SurveyAnswer, Inte
 
     // 특정 달에 해당 유저의 모든 답변 리스트 조회
     @Query(value = """
-    WITH RECURSIVE date_range AS (
-        SELECT DATE(:startDate) AS cal_date
-        UNION ALL
-        SELECT DATE_ADD(cal_date, INTERVAL 1 DAY)
-        FROM date_range
-        WHERE cal_date < LAST_DAY(:startDate)
-    )
-    SELECT 
-        DISTINCT dr.cal_date,
-        CASE WHEN sa.user_id IS NOT NULL THEN TRUE ELSE FALSE END AS has_data
-    FROM date_range dr
-    LEFT JOIN survey_answers sa
-        ON DATE(sa.created_at) = dr.cal_date
-        AND sa.user_id = :userId
-    ORDER BY dr.cal_date
+        WITH RECURSIVE date_range AS (
+          SELECT DATE(CONCAT(:year, '-', LPAD(:month, 2, '0'), '-01')) AS cal_date
+          UNION ALL
+          SELECT DATE_ADD(cal_date, INTERVAL 1 DAY)
+          FROM date_range
+          WHERE cal_date < LAST_DAY(DATE(CONCAT(:year, '-', LPAD(:month, 2, '0'), '-01')))
+        )
+        SELECT
+          dr.cal_date,
+          (
+            EXISTS (
+              SELECT 1
+              FROM basic_answers ba
+              WHERE ba.user_id = :userId
+                AND ba.created_at >= dr.cal_date
+                AND ba.created_at <  DATE_ADD(dr.cal_date, INTERVAL 1 DAY)
+            )
+            OR EXISTS (
+              SELECT 1
+              FROM personal_answers pa
+              WHERE pa.user_id = :userId
+                AND pa.created_at >= dr.cal_date
+                AND pa.created_at <  DATE_ADD(dr.cal_date, INTERVAL 1 DAY)
+            )
+            OR EXISTS (
+              SELECT 1
+              FROM cognitive_answers ca
+              JOIN cognitive_questions cq ON cq.question_id = ca.question_id
+              WHERE ca.user_id = :userId
+                AND cq.media_type IN ('AUDIO','IMAGE')  -- 사운드/사진만 표시
+                AND ca.created_at >= dr.cal_date
+                AND ca.created_at <  DATE_ADD(dr.cal_date, INTERVAL 1 DAY)
+            )
+          ) AS has_data
+        FROM date_range dr
+        ORDER BY dr.cal_date;
     """, nativeQuery = true)
     List<MonthlyCalendarRow> findMonthlyCalendarWithFlags(
         @Param("userId") Long userId,
-        @Param("startDate") LocalDate startDate
+        @Param("year") int year,
+        @Param("month") int month
     );
 
 }

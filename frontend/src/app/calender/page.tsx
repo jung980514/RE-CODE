@@ -73,7 +73,8 @@ export default function HomePage() {
       const month = now.getMonth() + 1
       
       // 기존 백엔드의 월별 캘린더 API 사용
-      const response = await fetch(`/api/survey/calendar?year=${year}&month=${month}`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/calendar?year=${year}&month=${month}`, {
+        headers: { Accept: 'application/json' },
         credentials: 'include'
       })
       
@@ -82,11 +83,11 @@ export default function HomePage() {
         if (data.status === 'success' && data.data) {
           // 기존 API 응답을 TrainingRecord 형태로 변환
           const apiRecords = data.data
-            .filter((item: { hasData: boolean; calDate?: string; date?: string }) => item.hasData) // 데이터가 있는 날짜만 필터링
-            .map((item: { hasData: boolean; calDate?: string; date?: string }) => {
+            .filter((item: { hasData: boolean; date?: string }) => item.hasData) // 데이터가 있는 날짜만 필터링
+            .map((item: { hasData: boolean; date?: string }) => {
               // 각 날짜에 대해 기본 TrainingRecord 생성
               return {
-                date: item.calDate || item.date || new Date().toISOString().split('T')[0],
+                date: item.date || new Date().toISOString().split('T')[0],
                 overallEmotionEmoji: "😊", // 기본값
                 overallConfidence: 85,
                 aiInsight: "회상 훈련을 완료했습니다.",
@@ -114,26 +115,26 @@ export default function HomePage() {
             })
           
           // API 데이터와 더미 데이터를 합침 (더미 데이터가 우선)
-          const combinedRecords = [...mockTrainingRecords, ...apiRecords]
+          // const combinedRecords = [...mockTrainingRecords, ...apiRecords]
           // 중복 날짜 제거 (더미 데이터 우선)
-          const uniqueRecords = combinedRecords.filter((record, index, self) => 
-            index === self.findIndex(r => r.date === record.date)
-          )
+          // const uniqueRecords = combinedRecords.filter((record, index, self) => 
+          //   index === self.findIndex(r => r.date === record.date)
+          // )
           
-          setTrainingRecords(uniqueRecords)
+          setTrainingRecords(apiRecords)
         } else {
           // API 호출 실패 시 더미 데이터만 사용
-          setTrainingRecords(mockTrainingRecords)
+          // setTrainingRecords(mockTrainingRecords)
         }
       } else {
         console.error('Failed to fetch training records')
         // API 호출 실패 시 더미 데이터만 사용
-        setTrainingRecords(mockTrainingRecords)
+        // setTrainingRecords(mockTrainingRecords)
       }
     } catch (error) {
       console.error('Error fetching training records:', error)
       // 에러 발생 시 더미 데이터만 사용
-      setTrainingRecords(mockTrainingRecords)
+      // setTrainingRecords(mockTrainingRecords)
     } finally {
       setIsLoading(false)
     }
