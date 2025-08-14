@@ -4,7 +4,7 @@ import { ToastProvider, useToast } from "./toast-context"
 import { ToastContainer } from "./animated-toast"
 import { Carousel } from "./carousel"
 import { NotebookPen, ContactRound, CalendarDays, Moon, Users} from "lucide-react"
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 
 const containerVariants = {
@@ -31,6 +31,7 @@ const FlowersAndSaintsUI = () => {
   const { addToast } = useToast()
   const router = useRouter()
   const username = localStorage.getItem('name')
+  const isDailySurveyCompleted = localStorage.getItem('isdailysurveycompleted')
   
   const items = [
     {
@@ -70,29 +71,67 @@ const FlowersAndSaintsUI = () => {
   ]
 
   return (
-    <motion.div
-      className="flex flex-col items-center justify-center h-207 overflow-hidden bg-gradient-to-br from-emerald-100 to-violet-100 p-8"
-      variants={containerVariants}
-      initial="hidden"
-      animate="visible"
-    >
-      <motion.h1
-        className="text-4xl font-bold text-black-800 mb-8"
-        style={{ fontFamily: "Paperlogy, sans-serif" }}
+    <div className="relative">
+      {/* 일일설문조사 미완료 시 귀여운 캐릭터 알림 */}
+      {isDailySurveyCompleted === '0' && (
+        <div className="fixed bottom-8 right-8 z-50">
+          <div className="relative">
+            {/* 말풍선 */}
+            <div className="bg-white rounded-2xl shadow-2xl border-2 border-blue-300 p-4 mb-2 relative">
+              <div className="text-center">
+                <p className="text-base text-blue-700">
+                  아직 일일설문조사가<br />
+                  완료되지 않았어요 ʕ ·ᴥ·ʔ
+                </p>
+              </div>
+              {/* 말풍선 꼬리 */}
+              <div className="absolute bottom-0 right-6 transform translate-y-full">
+                <div className="w-0 h-0 border-l-[15px] border-l-transparent border-r-[15px] border-r-transparent border-t-[15px] border-t-white"></div>
+              </div>
+            </div>
+            
+            {/* angry-fox 캐릭터 */}
+            <div className="flex justify-center">
+              <img 
+                src="/images/angry-fox.gif" 
+                alt="Angry Fox" 
+                className="w-32 h-32 shadow-lg border-0 outline-none bg-transparent"
+                style={{ 
+                  border: 'none', 
+                  outline: 'none',
+                  backgroundColor: 'transparent',
+                  boxShadow: 'none'
+                }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      <motion.div
+        className="flex flex-col items-center justify-center h-207 overflow-hidden bg-gradient-to-br from-emerald-100 to-violet-100 p-8"
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
       >
-        안녕하세요! {username}님!
-      </motion.h1>
-      <motion.h1
-        className="text-4xl font-bold text-black-800 mb-8"
-        style={{ fontFamily: "Paperlogy, sans-serif" }}
-      >
-        오늘도 웃음꽃 피는 하루 보내세요!!
-      </motion.h1>
-      <motion.div className="w-full flex justify-center">
-        <Carousel items={items} />
+        <motion.h1
+          className="text-4xl font-bold text-black-800 mb-8"
+          style={{ fontFamily: "Paperlogy, sans-serif" }}
+        >
+          안녕하세요! {username}님!
+        </motion.h1>
+        <motion.h1
+          className="text-4xl font-bold text-black-800 mb-8"
+          style={{ fontFamily: "Paperlogy, sans-serif" }}
+        >
+          오늘도 웃음꽃 피는 하루 보내세요!!
+        </motion.h1>
+        <motion.div className="w-full flex justify-center">
+          <Carousel items={items} />
+        </motion.div>
+        <ToastContainer />
       </motion.div>
-      <ToastContainer />
-    </motion.div>
+    </div>
   )
 }
 
