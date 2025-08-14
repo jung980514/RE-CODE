@@ -129,6 +129,6 @@ export const login = async (credentials: LoginCredentials): Promise<User> => {
     return user;
   } catch (error) {
     console.error('Login API call failed:', error);
-    throw error instanceof Error ? error : new Error('네트워크 오류 또는 알 수 없는 문제가 발생했습니다.');
+    throw error instanceof Error ? error : new Error('네트워크 오류 또는 알 수 없는 문제가 발생했습니다');
   }
 };
