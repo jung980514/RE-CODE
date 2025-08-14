@@ -9,6 +9,7 @@ import TrainingCompleteModal from "@/app/main-elder/recall-training/components/T
 import { useRouter } from "next/navigation"
 import { synthesizeSpeech, playAudio, stopCurrentAudio } from "@/api/googleTTS/googleTTSService"
 import { markRecallTrainingSessionAsCompleted } from "@/lib/auth"
+import { FloatingButtons } from "@/components/common/Floting-Buttons"
 
 
 interface VoiceSessionProps {
@@ -573,7 +574,7 @@ export function VoiceStoryTellingSession({ onBack }: VoiceSessionProps) {
       formData.append('videoFile', file)
 
       setIsUploading(true)
-      const res = await fetch('https://recode-my-life.site/api/personal/answers', {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/personal/answers`, {
         method: 'POST',
         credentials: 'include',
         body: formData,
@@ -597,7 +598,7 @@ export function VoiceStoryTellingSession({ onBack }: VoiceSessionProps) {
       try {
         setQuestionsLoading(true)
         setQuestionsError(null)
-        const response = await fetch('https://recode-my-life.site/api/personal/questions', {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/personal/questions`, {
           method: 'GET',
           credentials: 'include',
         })
@@ -757,16 +758,16 @@ export function VoiceStoryTellingSession({ onBack }: VoiceSessionProps) {
       <div className="absolute inset-0 z-50 pointer-events-none">
         <div className="relative w-full h-full">
 
-          {/* 우하단 투명 이미지 영역 - 녹화 중일 때만 표시 */}
+          {/* 말풍선 영역 - 녹화 중일 때만 표시, 반응형으로 여우 위에 배치 */}
           {isRecording && (
-            <div className="absolute bottom-40 right-40 w-50 h-42">
+            <div className="absolute bottom-[25vh] right-[70vw] sm:bottom-[15vh] sm:right-[24vw] md:bottom-[20vh] md:right-[22vw] lg:bottom-[25vh] lg:right-[20vw] xl:bottom-[35vh] xl:right-[18vw] w-[120px] h-[100px] sm:w-[140px] sm:h-[120px] md:w-[160px] md:h-[140px] lg:w-[180px] lg:h-[160px] xl:w-[200px] xl:h-[180px]">
               <div className="h-full flex items-center justify-center">
                 {/* 랜덤 말풍선 이미지 표시 */}
                 {currentBalloonImage && (
                   <img
                     src={currentBalloonImage}
                     alt={isSpeaking ? "말하는 중 말풍선" : "대기 중 말풍선"}
-                    className="max-w-full max-h-full object-contain"
+                    className="max-w-full max-h-full object-contain transition-all duration-300"
                     onError={(e) => {
                       console.warn('말풍선 이미지 로드 실패:', currentBalloonImage)
                       // 이미지 로드 실패 시 기본 이미지로 대체
@@ -807,14 +808,13 @@ export function VoiceStoryTellingSession({ onBack }: VoiceSessionProps) {
           {/* Question */}
           <div className="mb-16">
             <div className="text-center">
-              <h3 className=" text-red-700 text-4xl mb-8">RE:CODE는 궁금해요!</h3>
               <div className="max-w-4xl mx-auto">
                 {questionsLoading ? (
                   <p className="text-gray-600 text-2xl">질문을 불러오는 중입니다...</p>
                 ) : questionsError ? (
                   <p className="text-red-600 text-2xl">{questionsError}</p>
                 ) : questions.length > 0 ? (
-                  <div className="text-gray-900 leading-relaxed text-4xl text-bold space-y-6" style={{ fontFamily: 'Pretendard' }}>
+                  <div className="text-gray-900 leading-relaxed text-5xl text-bold space-y-6" style={{ fontFamily: 'Paperlogy' }}>
                     <p className="mb-6">
                       {questions[currentQuestionIndex]?.content}
                     </p>
