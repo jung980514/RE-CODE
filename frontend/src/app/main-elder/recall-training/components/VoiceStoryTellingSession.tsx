@@ -754,33 +754,7 @@ export function VoiceStoryTellingSession({ onBack }: VoiceSessionProps) {
 
   return (
     <div className="h-screen overflow-hidden bg-gradient-to-br from-orange-100 to-red-100 pt-1 pb-0 px-4 md:pt-6 md:pb-0 md:px-8 relative">
-      {/* 절대위치 회색 사각형 오버레이 - 디자인에 영향 없음 */}
-      <div className="absolute inset-0 z-50 pointer-events-none">
-        <div className="relative w-full h-full">
 
-          {/* 말풍선 영역 - 녹화 중일 때만 표시, 반응형으로 여우 위에 배치 */}
-          {isRecording && (
-            <div className="absolute bottom-[25vh] right-[70vw] sm:bottom-[15vh] sm:right-[24vw] md:bottom-[20vh] md:right-[22vw] lg:bottom-[25vh] lg:right-[20vw] xl:bottom-[35vh] xl:right-[18vw] w-[120px] h-[100px] sm:w-[140px] sm:h-[120px] md:w-[160px] md:h-[140px] lg:w-[180px] lg:h-[160px] xl:w-[200px] xl:h-[180px]">
-              <div className="h-full flex items-center justify-center">
-                {/* 랜덤 말풍선 이미지 표시 */}
-                {currentBalloonImage && (
-                  <img
-                    src={currentBalloonImage}
-                    alt={isSpeaking ? "말하는 중 말풍선" : "대기 중 말풍선"}
-                    className="max-w-full max-h-full object-contain transition-all duration-300"
-                    onError={(e) => {
-                      console.warn('말풍선 이미지 로드 실패:', currentBalloonImage)
-                      // 이미지 로드 실패 시 기본 이미지로 대체
-                      const target = e.target as HTMLImageElement
-                      target.src = '/images/talkballoon/nottalk/1.png'
-                    }}
-                  />
-                )}
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
 
       <div className="h-full flex items-start justify-center">
         <div style={{ transform: 'scale(0.75)', transformOrigin: 'top center' }}>
@@ -815,9 +789,11 @@ export function VoiceStoryTellingSession({ onBack }: VoiceSessionProps) {
                   <p className="text-red-600 text-2xl">{questionsError}</p>
                 ) : questions.length > 0 ? (
                   <div className="text-gray-900 leading-relaxed text-5xl text-bold space-y-6" style={{ fontFamily: 'Paperlogy' }}>
-                    <p className="mb-6">
-                      {questions[currentQuestionIndex]?.content}
-                    </p>
+                    <div className="mb-6 max-h-[300px] overflow-y-auto">
+                      <p style={{ lineHeight: '1.4' }}>
+                        {questions[currentQuestionIndex]?.content}
+                      </p>
+                    </div>
                     <p className="text-3xl text-gray-700">
                       준비되시면 <strong className="text-orange-700">답변하기</strong> 버튼을 눌러 시작해주세요.
                     </p>
@@ -870,11 +846,22 @@ export function VoiceStoryTellingSession({ onBack }: VoiceSessionProps) {
 
             <Button
               onClick={handleNextOrComplete}
-              className="flex-1 h-20 text-4xl bg-orange-700 hover:bg-orange-800 text-white focus-visible:ring-4 focus-visible:ring-orange-300 disabled:opacity-60 disabled:cursor-not-allowed rounded-xl"
+              className={`flex-1 h-20 text-4xl text-white focus-visible:ring-4 focus-visible:ring-orange-300 disabled:opacity-60 disabled:cursor-not-allowed rounded-xl min-w-[180px] flex items-center justify-center gap-3 ${
+                isUploading 
+                  ? 'bg-orange-600 cursor-wait' 
+                  : 'bg-orange-700 hover:bg-orange-800'
+              }`}
               aria-label={questions.length > 0 && currentQuestionIndex === questions.length - 1 ? '완료하기' : '다음 질문으로 이동'}
-              disabled={questions.length === 0 || isRecording || !hasRecorded}
+              disabled={questions.length === 0 || isRecording || !hasRecorded || isUploading}
             >
-              {questions.length > 0 && currentQuestionIndex === questions.length - 1 ? '완료하기' : '다음 질문'}
+              {isUploading ? (
+                <>
+                  <div className="animate-spin rounded-full h-6 w-6 border-2 border-white border-t-transparent"></div>
+                  <span>로딩 중</span>
+                </>
+              ) : (
+                questions.length > 0 && currentQuestionIndex === questions.length - 1 ? '완료하기' : '다음 질문'
+              )}
             </Button>
           </div>
         </Card>
@@ -939,7 +926,7 @@ export function VoiceStoryTellingSession({ onBack }: VoiceSessionProps) {
 
           {/* Image Area */}
           <div className="flex-1">
-            <div className="h-full bg-white rounded-2xl overflow-hidden relative min-h-[300px]">
+            <div className="h-full bg-white rounded-2xl overflow-visible relative min-h-[300px]">
               {/* 음성 감지에 따른 GIF 이미지 표시 */}
               <div className="flex items-center justify-center h-full">
                 <img
@@ -948,6 +935,28 @@ export function VoiceStoryTellingSession({ onBack }: VoiceSessionProps) {
                   className="w-4/5 h-4/5 object-contain"
                 />
               </div>
+              
+              {/* 말풍선 영역 - 녹화 중일 때만 표시, 여우 위에 고정 배치 */}
+              {isRecording && (
+                <div className="absolute w-[180px] h-[160px] sm:w-[200px] sm:h-[180px] md:w-[220px] md:h-[200px] lg:w-[240px] lg:h-[220px] xl:w-[280px] xl:h-[250px] z-10 pointer-events-none" style={{ top: 'calc(10% - 120px)', left: 'calc(40% + 40px)' }}>
+                  <div className="h-full flex items-center justify-center">
+                    {/* 랜덤 말풍선 이미지 표시 */}
+                    {currentBalloonImage && (
+                      <img
+                        src={currentBalloonImage}
+                        alt={isSpeaking ? "말하는 중 말풍선" : "대기 중 말풍선"}
+                        className="max-w-full max-h-full object-contain transition-all duration-300"
+                        onError={(e) => {
+                          console.warn('말풍선 이미지 로드 실패:', currentBalloonImage)
+                          // 이미지 로드 실패 시 기본 이미지로 대체
+                          const target = e.target as HTMLImageElement
+                          target.src = '/images/talkballoon/nottalk/1.png'
+                        }}
+                      />
+                    )}
+                  </div>
+                </div>
+              )}
               
               {/* 플레이스홀더 (이미지 로드 실패 시 대체) */}
               <div className="absolute inset-0 flex items-center justify-center text-gray-400" style={{ display: 'none' }}>

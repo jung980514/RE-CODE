@@ -702,32 +702,7 @@ export function VoicePhotoReminiscenceSession({ onBack }: { onBack: () => void }
 
   return (
     <div className="bg-gray-50 p-1 md:p-2 relative">
-      {/* 말풍선 오버레이 - 디자인에 영향 없음 */}
-      <div className="absolute inset-0 z-50 pointer-events-none">
-        <div className="relative w-full h-full">
-          {/* 우하단 말풍선 이미지 영역 - 녹화 중일 때만 표시 */}
-          {isRecording && (
-            <div className="absolute bottom-50 right-90 w-60 h-50">
-              <div className="h-full flex items-center justify-center">
-                {/* 랜덤 말풍선 이미지 표시 */}
-                {currentBalloonImage && (
-                  <img
-                    src={currentBalloonImage}
-                    alt={isSpeaking ? "말하는 중 말풍선" : "대기 중 말풍선"}
-                    className="max-w-full max-h-full object-contain"
-                    onError={(e) => {
-                      console.warn('말풍선 이미지 로드 실패:', currentBalloonImage)
-                      // 이미지 로드 실패 시 기본 이미지로 대체
-                      const target = e.target as HTMLImageElement
-                      target.src = '/images/talkballoon/nottalk/1.png'
-                    }}
-                  />
-                )}
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
+
 
       {/* Header */}
       <div className="max-w-6xl mx-auto mb-1">
@@ -811,8 +786,24 @@ export function VoicePhotoReminiscenceSession({ onBack }: { onBack: () => void }
               {isRecording ? "녹화중지" : "대답하기"}
             </Button>
 
-            <Button className="flex-1 h-12 text-base bg-purple-500 hover:bg-purple-600 text-white disabled:opacity-60 disabled:cursor-not-allowed text-2xl" onClick={handleNext} disabled={questions.length === 0 || isRecording || !hasRecorded || isUploading} style={{ fontFamily: 'Pretendard' }}>
-              {questions.length > 0 && currentIndex === questions.length - 1 ? '완료하기' : '다음 사진'}
+            <Button 
+              className={`flex-1 h-12 text-base text-white disabled:opacity-60 disabled:cursor-not-allowed text-2xl min-w-[120px] flex items-center justify-center gap-2 ${
+                isUploading 
+                  ? 'bg-purple-400 cursor-wait' 
+                  : 'bg-purple-500 hover:bg-purple-600'
+              }`} 
+              onClick={handleNext} 
+              disabled={questions.length === 0 || isRecording || !hasRecorded || isUploading} 
+              style={{ fontFamily: 'Pretendard' }}
+            >
+              {isUploading ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                  <span>로딩 중</span>
+                </>
+              ) : (
+                questions.length > 0 && currentIndex === questions.length - 1 ? '완료하기' : '다음 사진'
+              )}
             </Button>
           </div>
         </Card>
@@ -868,7 +859,7 @@ export function VoicePhotoReminiscenceSession({ onBack }: { onBack: () => void }
 
           {/* GIF Image Area */}
           <div className="flex-1">
-            <div className="h-full bg-white rounded-2xl overflow-hidden relative min-h-[300px]">
+            <div className="h-full bg-white rounded-2xl overflow-visible relative min-h-[300px]">
               {/* 음성 감지에 따른 GIF 이미지 표시 */}
               <div className="flex items-center justify-center h-full">
                 <img
@@ -877,6 +868,28 @@ export function VoicePhotoReminiscenceSession({ onBack }: { onBack: () => void }
                   className="w-4/5 h-4/5 object-contain"
                 />
               </div>
+              
+              {/* 말풍선 영역 - 녹화 중일 때만 표시, 여우 위에 고정 배치 */}
+              {isRecording && (
+                <div className="absolute w-[150px] h-[130px] sm:w-[170px] sm:h-[150px] md:w-[190px] md:h-[170px] lg:w-[210px] lg:h-[190px] xl:w-[240px] xl:h-[210px] z-10 pointer-events-none" style={{ top: 'calc(10% - 120px)', left: 'calc(40% + 40px)' }}>
+                  <div className="h-full flex items-center justify-center">
+                    {/* 랜덤 말풍선 이미지 표시 */}
+                    {currentBalloonImage && (
+                      <img
+                        src={currentBalloonImage}
+                        alt={isSpeaking ? "말하는 중 말풍선" : "대기 중 말풍선"}
+                        className="max-w-full max-h-full object-contain transition-all duration-300"
+                        onError={(e) => {
+                          console.warn('말풍선 이미지 로드 실패:', currentBalloonImage)
+                          // 이미지 로드 실패 시 기본 이미지로 대체
+                          const target = e.target as HTMLImageElement
+                          target.src = '/images/talkballoon/nottalk/1.png'
+                        }}
+                      />
+                    )}
+                  </div>
+                </div>
+              )}
               
               {/* 플레이스홀더 (이미지 로드 실패 시 대체) */}
               <div className="absolute inset-0 flex items-center justify-center text-gray-400" style={{ display: 'none' }}>

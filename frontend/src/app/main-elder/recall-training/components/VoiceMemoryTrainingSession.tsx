@@ -618,6 +618,13 @@ export function VoiceMemoryTrainingSession({ onBack }: VoiceSessionProps) {
 
   const handleNextQuestion = async () => {
     if (questions.length === 0) return
+    
+    // 이미 업로드 중이면 무시 (버튼 연타 방지)
+    if (isUploading) {
+      console.log('이미 업로드 진행 중입니다.')
+      return
+    }
+    
     stopCurrentAudio()
     await uploadCurrentAnswer()
     setCurrentQuestionIndex((prev) => (prev + 1) % questions.length)
@@ -629,6 +636,12 @@ export function VoiceMemoryTrainingSession({ onBack }: VoiceSessionProps) {
   }
 
   const handleNextOrComplete = async () => {
+    // 이미 업로드 중이면 무시 (버튼 연타 방지)
+    if (isUploading) {
+      console.log('이미 업로드 진행 중입니다.')
+      return
+    }
+    
     const total = questions.length
     if (total > 0 && currentQuestionIndex === total - 1) {
       stopCurrentAudio()
@@ -751,33 +764,7 @@ export function VoiceMemoryTrainingSession({ onBack }: VoiceSessionProps) {
 
   return (
     <div className="h-screen overflow-hidden bg-gradient-to-br from-emerald-100 to-teal-100 pt-1 pb-0 px-4 md:pt-6 md:pb-0 md:px-8 relative">
-      {/* 절대위치 회색 사각형 오버레이 - 디자인에 영향 없음 */}
-      <div className="absolute inset-0 z-50 pointer-events-none">
-        <div className="relative w-full h-full">
 
-          {/* 말풍선 영역 - 녹화 중일 때만 표시, 반응형으로 여우 위에 배치 */}
-          {isRecording && (
-            <div className="absolute bottom-[25vh] right-[70vw] sm:bottom-[15vh] sm:right-[24vw] md:bottom-[20vh] md:right-[22vw] lg:bottom-[25vh] lg:right-[20vw] xl:bottom-[35vh] xl:right-[18vw] w-[120px] h-[100px] sm:w-[140px] sm:h-[120px] md:w-[160px] md:h-[140px] lg:w-[180px] lg:h-[160px] xl:w-[200px] xl:h-[180px]">
-              <div className="h-full flex items-center justify-center">
-                {/* 랜덤 말풍선 이미지 표시 */}
-                {currentBalloonImage && (
-                  <img
-                    src={currentBalloonImage}
-                    alt={isSpeaking ? "말하는 중 말풍선" : "대기 중 말풍선"}
-                    className="max-w-full max-h-full object-contain transition-all duration-300"
-                    onError={(e) => {
-                      console.warn('말풍선 이미지 로드 실패:', currentBalloonImage)
-                      // 이미지 로드 실패 시 기본 이미지로 대체
-                      const target = e.target as HTMLImageElement
-                      target.src = '/images/talkballoon/nottalk/1.png'
-                    }}
-                  />
-                )}
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
 
       <div className="h-full flex items-start justify-center">
         <div style={{ transform: 'scale(0.75)', transformOrigin: 'top center' }}>
@@ -867,11 +854,22 @@ export function VoiceMemoryTrainingSession({ onBack }: VoiceSessionProps) {
 
             <Button
               onClick={handleNextOrComplete}
-              className="flex-1 h-20 text-4xl bg-blue-700 hover:bg-blue-800 text-white focus-visible:ring-4 focus-visible:ring-blue-300 disabled:opacity-60 disabled:cursor-not-allowed rounded-xl"
+              className={`flex-1 h-20 text-4xl text-white focus-visible:ring-4 focus-visible:ring-blue-300 disabled:opacity-60 disabled:cursor-not-allowed rounded-xl min-w-[180px] flex items-center justify-center gap-3 ${
+                isUploading 
+                  ? 'bg-blue-600 cursor-wait' 
+                  : 'bg-blue-700 hover:bg-blue-800'
+              }`}
               aria-label={questions.length > 0 && currentQuestionIndex === questions.length - 1 ? '완료하기' : '다음 질문으로 이동'}
-              disabled={questions.length === 0 || isRecording || !hasRecorded}
+              disabled={questions.length === 0 || isRecording || !hasRecorded || isUploading}
             >
-              {questions.length > 0 && currentQuestionIndex === questions.length - 1 ? '완료하기' : '다음 질문'}
+              {isUploading ? (
+                <>
+                  <div className="animate-spin rounded-full h-6 w-6 border-2 border-white border-t-transparent"></div>
+                  <span>로딩 중</span>
+                </>
+              ) : (
+                questions.length > 0 && currentQuestionIndex === questions.length - 1 ? '완료하기' : '다음 질문'
+              )}
             </Button>
           </div>
         </Card>
@@ -928,7 +926,7 @@ export function VoiceMemoryTrainingSession({ onBack }: VoiceSessionProps) {
 
           {/* Status */}
           <div className="space-y-4 mb-8">
-            <div className="flex justify-between items-center text-xl">
+            <div className="flex justify-between items-center text-3xl">
               <span className="text-gray-800">현재 감정</span>
               <span className="text-blue-700 font-extrabold">{emotion}</span>
             </div>
@@ -936,7 +934,7 @@ export function VoiceMemoryTrainingSession({ onBack }: VoiceSessionProps) {
 
           {/* Image Area */}
           <div className="flex-1">
-            <div className="h-full bg-white rounded-2xl overflow-hidden relative min-h-[300px]">
+            <div className="h-full bg-white rounded-2xl overflow-visible relative min-h-[300px]">
               {/* 음성 감지에 따른 GIF 이미지 표시 */}
               <div className="flex items-center justify-center h-full">
                 <img
@@ -945,6 +943,28 @@ export function VoiceMemoryTrainingSession({ onBack }: VoiceSessionProps) {
                   className="w-4/5 h-4/5 object-contain"
                 />
               </div>
+              
+              {/* 말풍선 영역 - 녹화 중일 때만 표시, 여우 위에 고정 배치 */}
+              {isRecording && (
+                <div className="absolute w-[180px] h-[160px] sm:w-[200px] sm:h-[180px] md:w-[220px] md:h-[200px] lg:w-[240px] lg:h-[220px] xl:w-[280px] xl:h-[250px] z-10 pointer-events-none" style={{ top: 'calc(10% - 120px)', left: 'calc(40% + 40px)' }}>
+                  <div className="h-full flex items-center justify-center">
+                    {/* 랜덤 말풍선 이미지 표시 */}
+                    {currentBalloonImage && (
+                      <img
+                        src={currentBalloonImage}
+                        alt={isSpeaking ? "말하는 중 말풍선" : "대기 중 말풍선"}
+                        className="max-w-full max-h-full object-contain transition-all duration-300"
+                        onError={(e) => {
+                          console.warn('말풍선 이미지 로드 실패:', currentBalloonImage)
+                          // 이미지 로드 실패 시 기본 이미지로 대체
+                          const target = e.target as HTMLImageElement
+                          target.src = '/images/talkballoon/nottalk/1.png'
+                        }}
+                      />
+                    )}
+                  </div>
+                </div>
+              )}
               
               {/* 플레이스홀더 (이미지 로드 실패 시 대체) */}
               <div className="absolute inset-0 flex items-center justify-center text-gray-400" style={{ display: 'none' }}>

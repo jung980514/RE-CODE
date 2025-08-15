@@ -82,8 +82,10 @@ const getAnswerTypeKorean = (answerType: string): string => {
     case 'PERSONAL':
       return '개인화 질문'
     case 'COGNITIVE_AUDIO':
-      return '인지 자극(소리)'
+    case 'COGNITIVEAUDIO':
+      return '인지자극(소리)'
     case 'COGNITIVE_IMAGE':
+    case 'COGNITIVEIMAGE':
       return '인지 자극(이미지)'
     default:
       return answerType
@@ -207,8 +209,10 @@ export function ReminiscenceModal({ isOpen, onClose, record }: ReminiscenceModal
       case 'PERSONAL':
         return 'personal-section'
       case 'COGNITIVE_AUDIO':
+      case 'COGNITIVEAUDIO':
         return 'cognitiveAudio-section'
       case 'COGNITIVE_IMAGE':
+      case 'COGNITIVEIMAGE':
         return 'cognitiveImage-section'
       default:
         return ''
