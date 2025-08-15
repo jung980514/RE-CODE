@@ -618,6 +618,13 @@ export function VoiceMemoryTrainingSession({ onBack }: VoiceSessionProps) {
 
   const handleNextQuestion = async () => {
     if (questions.length === 0) return
+    
+    // 이미 업로드 중이면 무시 (버튼 연타 방지)
+    if (isUploading) {
+      console.log('이미 업로드 진행 중입니다.')
+      return
+    }
+    
     stopCurrentAudio()
     await uploadCurrentAnswer()
     setCurrentQuestionIndex((prev) => (prev + 1) % questions.length)
@@ -629,6 +636,12 @@ export function VoiceMemoryTrainingSession({ onBack }: VoiceSessionProps) {
   }
 
   const handleNextOrComplete = async () => {
+    // 이미 업로드 중이면 무시 (버튼 연타 방지)
+    if (isUploading) {
+      console.log('이미 업로드 진행 중입니다.')
+      return
+    }
+    
     const total = questions.length
     if (total > 0 && currentQuestionIndex === total - 1) {
       stopCurrentAudio()
@@ -867,11 +880,22 @@ export function VoiceMemoryTrainingSession({ onBack }: VoiceSessionProps) {
 
             <Button
               onClick={handleNextOrComplete}
-              className="flex-1 h-20 text-4xl bg-blue-700 hover:bg-blue-800 text-white focus-visible:ring-4 focus-visible:ring-blue-300 disabled:opacity-60 disabled:cursor-not-allowed rounded-xl"
+              className={`flex-1 h-20 text-4xl text-white focus-visible:ring-4 focus-visible:ring-blue-300 disabled:opacity-60 disabled:cursor-not-allowed rounded-xl min-w-[180px] flex items-center justify-center gap-3 ${
+                isUploading 
+                  ? 'bg-blue-600 cursor-wait' 
+                  : 'bg-blue-700 hover:bg-blue-800'
+              }`}
               aria-label={questions.length > 0 && currentQuestionIndex === questions.length - 1 ? '완료하기' : '다음 질문으로 이동'}
-              disabled={questions.length === 0 || isRecording || !hasRecorded}
+              disabled={questions.length === 0 || isRecording || !hasRecorded || isUploading}
             >
-              {questions.length > 0 && currentQuestionIndex === questions.length - 1 ? '완료하기' : '다음 질문'}
+              {isUploading ? (
+                <>
+                  <div className="animate-spin rounded-full h-6 w-6 border-2 border-white border-t-transparent"></div>
+                  <span>로딩 중</span>
+                </>
+              ) : (
+                questions.length > 0 && currentQuestionIndex === questions.length - 1 ? '완료하기' : '다음 질문'
+              )}
             </Button>
           </div>
         </Card>
