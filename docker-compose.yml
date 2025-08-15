@@ -55,6 +55,11 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_BACKEND_URL: ${NEXT_PUBLIC_BACKEND_URL}
+        KAKAO_CLIENT_ID: ${KAKAO_CLIENT_ID}
+        GOOGLE_TTS_API_KEY: ${GOOGLE_TTS_API_KEY}
+        NEXT_PUBLIC_KAKAO_REDIRECT_URI: ${NEXT_PUBLIC_KAKAO_REDIRECT_URI}
     container_name: frontend
     environment:
       - PORT=3030
