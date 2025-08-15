@@ -777,11 +777,14 @@ export function VoicePhotoReminiscenceSession({ onBack }: { onBack: () => void }
                 ) : questionsError ? (
                   <p className="text-red-600 text-sm" style={{ fontFamily: 'Pretendard' }}>{questionsError}</p>
                 ) : questions.length > 0 ? (
-                  <p className="text-gray-700 leading-relaxed text-3xl" style={{ fontFamily: 'Paperlogy' }}>
-                    {questions[currentIndex].content}
-                    <br />
-                   <p className="text-gray-700 leading-relaxed text-xl"  style={{ fontFamily: 'Pretendard'}}>준비가 완료되면 <strong className="text-purple-600">대답하기</strong> 버튼을 눌러 대답해주세요</p> 
-                  </p>
+                  <div>
+                    <p className="text-gray-700 leading-relaxed text-3xl mb-2" style={{ fontFamily: 'Paperlogy' }}>
+                      {questions[currentIndex].content}
+                    </p>
+                    <p className="text-gray-700 leading-relaxed text-xl" style={{ fontFamily: 'Pretendard'}}>
+                      준비가 완료되면 <strong className="text-purple-600">대답하기</strong> 버튼을 눌러 대답해주세요
+                    </p>
+                  </div>
                 ) : (
                   <p className="text-gray-600 text-sm" style={{ fontFamily: 'Pretendard' }}>표시할 질문이 없습니다.</p>
                 )}

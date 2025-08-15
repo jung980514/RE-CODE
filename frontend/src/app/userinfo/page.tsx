@@ -321,7 +321,7 @@ export default function UserInfoPage() {
       console.log('fd:',fd);
 
       // API 호출
-      const response = await fetch('https://recode-my-life.site/api/user/update', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/user/update`, {
         method: 'PATCH',
         // headers: {
         //   'Content-Type': 'application/json',
@@ -402,7 +402,7 @@ export default function UserInfoPage() {
     try {
       const requestBody = { password: password };
       // const response = await fetch('http://localhost:8088/api/user/', {
-      const response = await fetch('https://recode-my-life.site/api/user/', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/user/`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
@@ -747,11 +747,15 @@ export default function UserInfoPage() {
 
         {/* Action Buttons */}
         <div className="flex flex-col sm:flex-row justify-between items-center space-y-4 sm:space-y-0 sm:space-x-4 mt-12">
-          <AccountDeletionModal onConfirm={handleConfirmWithdrawal}>
-            <button className="w-full sm:w-auto px-6 py-3 bg-orange-500 text-white rounded-md hover:bg-orange-600">
-              회원탈퇴
-            </button>
-          </AccountDeletionModal>
+          {!isKakaoUser ? (
+            <AccountDeletionModal onConfirm={handleConfirmWithdrawal}>
+              <button className="w-full sm:w-auto px-6 py-3 bg-orange-500 text-white rounded-md hover:bg-orange-600">
+                회원탈퇴
+              </button>
+            </AccountDeletionModal>
+          ) : (
+            <div></div>
+          )}
           
           <div className="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4 w-full sm:w-auto">
           <button
