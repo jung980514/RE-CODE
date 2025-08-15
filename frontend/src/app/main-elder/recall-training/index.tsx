@@ -36,8 +36,11 @@ export default function RecallTrainingMain() {
   const [completedSessions, setCompletedSessions] = useState<RecallTrainingSession[]>([])
   const [incompleteSessions, setIncompleteSessions] = useState<RecallTrainingSession[]>([])
   const [isHelpModalOpen, setIsHelpModalOpen] = useState(false)
+  const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
+    // 클라이언트에서만 실행되도록 mounted 상태 설정
+    setMounted(true)
     // 로컬스토리지에서 세션 상태 로드
     updateSessionStatus()
   }, [])
@@ -145,12 +148,15 @@ export default function RecallTrainingMain() {
             </div>
           </div>
           <h3 className="text-4xl font-bold mb-4" style={{ fontFamily: "Paperlogy, sans-serif" }}>{config.title}</h3>
-          <p className="text-xl text-white/90" style={{ fontFamily: "Paperlogy, sans-serif" }}>{config.description}</p>
-          {isCompleted && (
-            <div className="mt-3 text-white/80 text-lg" style={{ fontFamily: "Paperlogy, sans-serif" }}>
-              ✓ {config.questions}개 질문 완료
-            </div>
-          )}
+          <div className="flex items-center justify-between">
+            <p className="text-xl text-white/90" style={{ fontFamily: "Paperlogy, sans-serif" }}>{config.description}</p>
+            {isCompleted && (
+              <div className="text-white/80 text-lg flex items-center gap-2" style={{ fontFamily: "Paperlogy, sans-serif" }}>
+                <CheckCircle className="w-5 h-5" />
+                <span>완료</span>
+              </div>
+            )}
+          </div>
         </div>
         <CardContent className="p-6">
           <div className="mb-6">
@@ -174,17 +180,15 @@ export default function RecallTrainingMain() {
               e.stopPropagation()
               handleStartTraining(sessionId)
             }}
-            className={`w-full bg-gradient-to-r ${config.gradient} text-white hover:opacity-90 py-6 text-2xl ${isCompleted ? 'opacity-50' : ''}`}
+            className={`w-full bg-gradient-to-r ${config.gradient} text-white hover:opacity-90 py-8 text-3xl ${isCompleted ? 'opacity-50' : ''}`}
             disabled={isCompleted}
           >
             {isCompleted ? (
               <>
-                <CheckCircle className="w-6 h-6 mr-3" aria-hidden="true" />
                 <span style={{ fontFamily: "Paperlogy, sans-serif" }}>완료됨</span>
               </>
             ) : (
               <>
-                <Play className="w-6 h-6 mr-3" />
                 <span style={{ fontFamily: "Paperlogy, sans-serif" }}>시작하기</span>
               </>
             )}
@@ -197,6 +201,18 @@ export default function RecallTrainingMain() {
 
 
   const sessionsToShow = Object.keys(sessionConfig) as RecallTrainingSession[]
+
+  // 클라이언트에서 마운트되기 전까지는 로딩 표시
+  if (!mounted) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-emerald-100 to-violet-100 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
+          <p className="text-xl text-gray-600" style={{ fontFamily: "Paperlogy, sans-serif" }}>로딩 중...</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <>

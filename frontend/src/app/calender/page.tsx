@@ -4,7 +4,6 @@ import { useState, useEffect } from "react"
 import { ReminiscenceCalendar } from "@/app/calender/reminiscence-calendar" 
 import { ReminiscenceModal } from "@/app/calender/reminiscence-modal"
 import { FloatingButtons } from "@/components/common/Floting-Buttons"
-import { mockTrainingRecords } from "./dummy-data"
 
 // Define types for key moments and videos
 export interface KeyMoment {
