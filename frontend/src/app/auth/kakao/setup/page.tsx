@@ -272,9 +272,24 @@ const KakaoSetupPage: React.FC = () => {
       // 1. 먼저 localStorage에 역할 저장 (백엔드 요청과 별개로)
       localStorage.setItem('role', formData.role as string);
       console.log('💾 프론트엔드 localStorage role 저장:', formData.role);
-      
+
+      const fd = new FormData();
+      fd.append('birthDate', formData.birthDate);
+      fd.append('phone', formData.phoneNumber);
+      fd.append('role', formData.role);
+
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/user/update`, {
+        method: 'PATCH',
+        // headers: {
+        //   'Content-Type': 'application/json',
+        // },
+        credentials: 'include',
+        // body: JSON.stringify(updateData),
+        body: fd,
+      });
+      const result = await response.json();
       // 2. 백엔드에 다른 정보만 업데이트 (phone, birthDate, name)
-      const result = await authApi.updateUser(updateData);
+      // const result = await authApi.updateUser(updateData);
       
       console.log('📡 백엔드 응답:', result);
       console.log('📊 응답 상태:', result.status);

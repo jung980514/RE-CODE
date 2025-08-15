@@ -6,6 +6,7 @@ import jakarta.validation.constraints.Size;
 import java.time.LocalDate;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 /**
  * UpdateUserRequest
@@ -17,6 +18,7 @@ import lombok.NoArgsConstructor;
  * @since 2025. 8. 8.
  */
 @Getter
+@Setter
 @NoArgsConstructor
 public class UpdateUserRequest {
 

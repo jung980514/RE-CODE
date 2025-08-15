@@ -123,7 +123,7 @@ public class SecurityConfig {
 
             // OAuth2 로그인 설정
             .oauth2Login(oauth2 -> oauth2
-                    .loginPage("/api/user/login/page")
+//                    .loginPage("/api/user/login/page")
                     .userInfoEndpoint(endpoint -> endpoint.userService(oAuth2UserService))
                     .successHandler(oAuth2SuccessHandler)
             )
@@ -142,7 +142,7 @@ public class SecurityConfig {
                     ).permitAll()
                     // 인증 없이 열어둘 API
                     .requestMatchers(
-                            "/api/user/login/page",
+//                            "/api/user/login/page",
                             "/api/user/login",
                             "/api/user/register",
                             "/api/reissue",
