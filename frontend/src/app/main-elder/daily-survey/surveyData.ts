@@ -4,7 +4,7 @@ import { useSurveyQuestionsContext } from './SurveyQuestionsContext';
 import type { ApiResponse } from '@/lib/api';
 
 // 더미 데이터 제거: 서버 응답을 기반으로 UI 메타데이터만 부여하여 구성합니다.
-const CATEGORY_BY_INDEX = ["일일 설문", "기억 및 인지", "관심사 및 취미"] as const;
+const CATEGORY_BY_INDEX = ["일일 설문", "일일 설문", "일일 설문"] as const;
 const ICON_BY_INDEX = ["😊", "🧠", "❤️"] as const;
 const COLOR_BY_INDEX = ["#E3F2FD", "#E8F5E8", "#F3E5F5"] as const;
 const BORDER_COLOR_BY_INDEX = ["#2196F3", "#4CAF50", "#9C27B0"] as const;

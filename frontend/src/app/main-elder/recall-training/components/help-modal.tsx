@@ -432,14 +432,6 @@ export default function HelpModal({ open, onOpenChange }: HelpModalProps) {
       <div className="mt-6 bg-gradient-to-r from-blue-50 to-purple-50 p-6 rounded-lg text-center">
         <h3 className="text-3xl font-bold text-gray-800 mb-2">더 궁금한 것이 있으시다면?</h3>
         <p className="text-3xl gray-600 mb-4">언제든지 문의해 주세요. 친절하게 도와드리겠습니다.</p>
-        <div className="flex items-center justify-center gap-4">
-          <Button className="bg-blue-500 hover:bg-blue-600 text-white text-2xl">
-            문의하기
-          </Button>
-          <Button variant="outline" className="text-2xl">
-            더 많은 도움말
-          </Button>
-        </div>
       </div>
     </section>
   )

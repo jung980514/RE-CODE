@@ -6,7 +6,7 @@ import { ToastContainer } from "@/app/main-elder/animated-toast"
 import { Carousel } from "@/app/main-guardian/carousel"
 import { HelpCircle, ContactRound, CalendarDays,} from "lucide-react"
 import { useRouter } from 'next/navigation'
-import HelpDialog from "@/components/common/help-dialog"
+import HelpModal from "@/app/main-elder/recall-training/components/help-modal"
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -79,10 +79,9 @@ const FlowersAndSaintsUI = () => {
       </motion.div>
       
       {/* 도움말 모달 */}
-      <HelpDialog
-        isOpen={isHelpDialogOpen}
+      <HelpModal
+        open={isHelpDialogOpen}
         onOpenChange={setIsHelpDialogOpen}
-        programs={[]}
       />
       
       <ToastContainer />

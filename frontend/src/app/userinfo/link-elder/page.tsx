@@ -207,7 +207,7 @@ export default function GuardianLinkPage() {
     try {
       setProcessingIds((prev: number[]) => (prev.includes(guardianId) ? prev : [...prev, guardianId]));
 
-      const response = await fetch('https://recode-my-life.site/api/link/res', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/link/res`, {
         method: 'POST',
         credentials: 'include',
         cache: 'no-store',
@@ -280,7 +280,7 @@ export default function GuardianLinkPage() {
 
         <div className="space-y-6">
           {/* 연동 토큰 생성 */}
-          <Card className="shadow-sm border-0">
+          <Card key="token-generation" className="shadow-sm border-0">
             <CardHeader className="pb-4">
               <div className="flex items-center gap-3 mb-2">
                 <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
@@ -298,23 +298,21 @@ export default function GuardianLinkPage() {
               </div>
               
               {isTokenGenerated && (
-                <>
-                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <div className="text-base text-gray-600 mb-1">생성된 토큰:</div>
-                        <div className="text-3xl font-bold text-orange-600 mb-2">{generatedToken}</div>
-                        <div className="flex items-center gap-2 text-base">
-                          <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
-                          <span className="text-red-600 font-medium">토큰 만료까지: {formatTime(tokenExpiry)}</span>
-                        </div>
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="text-base text-gray-600 mb-1">생성된 토큰:</div>
+                      <div className="text-3xl font-bold text-orange-600 mb-2">{generatedToken}</div>
+                      <div className="flex items-center gap-2 text-base">
+                        <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
+                        <span className="text-red-600 font-medium">토큰 만료까지: {formatTime(tokenExpiry)}</span>
                       </div>
-                      <Button variant="outline" size="icon" onClick={copyToken}>
-                        <Copy className="w-4 h-4" />
-                      </Button>
                     </div>
+                    <Button variant="outline" size="icon" onClick={copyToken}>
+                      <Copy className="w-4 h-4" />
+                    </Button>
                   </div>
-                </>
+                </div>
               )}
 
               <div className="flex items-center gap-6">
@@ -348,7 +346,7 @@ export default function GuardianLinkPage() {
           </Card>
 
           {/* 연동 요청 승인 */}
-          <Card className="shadow-sm border-0">
+          <Card key="pending-requests" className="shadow-sm border-0">
             <CardHeader className="pb-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -363,8 +361,8 @@ export default function GuardianLinkPage() {
             <CardContent>
               {pendingRequests.length > 0 ? (
                 <div className="space-y-4">
-                  {pendingRequests.map((req: LinkRequestItem) => (
-                    <div key={req.guardianId} className="border rounded-lg p-4 space-y-3">
+                  {pendingRequests.map((req: LinkRequestItem, index: number) => (
+                    <div key={`pending-${req.guardianId}-${index}`} className="border rounded-lg p-4 space-y-3">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 bg-yellow-100 rounded-full flex items-center justify-center">
@@ -414,7 +412,7 @@ export default function GuardianLinkPage() {
           </Card>
 
           {/* 연동된 보호자 목록 */}
-          <Card className="shadow-sm border-0">
+          <Card key="linked-guardians" className="shadow-sm border-0">
             <CardHeader className="pb-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -428,9 +426,9 @@ export default function GuardianLinkPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               {linkedGuardians.length > 0 ? (
-                <>
-                  {linkedGuardians.map((guardian: LinkedGuardian) => (
-                    <div key={guardian.guardianId} className="border rounded-lg p-4 space-y-3">
+                <div className="space-y-4">
+                  {linkedGuardians.map((guardian: LinkedGuardian, index: number) => (
+                    <div key={`linked-${guardian.guardianId}-${index}`} className="border rounded-lg p-4 space-y-3">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
@@ -441,23 +439,10 @@ export default function GuardianLinkPage() {
                             <p className="text-sm text-gray-500">{guardian.phone}</p>
                           </div>
                         </div>
-                        <div className="flex gap-2">
-                          {userRole !== 'ELDER' && (
-                            <>
-                              <Button variant="outline" size="sm">
-                                <Eye className="w-4 h-4 mr-1" />
-                                권한 보기
-                              </Button>
-                              <Button variant="outline" size="sm" className="text-red-600 hover:text-red-700 bg-transparent">
-                                <Trash2 className="w-4 h-4" />
-                              </Button>
-                            </>
-                          )}
-                        </div>
                       </div>
                     </div>
                   ))}
-                </>
+                </div>
               ) : (
                 <div className="text-center py-12">
                   <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -465,14 +450,6 @@ export default function GuardianLinkPage() {
                   </div>
                   <p className="text-gray-500 mb-2">연동된 보호자가 없습니다</p>
                   <p className="text-sm text-gray-400">토큰을 생성하여 보호자와 연동을 시작하세요</p>
-                </div>
-              )}
-
-              {linkedGuardians.length > 0 && (
-                <div className="pt-4 border-t">
-                  <Button className="w-full bg-green-600 hover:bg-green-700 text-white">
-                    <UserPlus className="w-4 h-4 mr-2" />새 보호자 초대하기
-                  </Button>
                 </div>
               )}
             </CardContent>
