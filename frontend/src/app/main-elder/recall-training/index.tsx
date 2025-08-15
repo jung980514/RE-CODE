@@ -144,7 +144,7 @@ export default function RecallTrainingMain() {
               <IconComponent className="w-6 h-6" />
             </div>
             <div className="bg-white/20 px-4 py-2 rounded-full text-lg" style={{ fontFamily: "Paperlogy, sans-serif" }}>
-              {config.category}
+              15분
             </div>
           </div>
           <h3 className="text-4xl font-bold mb-4" style={{ fontFamily: "Paperlogy, sans-serif" }}>{config.title}</h3>
@@ -165,16 +165,6 @@ export default function RecallTrainingMain() {
             </div>
           </div>
           <p className="text-xl text-gray-600 mb-8 leading-relaxed" style={{ fontFamily: "Paperlogy, sans-serif" }}>{config.longDescription}</p>
-          <div className="flex items-center gap-6 mb-6">
-            <div className="flex items-center gap-2 text-gray-500">
-              <Clock className="w-4 h-4" />
-              <span className="text-xl" style={{ fontFamily: "Paperlogy, sans-serif" }}>15분</span>
-            </div>
-            <div className="flex items-center gap-2 text-gray-500">
-              <MessageCircle className="w-4 h-4" />
-              <span className="text-xl" style={{ fontFamily: "Paperlogy, sans-serif" }}>{config.category}</span>
-            </div>
-          </div>
           <Button 
             onClick={e => {
               e.stopPropagation()
