@@ -110,7 +110,7 @@ export const handleKakaoCallback = async (): Promise<KakaoLoginResponse> => {
       localStorage.setItem('isLoggedIn', 'true');
       localStorage.setItem('role', role);
       localStorage.setItem('name', userData.name || '');
-      localStorage.setItem('email', userData.email || '');
+      localStorage.setItem('userId', userData.id || '');
 
       // 로그인 성공 후 일일 설문 완료 여부 조회 → 로컬스토리지 플래그 저장
       try {
