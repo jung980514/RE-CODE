@@ -37,8 +37,8 @@ pipeline {
                 script {
                     // 여기에 나열된 모든 크리덴셜을 바인딩
                     withCredentials([
-                        string(credentialsId: 'REDIS_PASSWORD',     variable: 'REDIS_PASSWORD'),
                         string(credentialsId: 'REDIS_HOST',     variable: 'REDIS_HOST'),
+                        string(credentialsId: 'REDIS_PASSWORD',     variable: 'REDIS_PASSWORD'),
                         string(credentialsId: 'AWS_ACCESS_KEY',     variable: 'AWS_ACCESS_KEY'),
                         string(credentialsId: 'AWS_SECRET_KEY',     variable: 'AWS_SECRET_KEY'),
                         string(credentialsId: 'CLOVA_DOMAIN_CODE',  variable: 'CLOVA_DOMAIN_CODE'),
@@ -54,7 +54,9 @@ pipeline {
                         string(credentialsId: 'GRAFANA_USER',        variable: 'GRAFANA_USER'),
                         string(credentialsId: 'GRAFANA_PW',        variable: 'GRAFANA_PW'),
                         string(credentialsId: 'DATA_SOURCE_NAME',        variable: 'DATA_SOURCE_NAME'),
+                        string(credentialsId: 'GOOGLE_TTS_API_KEY',        variable: 'GOOGLE_TTS_API_KEY'),
                         string(credentialsId: 'NEXT_PUBLIC_BACKEND_URL',        variable: 'NEXT_PUBLIC_BACKEND_URL'),
+                        string(credentialsId: 'NEXT_PUBLIC_KAKAO_REDIRECT_URI',        variable: 'NEXT_PUBLIC_KAKAO_REDIRECT_URI'),
                     ]) {
                         // 환경변수로 주입된 값을 docker-compose가 .env 또는 직접 참조하도록 구성
                         sh 'docker-compose up --build -d'

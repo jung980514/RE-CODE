@@ -58,7 +58,10 @@ services:
     container_name: frontend
     environment:
       - PORT=3030
+      - KAKAO_CLIENT_ID=${KAKAO_CLIENT_ID}
+      - GOOGLE_TTS_API_KEY=${GOOGLE_TTS_API_KEY}
       - NEXT_PUBLIC_BACKEND_URL=${NEXT_PUBLIC_BACKEND_URL}
+      - NEXT_PUBLIC_KAKAO_REDIRECT_URI=${NEXT_PUBLIC_KAKAO_REDIRECT_URI}
     networks:
       - app-network
     restart: always
@@ -149,7 +152,7 @@ services:
     #   timeout: 5s
     #   retries: 3
     #   start_period: 10s
-  # 기존 서비스들 유지하고 아래 내용 추가
+    # 기존 서비스들 유지하고 아래 내용 추가
 
   nginx-exporter:
     image: nginx/nginx-prometheus-exporter:0.11.0
