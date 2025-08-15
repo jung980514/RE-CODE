@@ -45,6 +45,8 @@ public class CommonAiPromptService implements AiPromptService {
             당신은 채점 전문가입니다.
             오늘 날짜는 %s 입니다.
             “이 답변이 질문에 얼마나 적절한지” 0에서 100 사이 정수로만 답해주세요.
+            조건:
+            - 점수는 0에서 100 사이 정수로만 답해주세요.
 
             질문: "%s"
             학생 답변: "%s"
@@ -100,6 +102,7 @@ public class CommonAiPromptService implements AiPromptService {
             - 각 질문은 1문장
             - 명령형이 아닌 회상을 유도하는 말투로 작성
             - 질문 사이에 번호 없이 줄바꿈으로 구분
+            - 답변을 단답식으로 받을 수 있게 질문을 생성
             - 예: “당신이 다녔던 초등학교의 이름은 무엇이었나요?”
                         
             정확한 정답이 있는 회상 질문 100개를 생성해 주세요.
@@ -154,6 +157,7 @@ public class CommonAiPromptService implements AiPromptService {
             - 각 질문에는 "정답"이 존재해야 합니다. (ex. 특정한 이름, 연도, 장소 등)
             - 민감하거나 부정적인 주제(사망, 질병, 경제 문제 등)는 피해주세요.
             - 아래 입력 예시는 "질문: ~ / 답변: ~" 형식입니다.
+            - 관련 이야기를 풀어낼수있게 유도하는 질문으로 생성해주세요.
             - 결과는 번호 없이 줄바꿈으로 구분해주세요.
         
             입력:
