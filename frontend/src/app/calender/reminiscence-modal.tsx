@@ -70,8 +70,8 @@ const getEmotionEmoji = (answerType: string, dominantEmotion: string | null): st
     }
   }
   
-  // dominantEmotion이 null이면 😊 반환
-  return '😊'
+  // dominantEmotion이 null이면 미참여 반환
+  return '미참여'
 }
 
 // answerType 한글 변환
@@ -90,11 +90,34 @@ const getAnswerTypeKorean = (answerType: string): string => {
   }
 }
 
+// 감정 상태 한글 변환
+const getEmotionKorean = (emotion: string): string => {
+  switch(emotion) {
+    case 'HAPPY':
+      return '기쁨'
+    case 'SAD':
+      return '슬픔'
+    case 'ANGRY':
+      return '분노'
+    case 'FEARFUL':
+      return '두려움'
+    case 'SURPRISED':
+      return '놀람'
+    case 'DISGUSTED':
+      return '혐오'
+    case 'NEUTRAL':
+      return '평온'
+    default:
+      return emotion
+  }
+}
+
 export function ReminiscenceModal({ isOpen, onClose, record }: ReminiscenceModalProps) {
   const [emotionData, setEmotionData] = useState<EmotionData[]>([])
   const [videoData, setVideoData] = useState<VideoData | null>(null)
   const [loading, setLoading] = useState(false)
   const [expandedVideos, setExpandedVideos] = useState<Record<string, number>>({})
+  const [iframeLoading, setIframeLoading] = useState<Record<string, boolean>>({})
 
   // API 호출 함수
   const fetchEmotionAndVideoData = async (date: string) => {
@@ -151,11 +174,28 @@ export function ReminiscenceModal({ isOpen, onClose, record }: ReminiscenceModal
     const sectionId = getSectionId(answerType)
     const element = document.getElementById(sectionId)
     if (element) {
+      // ScrollArea 내부의 요소로 스크롤하므로 더 정확한 위치 계산
       element.scrollIntoView({ 
         behavior: 'smooth', 
         block: 'start',
         inline: 'nearest'
       })
+      
+      // 약간의 딜레이 후 추가로 상단 여백을 고려하여 조정
+      setTimeout(() => {
+        const scrollArea = document.querySelector('[data-radix-scroll-area-viewport]')
+        if (scrollArea) {
+          const elementRect = element.getBoundingClientRect()
+          const scrollAreaRect = scrollArea.getBoundingClientRect()
+          const relativeTop = elementRect.top - scrollAreaRect.top
+          
+          // 현재 스크롤 위치에서 80px 위쪽으로 조정 (헤더 여백 고려)
+          scrollArea.scrollTo({
+            top: scrollArea.scrollTop + relativeTop - 80,
+            behavior: 'smooth'
+          })
+        }
+      }, 100)
     }
   }
 
@@ -201,9 +241,24 @@ export function ReminiscenceModal({ isOpen, onClose, record }: ReminiscenceModal
       expandedVideos[expandedVideoKey] : 0
 
     const handleVideoClick = (index: number) => {
+      const newVideoKey = `${categoryKey}-${index}`
+      
+      // 새로운 비디오를 선택할 때 로딩 상태를 true로 설정
+      setIframeLoading(prev => ({
+        ...prev,
+        [newVideoKey]: true
+      }))
+      
       setExpandedVideos(prev => ({
         ...prev,
         [`${categoryKey}-expanded`]: index
+      }))
+    }
+
+    const handleIframeLoad = (videoKey: string) => {
+      setIframeLoading(prev => ({
+        ...prev,
+        [videoKey]: false
       }))
     }
 
@@ -221,9 +276,9 @@ export function ReminiscenceModal({ isOpen, onClose, record }: ReminiscenceModal
               </span>
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-4xl">{emoji}</span>
+              <span className={`${emotionForCategory?.dominantEmotion ? 'text-4xl' : 'text-base font-medium text-gray-500'}`}>{emoji}</span>
               <span className="text-xl font-bold text-blue-600" style={{fontFamily: 'Pretendard'}}>
-                점수 {category.items[expandedVideoIndex]?.score || 0}점
+                신뢰도 {category.items[expandedVideoIndex]?.score || 0}점
               </span>
             </div>
           </div>
@@ -243,12 +298,25 @@ export function ReminiscenceModal({ isOpen, onClose, record }: ReminiscenceModal
                   /* Expanded Video - Iframe View */
                   <div className="bg-black rounded-lg overflow-hidden shadow-lg">
                     <div className="aspect-video relative">
+                      {/* 로딩 스피너 */}
+                      {iframeLoading[`${categoryKey}-${index}`] !== false && (
+                        <div className="absolute inset-0 bg-gray-100 flex items-center justify-center z-10">
+                          <div className="flex flex-col items-center gap-4">
+                            <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-600 border-t-transparent"></div>
+                            <span className="text-lg text-gray-600 font-medium" style={{fontFamily: 'Pretendard'}}>
+                              영상을 불러오는 중...
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                      
                       <iframe
                         src={video.url}
                         title={video.content}
                         className="w-full h-full"
                         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                         allowFullScreen
+                        onLoad={() => handleIframeLoad(`${categoryKey}-${index}`)}
                       />
                       <div className="absolute top-0 text-white text-xl font-bold bg-black bg-opacity-50 px-3 py-1 rounded" style={{fontFamily: 'Pretendard'}}>
                         {video.content}
@@ -277,7 +345,7 @@ export function ReminiscenceModal({ isOpen, onClose, record }: ReminiscenceModal
                               })}
                             </span>
                             <span className="text-xl text-blue-600 font-bold" style={{fontFamily: 'Pretendard'}}>
-                              점수: {video.score}점
+                              신뢰도: {video.score}점
                             </span>
                           </div>
                           <p className="text-xl text-gray-800 font-medium" style={{fontFamily: 'Pretendard'}}>
@@ -292,43 +360,7 @@ export function ReminiscenceModal({ isOpen, onClose, record }: ReminiscenceModal
             ))}
           </div>
 
-          {/* Video List Section */}
-          {category.items.length > 1 && (
-            <div>
-              <h3 className="text-2xl font-bold text-gray-800 mb-4" style={{fontFamily: 'Paperlogy'}}>
-                영상 목록
-              </h3>
-              <div className="space-y-3">
-                {category.items.map((video, index) => (
-                  <div
-                    key={`list-${video.answerId}`}
-                    className={`flex items-center gap-4 p-4 rounded-lg cursor-pointer transition-all duration-200 ${
-                      expandedVideoIndex === index 
-                        ? "bg-blue-50 border-2 border-blue-300 shadow-md" 
-                        : "bg-gray-50 hover:bg-gray-100 border-2 border-transparent hover:border-gray-200"
-                    }`}
-                    onClick={() => handleVideoClick(index)}
-                  >
-                    <span className="bg-blue-500 text-white px-3 py-1 rounded-full text-base font-bold min-w-[60px] text-center" style={{fontFamily: 'Pretendard'}}>
-                      {new Date(video.createdAt).toLocaleDateString("ko-KR", {
-                        month: "2-digit",
-                        day: "2-digit"
-                      })}
-                    </span>
-                    <span className="text-2xl text-gray-800 font-medium flex-1" style={{fontFamily: 'Pretendard'}}>
-                      {video.content}
-                    </span>
-                    <span className="text-lg text-blue-600 font-bold" style={{fontFamily: 'Pretendard'}}>
-                      {video.score}점
-                    </span>
-                    {expandedVideoIndex === index && (
-                      <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+
         </div>
       </div>
     )
@@ -352,7 +384,7 @@ export function ReminiscenceModal({ isOpen, onClose, record }: ReminiscenceModal
             </div>
             <button
               onClick={onClose}
-              className="w-16 h-16 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors duration-200 text-3xl text-gray-600 shadow-md hover:shadow-lg"
+              className="w-16 h-16 flex items-center justify-center transition-colors duration-200 text-3xl text-gray-600 hover:text-gray-800"
               aria-label="닫기"
             >
               ×
@@ -396,7 +428,7 @@ export function ReminiscenceModal({ isOpen, onClose, record }: ReminiscenceModal
                             className="text-center p-4 bg-gray-50 rounded-lg border-2 border-gray-100 cursor-pointer hover:bg-blue-50 hover:border-blue-200 transition-all duration-200 hover:shadow-md"
                             onClick={() => scrollToSection(emotion.answerType)}
                           >
-                            <div className="text-5xl mb-3">
+                            <div className={`mb-3 ${emotion.dominantEmotion ? 'text-5xl' : 'text-lg font-medium text-gray-500 flex items-center justify-center h-16'}`}>
                               {getEmotionEmoji(emotion.answerType, emotion.dominantEmotion)}
                             </div>
                             <h3 className="text-xl font-bold text-gray-800 mb-2" style={{fontFamily: 'Pretendard'}}>
@@ -404,7 +436,7 @@ export function ReminiscenceModal({ isOpen, onClose, record }: ReminiscenceModal
                             </h3>
                             {emotion.dominantEmotion && (
                               <p className="text-lg text-blue-600 font-medium" style={{fontFamily: 'Pretendard'}}>
-                                {emotion.dominantEmotion}
+                                {getEmotionKorean(emotion.dominantEmotion)}
                               </p>
                             )}
                             <p className="text-sm text-gray-500 mt-2" style={{fontFamily: 'Pretendard'}}>
