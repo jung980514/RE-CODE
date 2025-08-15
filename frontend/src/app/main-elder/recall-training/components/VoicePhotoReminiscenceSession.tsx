@@ -811,8 +811,24 @@ export function VoicePhotoReminiscenceSession({ onBack }: { onBack: () => void }
               {isRecording ? "녹화중지" : "대답하기"}
             </Button>
 
-            <Button className="flex-1 h-12 text-base bg-purple-500 hover:bg-purple-600 text-white disabled:opacity-60 disabled:cursor-not-allowed text-2xl" onClick={handleNext} disabled={questions.length === 0 || isRecording || !hasRecorded || isUploading} style={{ fontFamily: 'Pretendard' }}>
-              {questions.length > 0 && currentIndex === questions.length - 1 ? '완료하기' : '다음 사진'}
+            <Button 
+              className={`flex-1 h-12 text-base text-white disabled:opacity-60 disabled:cursor-not-allowed text-2xl min-w-[120px] flex items-center justify-center gap-2 ${
+                isUploading 
+                  ? 'bg-purple-400 cursor-wait' 
+                  : 'bg-purple-500 hover:bg-purple-600'
+              }`} 
+              onClick={handleNext} 
+              disabled={questions.length === 0 || isRecording || !hasRecorded || isUploading} 
+              style={{ fontFamily: 'Pretendard' }}
+            >
+              {isUploading ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                  <span>로딩 중</span>
+                </>
+              ) : (
+                questions.length > 0 && currentIndex === questions.length - 1 ? '완료하기' : '다음 사진'
+              )}
             </Button>
           </div>
         </Card>

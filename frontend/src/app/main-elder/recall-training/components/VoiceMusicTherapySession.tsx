@@ -900,13 +900,24 @@ export function VoiceMusicTherapySession({ onBack }: { onBack: () => void }) {
             </Button>
 
             <Button
-              className="flex-1 h-16 text-2xl bg-emerald-700 hover:bg-emerald-800 text-white focus-visible:ring-4 focus-visible:ring-emerald-300 disabled:opacity-60 disabled:cursor-not-allowed rounded-xl"
+              className={`flex-1 h-16 text-2xl text-white focus-visible:ring-4 focus-visible:ring-emerald-300 disabled:opacity-60 disabled:cursor-not-allowed rounded-xl min-w-[150px] flex items-center justify-center gap-3 ${
+                isUploading 
+                  ? 'bg-emerald-600 cursor-wait' 
+                  : 'bg-emerald-700 hover:bg-emerald-800'
+              }`}
               style={{ fontFamily: 'Pretendard' }}
               onClick={handleNext}
               disabled={questions.length === 0 || isRecording || !hasRecorded || isUploading}
               aria-label={questions.length > 0 && currentIndex === questions.length - 1 ? '완료하기' : '다음 음성으로 이동'}
             >
-              {questions.length > 0 && currentIndex === questions.length - 1 ? '완료하기' : '다음 음성'}
+              {isUploading ? (
+                <>
+                  <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></div>
+                  <span>로딩 중</span>
+                </>
+              ) : (
+                questions.length > 0 && currentIndex === questions.length - 1 ? '완료하기' : '다음 음성'
+              )}
             </Button>
           </div>
         </Card>

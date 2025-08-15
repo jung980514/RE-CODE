@@ -815,9 +815,11 @@ export function VoiceStoryTellingSession({ onBack }: VoiceSessionProps) {
                   <p className="text-red-600 text-2xl">{questionsError}</p>
                 ) : questions.length > 0 ? (
                   <div className="text-gray-900 leading-relaxed text-5xl text-bold space-y-6" style={{ fontFamily: 'Paperlogy' }}>
-                    <p className="mb-6">
-                      {questions[currentQuestionIndex]?.content}
-                    </p>
+                    <div className="mb-6 max-h-[300px] overflow-y-auto">
+                      <p style={{ lineHeight: '1.4' }}>
+                        {questions[currentQuestionIndex]?.content}
+                      </p>
+                    </div>
                     <p className="text-3xl text-gray-700">
                       준비되시면 <strong className="text-orange-700">답변하기</strong> 버튼을 눌러 시작해주세요.
                     </p>
@@ -870,11 +872,22 @@ export function VoiceStoryTellingSession({ onBack }: VoiceSessionProps) {
 
             <Button
               onClick={handleNextOrComplete}
-              className="flex-1 h-20 text-4xl bg-orange-700 hover:bg-orange-800 text-white focus-visible:ring-4 focus-visible:ring-orange-300 disabled:opacity-60 disabled:cursor-not-allowed rounded-xl"
+              className={`flex-1 h-20 text-4xl text-white focus-visible:ring-4 focus-visible:ring-orange-300 disabled:opacity-60 disabled:cursor-not-allowed rounded-xl min-w-[180px] flex items-center justify-center gap-3 ${
+                isUploading 
+                  ? 'bg-orange-600 cursor-wait' 
+                  : 'bg-orange-700 hover:bg-orange-800'
+              }`}
               aria-label={questions.length > 0 && currentQuestionIndex === questions.length - 1 ? '완료하기' : '다음 질문으로 이동'}
-              disabled={questions.length === 0 || isRecording || !hasRecorded}
+              disabled={questions.length === 0 || isRecording || !hasRecorded || isUploading}
             >
-              {questions.length > 0 && currentQuestionIndex === questions.length - 1 ? '완료하기' : '다음 질문'}
+              {isUploading ? (
+                <>
+                  <div className="animate-spin rounded-full h-6 w-6 border-2 border-white border-t-transparent"></div>
+                  <span>로딩 중</span>
+                </>
+              ) : (
+                questions.length > 0 && currentQuestionIndex === questions.length - 1 ? '완료하기' : '다음 질문'
+              )}
             </Button>
           </div>
         </Card>

@@ -204,6 +204,9 @@ export default function SurveyQuestion({
   // 녹화 훅 사용
   const { isRecording, recordedMedia, recordedBlob, isAutoRecording, startRecording, stopRecording, resetRecording, stopAndGetBlob } = useVoiceRecording(webcamStream)
   const [userId, setUserId] = useState<number | null>(null)
+  
+  // 업로드 상태 관리 (버튼 연타 방지)
+  const [isUploading, setIsUploading] = useState(false)
 
   const currentQuestion = surveyQuestions[questionIndex]
   const progress = surveyQuestions.length > 0 ? ((questionIndex + 1) / surveyQuestions.length) * 100 : 0
@@ -570,13 +573,21 @@ export default function SurveyQuestion({
   }, [isRecording, ttsStop])
 
   const handleNextQuestion = async () => {
+    // 이미 업로드 중이면 무시 (버튼 연타 방지)
+    if (isUploading) {
+      console.log('이미 업로드 진행 중입니다.')
+      return
+    }
+
     // 응답이 없으면 경고 표시
     if (!recordedMedia && !isRecording) {
       setShowNoResponseWarning(true)
       return
     }
 
-    // 업로드 시도
+    // 업로드 시작
+    setIsUploading(true)
+    
     try {
       const questionId = currentQuestion?.id
       if (!questionId) {
@@ -604,12 +615,21 @@ export default function SurveyQuestion({
         })
         if (!uploadResponse.ok) {
           console.error('답변 업로드 실패:', uploadResponse.status)
+          throw new Error('업로드 실패')
         }
+        
+        console.log('답변 업로드 성공')
       }
     } catch (err) {
       console.error('답변 업로드 중 오류:', err)
+      // 업로드 실패 시 상태 복원하여 재시도 가능하게 함
+      setIsUploading(false)
+      return // 실패 시 페이지 이동하지 않음
     }
 
+    // 업로드 성공 시에만 다음 단계 진행
+    setIsUploading(false)
+    
     // 다음 질문으로 이동하기 전에 완료 메시지 숨기기
     setShowRecordingComplete(false)
     
@@ -684,8 +704,15 @@ export default function SurveyQuestion({
             </div>
             
             <div className="text-right">
-              <p className="text-gray-700 text-lg font-[family-name:var(--font-pretendard)] font-medium">진행률</p>
-              <p className="text-4xl font-extrabold text-blue-700 font-[family-name:var(--font-Paperlogy-7Bold)]">{Math.round(progress)}%</p>
+              <p className="text-gray-700 text-lg font-[family-name:var(--font-pretendard)] font-medium">
+                {isUploading ? '업로드 중' : '진행률'}
+              </p>
+              <div className="text-4xl font-extrabold text-blue-700 font-[family-name:var(--font-Paperlogy-7Bold)] flex items-center gap-2">
+                {isUploading && (
+                  <div className="animate-spin rounded-full h-8 w-8 border-2 border-blue-700 border-t-transparent"></div>
+                )}
+                <span>{Math.round(progress)}%</span>
+              </div>
             </div>
           </div>
           
@@ -816,15 +843,24 @@ export default function SurveyQuestion({
 
                   <button
                     onClick={handleNextQuestion}
-                    disabled={!recordedMedia && !isRecording}
+                    disabled={(!recordedMedia && !isRecording) || isUploading}
                     aria-label={isLastQuestion ? '설문 완료' : '다음 질문'}
                     className={`flex items-center gap-3 px-10 py-5 rounded-2xl font-bold text-3xl font-[family-name:var(--font-pretendard)] transition-colors focus:outline-none focus-visible:ring-4 ${
                       recordedMedia || isRecording
-                        ? "bg-blue-700 hover:bg-blue-800 text-white focus-visible:ring-blue-300"
+                        ? isUploading
+                          ? "bg-blue-600 text-white cursor-wait"
+                          : "bg-blue-700 hover:bg-blue-800 text-white focus-visible:ring-blue-300"
                         : "bg-gray-300 text-gray-500 cursor-not-allowed"
                     }`}
                   >
-                    {isLastQuestion ? '설문 완료' : '다음 질문'}
+                    {isUploading ? (
+                      <>
+                        <div className="animate-spin rounded-full h-6 w-6 border-2 border-white border-t-transparent"></div>
+                        로딩...
+                      </>
+                    ) : (
+                      isLastQuestion ? '설문 완료' : '다음 질문'
+                    )}
                   </button>
                 </div>
               </div>
