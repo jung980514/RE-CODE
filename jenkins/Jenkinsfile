@@ -56,6 +56,7 @@ pipeline {
                         string(credentialsId: 'DATA_SOURCE_NAME',        variable: 'DATA_SOURCE_NAME'),
                         string(credentialsId: 'GOOGLE_TTS_API_KEY',        variable: 'GOOGLE_TTS_API_KEY'),
                         string(credentialsId: 'NEXT_PUBLIC_BACKEND_URL',        variable: 'NEXT_PUBLIC_BACKEND_URL'),
+                        string(credentialsId: 'NEXT_PUBLIC_KAKAO_CLIENT_ID',        variable: 'NEXT_PUBLIC_KAKAO_CLIENT_ID'),
                         string(credentialsId: 'NEXT_PUBLIC_KAKAO_REDIRECT_URI',        variable: 'NEXT_PUBLIC_KAKAO_REDIRECT_URI'),
                     ]) {
                         // 환경변수로 주입된 값을 docker-compose가 .env 또는 직접 참조하도록 구성
