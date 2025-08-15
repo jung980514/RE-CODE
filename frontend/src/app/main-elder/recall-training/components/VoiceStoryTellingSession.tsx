@@ -754,33 +754,7 @@ export function VoiceStoryTellingSession({ onBack }: VoiceSessionProps) {
 
   return (
     <div className="h-screen overflow-hidden bg-gradient-to-br from-orange-100 to-red-100 pt-1 pb-0 px-4 md:pt-6 md:pb-0 md:px-8 relative">
-      {/* 절대위치 회색 사각형 오버레이 - 디자인에 영향 없음 */}
-      <div className="absolute inset-0 z-50 pointer-events-none">
-        <div className="relative w-full h-full">
 
-          {/* 말풍선 영역 - 녹화 중일 때만 표시, 반응형으로 여우 위에 배치 */}
-          {isRecording && (
-            <div className="absolute bottom-[25vh] right-[70vw] sm:bottom-[15vh] sm:right-[24vw] md:bottom-[20vh] md:right-[22vw] lg:bottom-[25vh] lg:right-[20vw] xl:bottom-[35vh] xl:right-[18vw] w-[120px] h-[100px] sm:w-[140px] sm:h-[120px] md:w-[160px] md:h-[140px] lg:w-[180px] lg:h-[160px] xl:w-[200px] xl:h-[180px]">
-              <div className="h-full flex items-center justify-center">
-                {/* 랜덤 말풍선 이미지 표시 */}
-                {currentBalloonImage && (
-                  <img
-                    src={currentBalloonImage}
-                    alt={isSpeaking ? "말하는 중 말풍선" : "대기 중 말풍선"}
-                    className="max-w-full max-h-full object-contain transition-all duration-300"
-                    onError={(e) => {
-                      console.warn('말풍선 이미지 로드 실패:', currentBalloonImage)
-                      // 이미지 로드 실패 시 기본 이미지로 대체
-                      const target = e.target as HTMLImageElement
-                      target.src = '/images/talkballoon/nottalk/1.png'
-                    }}
-                  />
-                )}
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
 
       <div className="h-full flex items-start justify-center">
         <div style={{ transform: 'scale(0.75)', transformOrigin: 'top center' }}>
@@ -952,7 +926,7 @@ export function VoiceStoryTellingSession({ onBack }: VoiceSessionProps) {
 
           {/* Image Area */}
           <div className="flex-1">
-            <div className="h-full bg-white rounded-2xl overflow-hidden relative min-h-[300px]">
+            <div className="h-full bg-white rounded-2xl overflow-visible relative min-h-[300px]">
               {/* 음성 감지에 따른 GIF 이미지 표시 */}
               <div className="flex items-center justify-center h-full">
                 <img
@@ -961,6 +935,28 @@ export function VoiceStoryTellingSession({ onBack }: VoiceSessionProps) {
                   className="w-4/5 h-4/5 object-contain"
                 />
               </div>
+              
+              {/* 말풍선 영역 - 녹화 중일 때만 표시, 여우 위에 고정 배치 */}
+              {isRecording && (
+                <div className="absolute w-[180px] h-[160px] sm:w-[200px] sm:h-[180px] md:w-[220px] md:h-[200px] lg:w-[240px] lg:h-[220px] xl:w-[280px] xl:h-[250px] z-10 pointer-events-none" style={{ top: 'calc(10% - 120px)', left: 'calc(40% + 40px)' }}>
+                  <div className="h-full flex items-center justify-center">
+                    {/* 랜덤 말풍선 이미지 표시 */}
+                    {currentBalloonImage && (
+                      <img
+                        src={currentBalloonImage}
+                        alt={isSpeaking ? "말하는 중 말풍선" : "대기 중 말풍선"}
+                        className="max-w-full max-h-full object-contain transition-all duration-300"
+                        onError={(e) => {
+                          console.warn('말풍선 이미지 로드 실패:', currentBalloonImage)
+                          // 이미지 로드 실패 시 기본 이미지로 대체
+                          const target = e.target as HTMLImageElement
+                          target.src = '/images/talkballoon/nottalk/1.png'
+                        }}
+                      />
+                    )}
+                  </div>
+                </div>
+              )}
               
               {/* 플레이스홀더 (이미지 로드 실패 시 대체) */}
               <div className="absolute inset-0 flex items-center justify-center text-gray-400" style={{ display: 'none' }}>

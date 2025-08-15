@@ -12,35 +12,11 @@ export default function SurveyIntro({ onStartSurvey }: SurveyIntroProps) {
         {/* Header Section */}
         <div className="text-center mb-16">
           <h1 className="text-6xl font-bold text-purple-800 mb-6" style={{ fontFamily: "Paperlogy, sans-serif" }}>
-            오늘의 건강 설문
+            오늘의 일일 설문
           </h1>
           <p className="text-3xl text-gray-600 max-w-4xl mx-auto leading-relaxed" style={{ fontFamily: "Paperlogy, sans-serif" }}>
-            오늘 하루의 컨디션과 기분을 체크해보세요
+            가벼운 질문으로 기억력을 체크해보세요
           </p>
-        </div>
-
-        {/* Information Blocks */}
-        <div className="flex justify-center gap-16 mb-20">
-          {/* 3개 질문 - 파란색 */}
-          <div className="text-center bg-blue-50 p-8 rounded-xl shadow-md">
-            <MessageSquare className="w-12 h-12 text-blue-500 mx-auto mb-4" />
-            <p className="font-bold text-blue-800 text-3xl mb-2" style={{ fontFamily: "Paperlogy, sans-serif" }}>{questions.length}개 질문</p>
-            <p className="text-blue-600 text-xl" style={{ fontFamily: "Paperlogy, sans-serif" }}>{surveyInfo.personalizedQuestions}</p>
-          </div>
-
-          {/* 음성 답변 - 연두색 */}
-          <div className="text-center bg-green-50 p-8 rounded-xl shadow-md">
-            <Mic className="w-12 h-12 text-green-500 mx-auto mb-4" />
-            <p className="font-bold text-green-700 text-3xl mb-2" style={{ fontFamily: "Paperlogy, sans-serif" }}>{surveyInfo.voiceAnswer}</p>
-            <p className="text-green-600 text-xl" style={{ fontFamily: "Paperlogy, sans-serif" }}>{surveyInfo.voiceAnswerDesc}</p>
-          </div>
-
-          {/* 약 5분 - 보라(그대로) */}
-          <div className="text-center bg-purple-50 p-8 rounded-xl shadow-md">
-            <Clock className="w-12 h-12 text-purple-600 mx-auto mb-4" />
-            <p className="font-bold text-purple-800 text-3xl mb-2" style={{ fontFamily: "Paperlogy, sans-serif" }}>{surveyInfo.estimatedTime}</p>
-            <p className="text-purple-600 text-xl" style={{ fontFamily: "Paperlogy, sans-serif" }}>예상 소요 시간</p>
-          </div>
         </div>
 
         {/* Question Preview Section */}
