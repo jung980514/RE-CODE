@@ -410,11 +410,6 @@ export default function SurveyQuestion({
   useEffect(() => {
     if (recordedMedia && !isRecording) {
       setShowRecordingComplete(true)
-      const timer = setTimeout(() => {
-        setShowRecordingComplete(false)
-      }, 20000)
-      
-      return () => clearTimeout(timer)
     }
   }, [recordedMedia, isRecording])
 
@@ -615,6 +610,9 @@ export default function SurveyQuestion({
       console.error('답변 업로드 중 오류:', err)
     }
 
+    // 다음 질문으로 이동하기 전에 완료 메시지 숨기기
+    setShowRecordingComplete(false)
+    
     if (isLastQuestion) {
       // 마지막 질문이면 완료 처리
       onComplete()
@@ -674,27 +672,20 @@ export default function SurveyQuestion({
       <div className="pt-10 pb-6 px-6" style={{ backgroundColor: '#F8FAFC' }}>
         <div className="max-w-6xl mx-auto">
           <div className="flex items-center justify-between mb-6">
-            <button
-              onClick={handleBackClick}
-              aria-label="돌아가기"
-              className="flex items-center gap-3 text-gray-800 hover:text-gray-900 transition-colors text-lg focus:outline-none focus-visible:ring-4 focus-visible:ring-blue-300 rounded-lg px-2 py-1"
-            >
-              <ArrowLeft className="w-6 h-6" aria-hidden="true" />
-              <span className="font-semibold">돌아가기</span>
-            </button>
+            <div></div>
             
             <div className="text-center">
-              <h1 className="text-3xl lg:text-4xl font-extrabold text-gray-900 mb-2 tracking-tight">
+              <h1 className="text-4xl lg:text-5xl font-extrabold text-gray-900 mb-3 tracking-tight font-[family-name:var(--font-Paperlogy-7Bold)]">
                 일일 설문조사
               </h1>
-              <p className="text-gray-700 text-lg font-medium">
-                개인화 질문 <span className="font-bold text-gray-900">{questionIndex + 1}</span> / {surveyQuestions.length}
+              <p className="text-gray-700 text-xl font-medium font-[family-name:var(--font-pretendard)]">
+                개인화 질문 <span className="font-bold text-gray-900 font-[family-name:var(--font-Paperlogy-7Bold)]">{questionIndex + 1}</span> / {surveyQuestions.length}
               </p>
             </div>
             
             <div className="text-right">
-              <p className="text-gray-700 text-base">진행률</p>
-              <p className="text-3xl font-extrabold text-blue-700">{Math.round(progress)}%</p>
+              <p className="text-gray-700 text-lg font-[family-name:var(--font-pretendard)] font-medium">진행률</p>
+              <p className="text-4xl font-extrabold text-blue-700 font-[family-name:var(--font-Paperlogy-7Bold)]">{Math.round(progress)}%</p>
             </div>
           </div>
           
@@ -717,34 +708,34 @@ export default function SurveyQuestion({
 
       {/* Main Content */}
       <div className="max-w-6xl mx-auto px-6 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:h-[calc(100vh-320px)]">
           {/* Left Column - Question */}
-          <div className="lg:col-span-2">
-            <div className="bg-white rounded-xl shadow-lg p-8">
+          <div className="lg:col-span-2 flex">
+            <div className="bg-white rounded-xl shadow-lg p-8 w-full flex flex-col">
               {/* Question Header */}
               <div className="flex items-center gap-3 mb-6">
                 <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
                   {getQuestionIcon(questionIndex)}
                 </div>
-                <span className="text-blue-600 font-medium">
+                <span className="text-blue-600 font-semibold text-xl font-[family-name:var(--font-pretendard)]">
                   {currentQuestion.category}
                 </span>
               </div>
 
               {/* Question Title */}
-              <div className="mb-5">
-                <h2 className="text-3xl font-extrabold text-gray-900 leading-snug">
+              <div className="mb-8">
+                <h2 className="text-5xl font-bold text-gray-900 leading-snug font-[family-name:var(--font-Paperlogy-7Bold)] tracking-tight">
                   {currentQuestion.title}
                 </h2>
               </div>
 
               {/* Question Description */}
-              <p className="text-gray-800 mb-8 text-lg leading-relaxed">
+              <p className="text-gray-700 mb-10 text-2xl leading-relaxed font-[family-name:var(--font-pretendard)] font-medium">
                 {currentQuestion.description}
               </p>
 
               {/* Recording Area */}
-              <div className="border border-gray-300 rounded-2xl p-7 mb-8 bg-white">
+              <div className="border border-gray-300 rounded-2xl p-7 mb-8 bg-white flex-grow flex flex-col justify-center">
                 {/* 녹음 중 상태 */}
                 {isRecording && (
                   <div className="mb-6" role="status" aria-live="polite">
@@ -754,8 +745,8 @@ export default function SurveyQuestion({
                           <div className="w-2.5 h-2.5 bg-white rounded-full animate-pulse"></div>
                         </div>
                         <div>
-                          <p className="font-bold text-red-800 text-xl">녹음 중입니다</p>
-                          <p className="text-base text-red-700">답변을 마치시면 정지 버튼을 눌러주세요</p>
+                          <p className="font-bold text-red-800 text-2xl font-[family-name:var(--font-Paperlogy-7Bold)]">녹음 중입니다</p>
+                          <p className="text-xl text-red-700 font-[family-name:var(--font-pretendard)] font-medium">답변을 마치시면 정지 버튼을 눌러주세요</p>
                         </div>
                       </div>
                     </div>
@@ -766,10 +757,13 @@ export default function SurveyQuestion({
                 {showRecordingComplete && (
                   <div className="mb-6" role="status" aria-live="polite">
                     <div className="bg-green-50 border border-green-300 rounded-xl p-6">
-                      <div className="flex items-center justify-center gap-4">
-                        <CheckCircle className="w-7 h-7 text-green-700" aria-hidden="true" />
-                        <div className="text-center">
-                          <p className="font-bold text-green-800 text-xl">녹화가 완료되었습니다</p>
+                      <div className="flex items-center gap-4">
+                        <div className="w-7 h-7 bg-green-600 rounded-full flex items-center justify-center">
+                          <CheckCircle className="w-4 h-4 text-white" aria-hidden="true" />
+                        </div>
+                        <div>
+                          <p className="font-bold text-green-800 text-2xl font-[family-name:var(--font-Paperlogy-7Bold)]">녹화가 완료되었습니다</p>
+                          <p className="text-xl text-green-700 font-[family-name:var(--font-pretendard)] font-medium">답변이 성공적으로 저장되었습니다</p>
                         </div>
                       </div>
                     </div>
@@ -782,9 +776,8 @@ export default function SurveyQuestion({
                     onClick={replayQuestion}
                     aria-label="질문 다시 재생"
                     disabled={isTTSPlaying}
-                    className="flex items-center gap-3 px-6 py-3 border-2 border-blue-400 rounded-xl text-blue-700 hover:bg-blue-50 bg-white transition-colors text-lg font-semibold focus:outline-none focus-visible:ring-4 focus-visible:ring-blue-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex items-center gap-3 px-8 py-4 border-2 border-blue-400 rounded-xl text-blue-700 hover:bg-blue-50 bg-white transition-colors text-3xl font-semibold font-[family-name:var(--font-pretendard)] focus:outline-none focus-visible:ring-4 focus-visible:ring-blue-300 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    <RotateCcw className="w-5 h-5" aria-hidden="true" />
                     다시 재생
                   </button>
 
@@ -792,12 +785,13 @@ export default function SurveyQuestion({
                     onClick={isRecording ? stopRecording : () => {
                       // 수동 녹음 버튼 클릭 시 TTS 즉시 중지
                       ttsStop()
+                      setShowRecordingComplete(false)
                       startRecording(false)
                     }}
                     disabled={isTTSPlaying || !webcamStream}
                     aria-label={isRecording ? '녹음 중지' : '녹음 시작'}
                     aria-pressed={isRecording}
-                    className={`flex items-center gap-3 px-8 py-4 rounded-2xl font-bold text-lg transition-colors focus:outline-none focus-visible:ring-4 ${
+                    className={`flex items-center gap-3 px-10 py-5 rounded-2xl font-bold text-3xl font-[family-name:var(--font-pretendard)] transition-colors focus:outline-none focus-visible:ring-4 ${
                       isRecording
                         ? "bg-red-600 hover:bg-red-700 text-white focus-visible:ring-red-300"
                         : (isTTSPlaying || !webcamStream)
@@ -807,17 +801,14 @@ export default function SurveyQuestion({
                   >
                     {isRecording ? (
                       <>
-                        <MicOff className="w-6 h-6" aria-hidden="true" />
-                        녹음 중지
+                        녹음중지
                       </>
                     ) : isTTSPlaying ? (
                       <>
-                        <Mic className="w-6 h-6" aria-hidden="true" />
                         답변하기
                       </>
                     ) : (
                       <>
-                        <Mic className="w-6 h-6" aria-hidden="true" />
                         답변하기
                       </>
                     )}
@@ -827,14 +818,13 @@ export default function SurveyQuestion({
                     onClick={handleNextQuestion}
                     disabled={!recordedMedia && !isRecording}
                     aria-label={isLastQuestion ? '설문 완료' : '다음 질문'}
-                    className={`flex items-center gap-3 px-8 py-4 rounded-2xl font-bold text-lg t수동 녹음ition-colors focus:outline-none focus-visible:ring-4 ${
+                    className={`flex items-center gap-3 px-10 py-5 rounded-2xl font-bold text-3xl font-[family-name:var(--font-pretendard)] transition-colors focus:outline-none focus-visible:ring-4 ${
                       recordedMedia || isRecording
                         ? "bg-blue-700 hover:bg-blue-800 text-white focus-visible:ring-blue-300"
                         : "bg-gray-300 text-gray-500 cursor-not-allowed"
                     }`}
                   >
                     {isLastQuestion ? '설문 완료' : '다음 질문'}
-                    <ArrowRight className="w-5 h-5" aria-hidden="true" />
                   </button>
                 </div>
               </div>
@@ -842,8 +832,8 @@ export default function SurveyQuestion({
           </div>
 
           {/* Right Column - Webcam View */}
-          <div className="lg:col-span-1">
-            <div className="bg-white rounded-2xl shadow-lg p-6" aria-label="웹캠 미리보기">
+          <div className="lg:col-span-1 flex">
+            <div className="bg-white rounded-2xl shadow-lg p-6 w-full flex flex-col" aria-label="웹캠 미리보기">
               <WebcamView
                 isRecording={isRecording}
                 onStreamReady={setWebcamStream}

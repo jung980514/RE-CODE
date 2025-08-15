@@ -338,14 +338,12 @@ export function WebcamView({
 
   return (
     <div className="text-center">
-      <h3 className="text-lg font-semibold text-gray-800 mb-4">금호</h3>
-
       {/* 웹캠 화면 */}
-      <div className="relative bg-gray-900 aspect-square rounded-xl overflow-hidden mb-6">
+      <div className="relative bg-gray-900 aspect-square rounded-xl overflow-hidden mb-21">
         {!isWebcamActive ? (
           <div className="absolute inset-0 flex items-center justify-center">
             <div className="text-white text-center">
-              <div className="w-16 h-16 bg-gray-600 rounded-full flex items-center justify-center mx-auto mb-3">
+              <div className="w-16 h-16 bg-gray-600 rounded-full flex items-center justify-center mx-auto mb-0">
                 <span className="text-2xl"><Camera /></span>
               </div>
               <p className="text-sm">금호를 불러오는 중...</p>
@@ -392,7 +390,16 @@ export function WebcamView({
         )}
     
       </div>
-
+      <div className="text-center">
+        <h3 className="text-lg font-semibold text-gray-800 mb-2 font-[family-name:var(--font-Paperlogy-7Bold)]">금호</h3>
+        <p className="text-gray-600 text-2xl font-[family-name:var(--font-Paperlogy-7Bold)] leading-relaxed mb-2">
+          당신의 동반자 금호입니다.<br/>
+          금호가 당신의 목소리를 듣고 <br/>
+          반응하고 있습니다 <br/>
+          말씀해 주시면 금호가 깨어나<br />
+          함께 대화할게요
+        </p>
+      </div>
 
     </div>
   )

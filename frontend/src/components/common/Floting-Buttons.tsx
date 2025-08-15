@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { MousePointer2, ZoomIn, ZoomOut } from "lucide-react"
 
@@ -8,7 +8,12 @@ import { MousePointer2, ZoomIn, ZoomOut } from "lucide-react"
 
 export function FloatingButtons() {
   const [isZoomed, setIsZoomed] = useState(false)
-  const [isCustomCursor, setIsCustomCursor] = useState(false)
+  const [isCustomCursor, setIsCustomCursor] = useState(true)
+
+  // 컴포넌트 마운트 시 기본적으로 큰 커서 활성화
+  useEffect(() => {
+    document.body.classList.add('large-cursor')
+  }, [])
 
   const handleZoomToggle = () => {
     if (isZoomed) {
@@ -36,9 +41,9 @@ export function FloatingButtons() {
         onClick={handleZoomToggle}
       >
         {isZoomed ? (
-          <ZoomOut className="h-10 w-10" />
+          <ZoomOut className="!h-8 !w-8" style={{ width: '64px', height: '64px' }} />
         ) : (
-          <ZoomIn className="h-10 w-10" />
+          <ZoomIn className="!h-8 !w-8" style={{ width: '64px', height: '64px' }} />
         )}
       </Button>
       
@@ -48,10 +53,10 @@ export function FloatingButtons() {
         className={`rounded-full w-20 h-20 shadow-lg hover:bg-gray-50 border-2 ${
           isCustomCursor ? 'bg-blue-100 border-blue-300' : 'bg-white'
         }`}
-        aria-label={isCustomCursor ? "Reset Cursor" : "Change Cursor"}
+        aria-label={isCustomCursor ? "기본 커서로 변경" : "큰 커서로 변경"}
         onClick={handleCursorToggle}
       >
-        <MousePointer2 className="h-10 w-10" />
+        <MousePointer2 className="!h-8 !w-8" style={{ width: '64px', height: '64px' }} />
       </Button>
     </div>
   )
