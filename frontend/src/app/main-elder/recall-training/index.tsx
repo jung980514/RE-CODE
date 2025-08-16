@@ -240,26 +240,6 @@ export default function RecallTrainingMain() {
             <div className="w-full max-w-5xl mx-auto mb-8">
               <Card className="bg-white/95 backdrop-blur border-0 shadow-xl overflow-hidden">
                 <CardContent className="p-0">
-                  {/* 헤더 섹션 */}
-                  <div className="bg-gradient-to-r from-purple-600 to-blue-600 p-6 text-white">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
-                          <Star className="w-6 h-6 text-white" />
-                        </div>
-                        <div>
-                          <h2 className="text-4xl font-bold" style={{ fontFamily: "Paperlogy, sans-serif" }}>나의 추억 여행 진행도</h2>
-                          <p className="text-2xl text-white/90" style={{ fontFamily: "Paperlogy, sans-serif" }}>
-                            {completedSessions.length > 0 
-                              ? `${completedSessions.length}/4 세션 완료 (${Math.round((completedSessions.length / 4) * 100)}%)`
-                              : "추억 여행을 시작해보세요!"
-                            }
-                          </p>
-                        </div>
-                      </div>
-                      
-                    </div>
-                  </div>
 
                   {/* 메인 그래프 섹션 */}
                   <div className="p-8">
