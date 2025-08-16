@@ -240,11 +240,15 @@ export function VirtualKeyboard({
   return (
     <div
       ref={keyboardRef}
-      // position: absolute로 변경하여 부모 요소(DialogContent) 내에서 위치 지정
-      className="absolute bg-neutral-900 border-2 border-neutral-700 shadow-2xl z-[9999] text-white rounded-lg overflow-hidden"
+      // position: fixed로 변경하여 viewport 기준으로 위치 지정하고 스크롤 방지
+      className="fixed bg-neutral-900 border-2 border-neutral-700 shadow-2xl z-[9999] text-white rounded-lg overflow-hidden"
       style={{
-        transform: `translate(${dragOffset.x}px, ${dragOffset.y}px)`, // transform으로 드래그 위치 적용
+        left: '50%',
+        top: '50%',
+        transform: `translate(-50%, -50%) translate(${dragOffset.x}px, ${dragOffset.y}px)`, // 중앙 정렬 + 드래그 위치 적용
         cursor: isDragging ? "grabbing" : "grab",
+        maxWidth: '90vw',
+        maxHeight: '80vh',
       }}
     >
       {/* 드래그 핸들 영역 */}
