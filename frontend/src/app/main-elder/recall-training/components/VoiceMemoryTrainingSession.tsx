@@ -595,7 +595,7 @@ export function VoiceMemoryTrainingSession({ onBack }: VoiceSessionProps) {
       try {
         setQuestionsLoading(true)
         setQuestionsError(null)
-        const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/survey/questions`, {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/basic/questions`, {
           method: 'GET',
           credentials: 'include',
         })
@@ -946,7 +946,7 @@ export function VoiceMemoryTrainingSession({ onBack }: VoiceSessionProps) {
               
               {/* 말풍선 영역 - 녹화 중일 때만 표시, 여우 위에 고정 배치 */}
               {isRecording && (
-                <div className="absolute w-[180px] h-[160px] sm:w-[200px] sm:h-[180px] md:w-[220px] md:h-[200px] lg:w-[240px] lg:h-[220px] xl:w-[280px] xl:h-[250px] z-10 pointer-events-none" style={{ top: 'calc(10% - 120px)', left: 'calc(40% + 40px)' }}>
+                <div className="absolute w-[180px] h-[160px] sm:w-[200px] sm:h-[180px] md:w-[220px] md:h-[200px] lg:w-[240px] lg:h-[220px] xl:w-[560px] xl:h-[500px] z-10 pointer-events-none" style={{ top: 'calc(10% - 120px)', left: 'calc(40% + 40px)' }}>
                   <div className="h-full flex items-center justify-center">
                     {/* 랜덤 말풍선 이미지 표시 */}
                     {currentBalloonImage && (
