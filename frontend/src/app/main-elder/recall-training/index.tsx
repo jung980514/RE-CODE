@@ -229,7 +229,7 @@ export default function RecallTrainingMain() {
                   className="absolute right-0 top-0 rounded-full w-16 h-16 shadow-md bg-white hover:bg-gray-50 border-purple-200 hover:border-purple-300"
                   aria-label="도움말"
                 >
-                  <HelpCircle className="h-12 w-12 text-purple-600" />
+                  <HelpCircle className="!h-10 !w-10 text-purple-600" />
                 </Button>
               </div>
               <p className="text-3xl text-gray-600 max-w-4xl mx-auto leading-relaxed text-center" style={{ fontFamily: "Paperlogy, sans-serif" }}>
@@ -264,7 +264,7 @@ export default function RecallTrainingMain() {
                   {/* 메인 그래프 섹션 */}
                   <div className="p-8">
                     {/* 진행도 바 */}
-                    <div className="mb-8">
+                    <div>
                       <div className="flex items-center justify-between mb-3">
                         <span className="text-2xl font-medium text-gray-700" style={{ fontFamily: "Paperlogy, sans-serif" }}>전체 진행률</span>
                         <span className="text-2xl font-bold text-purple-600" style={{ fontFamily: "Paperlogy, sans-serif" }}>
@@ -278,27 +278,6 @@ export default function RecallTrainingMain() {
                           animate={{ width: `${(completedSessions.length / 4) * 100}%` }}
                           transition={{ duration: 1.2, ease: "easeOut" }}
                         />
-                      </div>
-                    </div>
-
-
-
-                    {/* 하단 설명 */}
-                    <div className="mt-8 p-4 bg-purple-50 rounded-lg border border-purple-100">
-                      <div className="flex items-start gap-3">
-                        <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                          <span className="text-purple-600 text-sm">💡</span>
-                        </div>
-                        <div>
-                          <h4 className="font-bold text-purple-800 mb-3 text-3xl" style={{ fontFamily: "Paperlogy, sans-serif" }}>추천 진행 순서</h4>
-                          <p className="text-2xl text-purple-700 leading-relaxed" style={{ fontFamily: "Paperlogy, sans-serif" }}>
-                            <span className="font-medium">기초질문</span>으로 시작해서 
-                            <span className="font-medium"> 개인화질문</span>, 
-                            <span className="font-medium"> 들려오는 추억</span>, 
-                            <span className="font-medium"> 추억의 시대</span> 순서로 진행하시면 
-                            가장 효과적으로 기억을 되살릴 수 있습니다.
-                          </p>
-                        </div>
                       </div>
                     </div>
 
