@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { FloatingButtons } from "@/components/common/Floting-Buttons"
-import { 
+import {
   ArrowLeft,
   Star,
   Search,
@@ -23,8 +23,8 @@ import {
 } from "lucide-react"
 import { motion } from "framer-motion"
 import HelpModal from "./components/help-modal"
-import { 
-  getCompletedRecallTrainingSessions, 
+import {
+  getCompletedRecallTrainingSessions,
   getIncompleteRecallTrainingSessions,
   isRecallTrainingSessionCompleted,
   clearRecallTrainingProgress,
@@ -165,7 +165,7 @@ export default function RecallTrainingMain() {
             </div>
           </div>
           <p className="text-xl text-gray-600 mb-8 leading-relaxed" style={{ fontFamily: "Paperlogy, sans-serif" }}>{config.longDescription}</p>
-          <Button 
+          <Button
             onClick={e => {
               e.stopPropagation()
               handleStartTraining(sessionId)
@@ -209,16 +209,16 @@ export default function RecallTrainingMain() {
       <div className="min-h-screen bg-gradient-to-br from-emerald-100 to-violet-100 relative">
         <div className="max-w-6xl mx-auto px-4 py-8">
           {/* 첫 번째 섹션: 메인 질문과 추천 프로그램 순서 */}
-          <motion.section 
-            className="mb-12"
+          <motion.section
+            className="mb-4"
             initial={{ opacity: 0, y: 50 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8 }}
           >
-                        {/* 메인 질문 */}
-                        <div className="mb-12 relative">
-              <div className="flex items-center justify-center relative">
-                <h1 className="text-5xl font-bold text-gray-800 mb-6 text-center" style={{ fontFamily: "Paperlogy, sans-serif" }}>
+            {/* 메인 질문 */}
+            <div className="mb-12 relative">
+              <div className="flex items-center justify-center relative mb-2">
+                <h1 className="text-5xl font-bold text-gray-800 mb-2 text-center" style={{ fontFamily: "Paperlogy, sans-serif" }}>
                   어떤 <span className="text-purple-600">추억 여행</span>을 떠나고 싶으신가요?
                 </h1>
                 {/* 도움말 버튼 */}
@@ -229,76 +229,40 @@ export default function RecallTrainingMain() {
                   className="absolute right-0 top-0 rounded-full w-16 h-16 shadow-md bg-white hover:bg-gray-50 border-purple-200 hover:border-purple-300"
                   aria-label="도움말"
                 >
-                  <HelpCircle className="h-12 w-12 text-purple-600" />
+                  <HelpCircle className="!h-10 !w-10 text-purple-600" />
                 </Button>
               </div>
               <p className="text-3xl text-gray-600 max-w-4xl mx-auto leading-relaxed text-center" style={{ fontFamily: "Paperlogy, sans-serif" }}>
-                개인 맞춤형 회상 훈련 프로그램으로 소중한 기억들을 되살리고 새로운 추억을 만들어보세요
+                특정 주제를 선택하거나 1번부터 순서대로 진행할 수 있습니다.
               </p>
             </div>
             {/* 통합 진행도 및 추천 순서 그래프 섹션 */}
             <div className="w-full max-w-5xl mx-auto mb-8">
               <Card className="bg-white/95 backdrop-blur border-0 shadow-xl overflow-hidden">
                 <CardContent className="p-0">
-                  {/* 헤더 섹션 */}
-                  <div className="bg-gradient-to-r from-purple-600 to-blue-600 p-6 text-white">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
-                          <Star className="w-6 h-6 text-white" />
-                        </div>
-                        <div>
-                          <h2 className="text-4xl font-bold" style={{ fontFamily: "Paperlogy, sans-serif" }}>나의 추억 여행 진행도</h2>
-                          <p className="text-2xl text-white/90" style={{ fontFamily: "Paperlogy, sans-serif" }}>
-                            {completedSessions.length > 0 
-                              ? `${completedSessions.length}/4 세션 완료 (${Math.round((completedSessions.length / 4) * 100)}%)`
-                              : "추억 여행을 시작해보세요!"
-                            }
-                          </p>
-                        </div>
-                      </div>
-                      
-                    </div>
-                  </div>
 
                   {/* 메인 그래프 섹션 */}
-                  <div className="p-8">
+                  <div className="px-6 py-2">
                     {/* 진행도 바 */}
-                    <div className="mb-8">
+                    <div>
                       <div className="flex items-center justify-between mb-3">
-                        <span className="text-2xl font-medium text-gray-700" style={{ fontFamily: "Paperlogy, sans-serif" }}>전체 진행률</span>
-                        <span className="text-2xl font-bold text-purple-600" style={{ fontFamily: "Paperlogy, sans-serif" }}>
+                        <span className="inline-block bg-purple-100 text-purple-700 font-extrabold px-5 py-2 rounded-full shadow-sm mr-2 text-3xl" style={{ fontFamily: "Paperlogy, sans-serif" }}>
+                          진행도
+                        </span>
+                        <span className="text-3xl font-bold text-gray-700 ml-0" style={{ fontFamily: "Paperlogy, sans-serif" }}>
+                          아래의 4가지 훈련을 하나씩 진행하면 진행도가 점점 증가해요!
+                        </span>
+                        <span className="text-3xl font-bold text-purple-600 ml-2" style={{ fontFamily: "Paperlogy, sans-serif" }}>
                           {Math.round((completedSessions.length / 4) * 100)}%
                         </span>
                       </div>
                       <div className="w-full bg-gray-200 rounded-full h-6 overflow-hidden">
-                        <motion.div 
+                        <motion.div
                           className="h-full bg-gradient-to-r from-purple-500 to-blue-500 rounded-full"
                           initial={{ width: 0 }}
                           animate={{ width: `${(completedSessions.length / 4) * 100}%` }}
                           transition={{ duration: 1.2, ease: "easeOut" }}
                         />
-                      </div>
-                    </div>
-
-
-
-                    {/* 하단 설명 */}
-                    <div className="mt-8 p-4 bg-purple-50 rounded-lg border border-purple-100">
-                      <div className="flex items-start gap-3">
-                        <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                          <span className="text-purple-600 text-sm">💡</span>
-                        </div>
-                        <div>
-                          <h4 className="font-bold text-purple-800 mb-3 text-3xl" style={{ fontFamily: "Paperlogy, sans-serif" }}>추천 진행 순서</h4>
-                          <p className="text-2xl text-purple-700 leading-relaxed" style={{ fontFamily: "Paperlogy, sans-serif" }}>
-                            <span className="font-medium">기초질문</span>으로 시작해서 
-                            <span className="font-medium"> 개인화질문</span>, 
-                            <span className="font-medium"> 들려오는 추억</span>, 
-                            <span className="font-medium"> 추억의 시대</span> 순서로 진행하시면 
-                            가장 효과적으로 기억을 되살릴 수 있습니다.
-                          </p>
-                        </div>
                       </div>
                     </div>
 
@@ -310,7 +274,7 @@ export default function RecallTrainingMain() {
           </motion.section>
 
           {/* 두 번째 섹션: 기억 꺼내기와 이야기 나누기 */}
-          <motion.section 
+          <motion.section
             className="mb-8"
             initial={{ opacity: 0, y: 50 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -324,7 +288,7 @@ export default function RecallTrainingMain() {
           </motion.section>
 
           {/* 세 번째 섹션: 들려오는 추억과 추억의 시대 */}
-          <motion.section 
+          <motion.section
             className="mb-8"
             initial={{ opacity: 0, y: 50 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -339,11 +303,11 @@ export default function RecallTrainingMain() {
         </div> {/* max-w-6xl ... */}
       </div> {/* min-h-screen ... */}
       <FloatingButtons />
-      
+
       {/* 도움말 모달 */}
-      <HelpModal 
-        open={isHelpModalOpen} 
-        onOpenChange={setIsHelpModalOpen} 
+      <HelpModal
+        open={isHelpModalOpen}
+        onOpenChange={setIsHelpModalOpen}
       />
     </>
   )
