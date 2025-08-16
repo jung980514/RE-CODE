@@ -758,14 +758,11 @@ export function VoiceStoryTellingSession({ onBack }: VoiceSessionProps) {
 
       <div className="h-full flex items-start justify-center">
         <div style={{ transform: 'scale(0.75)', transformOrigin: 'top center' }}>
+        <h1 className="text-6xl md:text-5xl font-extrabold text-gray-900">
+            개인화 질문
+          </h1>
       {/* Header */}
       <div className="max-w-6xl mx-auto mb-6">
-
-        <div className="text-left">
-          <h1 className="text-6xl md:text-5xl font-extrabold text-gray-900">
-            기억 꺼내기 훈련
-          </h1>
-        </div>
       </div>
 
       {/* Main Content */}
@@ -868,7 +865,12 @@ export function VoiceStoryTellingSession({ onBack }: VoiceSessionProps) {
 
         {/* Right Panel - Webcam */}
         <Card className="lg:col-span-1 p-6 md:p-8 bg-white shadow-2xl rounded-2xl min-h-[800px]" aria-label="영상 미리보기">
-          <h3 className="text-2xl text-center font-extrabold text-gray-900 mb-4">내 화면</h3>
+        <div className="space-y-4 mb-8">
+            <div className="flex justify-between items-center text-3xl">
+              <span className="text-gray-800">현재 감정</span>
+              <span className="text-red-700 font-extrabold">{emotion}</span>
+            </div>
+          </div>
 
           {/* Webcam Display */}
           <div className="relative bg-gray-900 rounded-2xl overflow-hidden mb-6" style={{ aspectRatio: '4/3' }}>
@@ -916,14 +918,6 @@ export function VoiceStoryTellingSession({ onBack }: VoiceSessionProps) {
             )}
           </div>
 
-          {/* Status */}
-          <div className="space-y-4 mb-8">
-            <div className="flex justify-between items-center text-xl">
-              <span className="text-gray-800">현재 감정</span>
-              <span className="text-blue-700 font-extrabold">{emotion}</span>
-            </div>
-          </div>
-
           {/* Image Area */}
           <div className="flex-1">
             <div className="h-full bg-white rounded-2xl overflow-visible relative min-h-[300px]">
@@ -938,7 +932,13 @@ export function VoiceStoryTellingSession({ onBack }: VoiceSessionProps) {
               
               {/* 말풍선 영역 - 녹화 중일 때만 표시, 여우 위에 고정 배치 */}
               {isRecording && (
-                <div className="absolute w-[180px] h-[160px] sm:w-[200px] sm:h-[180px] md:w-[220px] md:h-[200px] lg:w-[240px] lg:h-[220px] xl:w-[280px] xl:h-[250px] z-10 pointer-events-none" style={{ top: 'calc(10% - 120px)', left: 'calc(40% + 40px)' }}>
+              <div 
+                className="absolute w-[180px] h-[160px] sm:w-[200px] sm:h-[180px] md:w-[220px] md:h-[200px] lg:w-[480px] lg:h-[440px] xl:w-[560px] xl:h-[500px] z-10 pointer-events-none" 
+                style={{ 
+                  top: 'calc(30% - 400px)', 
+                  left: 'calc(40% + 40px)' 
+                       }}
+              >
                   <div className="h-full flex items-center justify-center">
                     {/* 랜덤 말풍선 이미지 표시 */}
                     {currentBalloonImage && (

@@ -701,13 +701,13 @@ export function VoicePhotoReminiscenceSession({ onBack }: { onBack: () => void }
   }
 
   return (
-    <div className="bg-gray-50 p-1 md:p-2 relative">
+    <div className="min-h-[828px] bg-gray-50 p-1 md:p-2 relative">
 
 
       {/* Header */}
       <div className="max-w-6xl mx-auto mb-1">
         <div>
-          <h1 className="text-xl font-bold text-gray-800" style={{ fontFamily: 'Pretendard' }}>추억의 시대 훈련</h1>
+          <h1 className="text-4xl font-bold text-gray-800 mb-2" style={{ fontFamily: 'Pretendard' }}>추억의 시대 훈련</h1>
         </div>
       </div>
 
@@ -810,7 +810,12 @@ export function VoicePhotoReminiscenceSession({ onBack }: { onBack: () => void }
 
         {/* Right Panel - Webcam */}
         <Card className="lg:col-span-1 p-2 bg-white shadow-lg">
-          <h3 className="text-lg font-semibold text-gray-800 mb-1 text-center" style={{ fontFamily: 'Pretendard' }}>내 화면</h3>
+          <div className="flex justify-between items-center">
+              <span className="text-gray-600 text-xl" style={{ fontFamily: 'Pretendard' }}>현재 감정:</span>
+              <span className={`font-medium text-xl ${getEmotionColor(emotion)} text-purple-600 flex items-center gap-1`} style={{ fontFamily: 'Pretendard' }}>
+                {emotion}
+              </span>
+            </div>
 
           {/* Webcam Display */}
           <div className="relative bg-gray-900 rounded-xl overflow-hidden mb-2" style={{ aspectRatio: "4/3" }}>
@@ -847,16 +852,6 @@ export function VoicePhotoReminiscenceSession({ onBack }: { onBack: () => void }
             )}
           </div>
 
-          {/* Status */}
-          <div className="space-y-4 mb-8">
-            <div className="flex justify-between items-center">
-              <span className="text-gray-600 text-lg" style={{ fontFamily: 'Pretendard' }}>현재 감정:</span>
-              <span className={`font-medium text-lg ${getEmotionColor(emotion)} flex items-center gap-1`} style={{ fontFamily: 'Pretendard' }}>
-                {emotion}
-              </span>
-            </div>
-          </div>
-
           {/* GIF Image Area */}
           <div className="flex-1">
             <div className="h-full bg-white rounded-2xl overflow-visible relative min-h-[300px]">
@@ -871,7 +866,9 @@ export function VoicePhotoReminiscenceSession({ onBack }: { onBack: () => void }
               
               {/* 말풍선 영역 - 녹화 중일 때만 표시, 여우 위에 고정 배치 */}
               {isRecording && (
-                <div className="absolute w-[150px] h-[130px] sm:w-[170px] sm:h-[150px] md:w-[190px] md:h-[170px] lg:w-[210px] lg:h-[190px] xl:w-[240px] xl:h-[210px] z-10 pointer-events-none" style={{ top: 'calc(10% - 120px)', left: 'calc(40% + 40px)' }}>
+                <div className="absolute w-[180px] h-[160px] sm:w-[200px] sm:h-[180px] md:w-[220px] md:h-[200px] lg:w-[480px] lg:h-[440px] xl:w-[450px] xl:h-[380px] z-10 pointer-events-none" 
+                      style={{ top: 'calc(30% - 340px)', left: 'calc(40% + 40px)' }}
+                >
                   <div className="h-full flex items-center justify-center">
                     {/* 랜덤 말풍선 이미지 표시 */}
                     {currentBalloonImage && (

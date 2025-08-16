@@ -765,7 +765,7 @@ export function VoiceMusicTherapySession({ onBack }: { onBack: () => void }) {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-teal-50 p-4 relative">
+    <div className="min-h-[828px] bg-gradient-to-br from-emerald-50 to-teal-50 p-4 relative">
 
 
       {/* Header */}
@@ -896,9 +896,14 @@ export function VoiceMusicTherapySession({ onBack }: { onBack: () => void }) {
           </div>
         </Card>
 
-                  {/* Right Panel - Webcam */}
-                     <Card className="lg:col-span-1 p-5 md:p-6 bg-white shadow-2xl rounded-2xl min-h-[400px]" aria-label="영상 미리보기">
-            <h3 className="text-2xl text-center font-extrabold text-gray-900 mb-4" style={{ fontFamily: 'Pretendard' }}>내 화면</h3>
+          {/* Right Panel - Webcam */}
+          <Card className="lg:col-span-1 p-5 md:p-6 bg-white shadow-2xl rounded-2xl min-h-[400px]" aria-label="영상 미리보기">
+          <div className="space-y-4 mb-4">
+              <div className="flex justify-between items-center text-xl">
+                <span className="text-gray-800" style={{ fontFamily: 'Pretendard' }}>현재 감정</span>
+                <span className="text-emerald-700 font-extrabold" style={{ fontFamily: 'Pretendard' }}>{emotion}</span>
+              </div>
+            </div>
 
           {/* Webcam Display */}
           <div className="relative bg-gray-900 rounded-2xl overflow-hidden mb-4" style={{ aspectRatio: "4/3" }}>
@@ -935,14 +940,6 @@ export function VoiceMusicTherapySession({ onBack }: { onBack: () => void }) {
             )}
           </div>
 
-                      {/* Status */}
-            <div className="space-y-4 mb-4">
-              <div className="flex justify-between items-center text-xl">
-                <span className="text-gray-800" style={{ fontFamily: 'Pretendard' }}>현재 감정</span>
-                <span className="text-emerald-700 font-extrabold" style={{ fontFamily: 'Pretendard' }}>{emotion}</span>
-              </div>
-            </div>
-
             {/* Image Area */}
             <div className="flex-1">
               <div className="h-full bg-white rounded-2xl overflow-visible relative min-h-[200px]">
@@ -957,7 +954,9 @@ export function VoiceMusicTherapySession({ onBack }: { onBack: () => void }) {
                 
                 {/* 말풍선 영역 - 녹화 중일 때만 표시, 여우 위에 고정 배치 */}
                 {isRecording && (
-                  <div className="absolute w-[150px] h-[130px] sm:w-[170px] sm:h-[150px] md:w-[190px] md:h-[170px] lg:w-[210px] lg:h-[190px] xl:w-[240px] xl:h-[210px] z-10 pointer-events-none" style={{ top: 'calc(10% - 120px)', left: 'calc(40% + 40px)' }}>
+                  <div className="absolute w-[180px] h-[160px] sm:w-[200px] sm:h-[180px] md:w-[220px] md:h-[200px] lg:w-[480px] lg:h-[440px] xl:w-[450px] xl:h-[380px] z-10 pointer-events-none" 
+                    style={{ top: 'calc(30% - 340px)', left: 'calc(40% + 40px)' }}
+                  >
                     <div className="h-full flex items-center justify-center">
                       {/* 랜덤 말풍선 이미지 표시 */}
                       {currentBalloonImage && (
