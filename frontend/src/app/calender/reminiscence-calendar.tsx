@@ -102,7 +102,7 @@ export function ReminiscenceCalendar({ trainingRecords, onDateClick }: Reminisce
     participationCount > 0 ? ((positiveEmotionCount / participationCount) * 100).toFixed(0) : "0"
 
   // 월간 목표 달성률 계산 (주 1회 = 월 4회 목표)
-  const weeklyGoal = 1 // 주당 1회
+  const weeklyGoal = 2 // 주당 1회
   const weeksInMonth = 4 // 한 달 약 4주
   const monthlyGoal = weeklyGoal * weeksInMonth
   const monthlyAchievementRatio = Math.min(100, Math.round((participationCount / monthlyGoal) * 100))

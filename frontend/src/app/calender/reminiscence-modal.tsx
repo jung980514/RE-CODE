@@ -341,7 +341,8 @@ export function ReminiscenceModal({ isOpen, onClose, record }: ReminiscenceModal
                         <div className="flex-1">
                           <div className="flex items-center gap-3 mb-2">
                             <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-lg font-bold" style={{fontFamily: 'Pretendard'}}>
-                              {new Date(video.createdAt).toLocaleDateString("ko-KR", {
+                              {new Date(video.createdAt).toLocaleString("ko-KR", { 
+                                timeZone: "Asia/Seoul",
                                 month: "2-digit",
                                 day: "2-digit",
                                 hour: "2-digit",
