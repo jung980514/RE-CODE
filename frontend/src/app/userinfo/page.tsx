@@ -9,11 +9,13 @@ import { WithdrawalSuccessModal } from './withdrawal-success-modal';
 import { ProfileSaveSuccessModal } from './profile-save-success-modal';
 import { VirtualKeyboard } from '@/components/common/VirtualKeyboard';
 import { AlertModal } from '@/components/ui/modal';
+import { FloatingButtons } from '@/components/common/Floting-Buttons';
 
 export default function UserInfoPage() {
   const router = useRouter();
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
-  const [activeInput, setActiveInput] = useState<'currentPassword' | 'newPassword' | 'confirmPassword' | null>(null);
+  const [activeInput, setActiveInput] = useState<'phoneNumber' | 'currentPassword' | 'newPassword' | 'confirmPassword' | null>(null);
+  const phoneNumberRef = useRef<HTMLInputElement>(null);
   const currentPasswordRef = useRef<HTMLInputElement>(null);
   const newPasswordRef = useRef<HTMLInputElement>(null);
   const confirmPasswordRef = useRef<HTMLInputElement>(null);
@@ -68,6 +70,14 @@ export default function UserInfoPage() {
 
   const [showWithdrawalSuccess, setShowWithdrawalSuccess] = useState(false);
   const [showSaveSuccess, setShowSaveSuccess] = useState(false);
+  const [userRole, setUserRole] = useState<string | null>(null);
+
+  useEffect(() => {
+    // 클라이언트 사이드에서만 localStorage 접근
+    if (typeof window !== 'undefined') {
+      setUserRole(localStorage.getItem('role'));
+    }
+  }, []);
 
   useEffect(() => {
     const fetchUserInfo = async () => {
@@ -127,6 +137,13 @@ export default function UserInfoPage() {
     };
     
     fetchUserInfo();
+
+    // 컴포넌트 언마운트 시 스크롤 복원
+    return () => {
+      document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.width = '';
+    };
   }, [router]);
 
   const handleInputChange = (field: string, value: string) => {
@@ -452,7 +469,20 @@ export default function UserInfoPage() {
 
 
   const handleToggleKeyboard = () => {
-    setIsKeyboardVisible((prev) => !prev);
+    setIsKeyboardVisible((prev) => {
+      const newState = !prev;
+      // 키보드가 나타날 때는 스크롤 방지, 사라질 때는 스크롤 복원
+      if (newState) {
+        document.body.style.overflow = 'hidden';
+        document.body.style.position = 'fixed';
+        document.body.style.width = '100%';
+      } else {
+        document.body.style.overflow = '';
+        document.body.style.position = '';
+        document.body.style.width = '';
+      }
+      return newState;
+    });
   };
 
   const handleWithdrawalSuccessClose = () => {
@@ -472,7 +502,9 @@ export default function UserInfoPage() {
       }
 
       const inputRef =
-        activeInput === 'currentPassword'
+        activeInput === 'phoneNumber'
+          ? phoneNumberRef
+          : activeInput === 'currentPassword'
           ? currentPasswordRef
           : activeInput === 'newPassword'
           ? newPasswordRef
@@ -532,6 +564,9 @@ export default function UserInfoPage() {
 
   const handleVirtualEnter = () => {
     setIsKeyboardVisible(false);
+    document.body.style.overflow = '';
+    document.body.style.position = '';
+    document.body.style.width = '';
   };
 
   return (
@@ -600,19 +635,21 @@ export default function UserInfoPage() {
                   <p className="text-sm text-gray-500 mt-1">이름은 수정할 수 없습니다</p>
                 </div>
 
-                {/* Phone Number */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    휴대전화 번호 *
-                  </label>
-                  <input
-                    type="tel"
-                    value={formData.phoneNumber}
-                    onChange={(e) => handleInputChange('phoneNumber', e.target.value)}
-                    placeholder="'-' 없이 입력해주세요"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-                  />
-                </div>
+                                 {/* Phone Number */}
+                 <div>
+                   <label className="block text-sm font-medium text-gray-700 mb-2">
+                     전화번호 *
+                   </label>
+                   <input
+                     ref={phoneNumberRef}
+                     type="tel"
+                     value={formData.phoneNumber}
+                     onChange={(e) => handleInputChange('phoneNumber', e.target.value)}
+                     onFocus={() => setActiveInput('phoneNumber')}
+                     placeholder="'-' 없이 입력해주세요"
+                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                   />
+                 </div>
                 
                 {/* Current Password - 카카오 사용자가 아닐 때만 표시 */}
                 {!isKakaoUser && (
@@ -769,22 +806,21 @@ export default function UserInfoPage() {
                         height={24}
                       />
                     </button>
-            <button
-              onClick={() => {
-                // 계정 타입: 0=노인, 1=보호자
-                const role = localStorage.getItem('role');
-                if (role === 'ELDER') {
-                  window.location.href = "/userinfo/link-elder";
-                } else if (role === 'GUARDIAN') {
-                  window.location.href = "/userinfo/link-guardian";
-                } else {
-                  setAlertModal({
-                    isOpen: true,
-                    message: '계정 타입을 확인할 수 없습니다.',
-                    type: 'error'
-                  });
-                }
-              }}
+                         <button
+               onClick={() => {
+                 // 계정 타입: 0=노인, 1=보호자
+                 if (userRole === 'ELDER') {
+                   window.location.href = "/userinfo/link-elder";
+                 } else if (userRole === 'GUARDIAN') {
+                   window.location.href = "/userinfo/link-guardian";
+                 } else {
+                   setAlertModal({
+                     isOpen: true,
+                     message: '계정 타입을 확인할 수 없습니다.',
+                     type: 'error'
+                   });
+                 }
+               }}
               className="w-full sm:w-auto px-6 py-3 bg-green-600 text-white rounded-md hover:bg-green-700"
             >
               보호자 연동 관리
@@ -831,6 +867,9 @@ export default function UserInfoPage() {
         message={alertModal.message}
         type={alertModal.type}
       />
+
+             {/* 플로팅 버튼 - 보호자가 아닐 때만 표시 */}
+       {userRole !== 'GUARDIAN' && <FloatingButtons />}
     </div>
   );
 }
