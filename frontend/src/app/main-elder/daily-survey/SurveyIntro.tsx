@@ -52,9 +52,6 @@ export default function SurveyIntro({ onStartSurvey }: SurveyIntroProps) {
                     <h3 className="text-3xl font-bold text-purple-800 mb-4" style={{ fontFamily: "Paperlogy, sans-serif" }}>
                       {question.title}
                     </h3>
-                    <p className="text-purple-600 text-xl leading-relaxed" style={{ fontFamily: "Paperlogy, sans-serif" }}>
-                      {question.description}
-                    </p>
                   </div>
                 </div>
               </div>
