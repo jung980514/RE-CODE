@@ -856,7 +856,7 @@ export default function SurveyQuestion({
                     {isUploading ? (
                       <>
                         <div className="animate-spin rounded-full h-6 w-6 border-2 border-white border-t-transparent"></div>
-                        로딩...
+                        로딩
                       </>
                     ) : (
                       isLastQuestion ? '설문 완료' : '다음 질문'
