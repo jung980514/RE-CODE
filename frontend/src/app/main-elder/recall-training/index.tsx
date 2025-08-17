@@ -64,8 +64,8 @@ export default function RecallTrainingMain() {
 
   const sessionConfig = {
     memory: {
-      title: "기초 질문",
-      description: "기초 질문으로 시작해보세요",
+      title: "기억 꺼내기",
+      description: "기억 꺼내기로 시작해보세요",
       longDescription: "일상적인 기본 질문들을 통해 긴장을 풀고 자연스럽게 기억을 되살려보는 프로그램입니다.",
       icon: Brain,
       gradient: "from-blue-500 to-blue-600",
