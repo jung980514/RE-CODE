@@ -78,15 +78,15 @@ const getEmotionEmoji = (answerType: string, dominantEmotion: string | null): st
 const getAnswerTypeKorean = (answerType: string): string => {
   switch(answerType) {
     case 'BASIC':
-      return '기초 질문'
+      return '기억 꺼내기'
     case 'PERSONAL':
       return '개인화 질문'
     case 'COGNITIVE_AUDIO':
     case 'COGNITIVEAUDIO':
-      return '인지자극(소리)'
+      return '들려오는 추억'
     case 'COGNITIVE_IMAGE':
     case 'COGNITIVEIMAGE':
-      return '인지 자극(이미지)'
+      return '추억의 시대'
     default:
       return answerType
   }

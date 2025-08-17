@@ -718,7 +718,7 @@ export function VoicePhotoReminiscenceSession({ onBack }: { onBack: () => void }
           <div className="text-center mb-2">
             <div className="inline-flex items-center gap-1 bg-purple-100 text-purple-700 px-2 py-1 rounded-full text- font-medium mb-1" style={{ fontFamily: 'Pretendard' }}>
               <MessageCircleQuestionMark className="w-3 h-3" />
-              사진 {questions.length > 0 ? currentIndex + 1 : 0}/{questions.length}
+              질문 {questions.length > 0 ? currentIndex + 1 : 0}/{questions.length}
             </div>
           </div>
 

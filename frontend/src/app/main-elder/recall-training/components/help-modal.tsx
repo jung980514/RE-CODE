@@ -48,7 +48,7 @@ export default function HelpModal({ open, onOpenChange }: HelpModalProps) {
   const programs = [
     {
       id: "memory-training",
-      title: "기초 질문",
+      title: "기억 꺼내기",
       description: "일상적인 기본 질문들을 통해 자연스럽게 기억을 되살려보는 프로그램입니다.",
       icon: Brain,
       color: "from-blue-500 to-cyan-500",
