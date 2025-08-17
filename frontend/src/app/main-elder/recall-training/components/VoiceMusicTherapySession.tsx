@@ -787,12 +787,10 @@ export function VoiceMusicTherapySession({ onBack }: { onBack: () => void }) {
                 <span>불러오는 중...</span>
               ) : (
                 <span>
-                 소리 {questions.length > 0 ? currentIndex + 1 : 0}/{questions.length}
+                 질문 {questions.length > 0 ? currentIndex + 1 : 0}/{questions.length}
                 </span>
               )}
             </div>
-
-            <h2 className="text-2xl font-bold text-emerald-600 mb-2" style={{ fontFamily: 'Pretendard' }}>인지자극훈련 (소리)</h2>
           </div>
 
                       {/* Audio Player */}
@@ -802,8 +800,7 @@ export function VoiceMusicTherapySession({ onBack }: { onBack: () => void }) {
                 <span className="text-white font-bold text-sm">🎵</span>
               </div>
               <div>
-                <h3 className="font-semibold text-gray-800 text-lg" style={{ fontFamily: 'Pretendard' }}>인지자극훈련</h3>
-                <p className="text-emerald-600 text-base" style={{ fontFamily: 'Pretendard' }}>소리</p>
+                <h3 className="font-semibold text-gray-800 text-lg" style={{ fontFamily: 'Pretendard' }}>추억의 소리</h3>
               </div>
             </div>
 
