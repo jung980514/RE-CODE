@@ -2,11 +2,11 @@
 
 ![favicon](./docs/favicon.png)
 
-# Re:code - 디지털 회상 치료 플랫폼
+# Re:code - 디지털 회상 훈련 플랫폼
 
 ## 📌 프로젝트 소개
 
-**Re:code**는 고령자의 정서적 안정과 인지 능력 유지를 돕기 위한 **AI 기반 디지털 회상 치료 플랫폼**입니다.
+**Re:code**는 고령자의 정서적 안정과 인지 능력 유지를 돕기 위한 **AI 기반 디지털 회상 훈련 플랫폼**입니다.
 
 개인의 과거 경험을 떠올리게 하는 질문과 콘텐츠를 통해 고령자의 우울감을 완화하고 가족과의 정서적 교감을 강화합니다.
 
@@ -64,52 +64,59 @@
 | DB | MySQL |
 | Infra | Jenkins,Nginx, AWS S3 |
 
----
+## 🗂️ 기능 & API 명세 요약
 
-## 🗂️ 기능 명세 요약
+### 🗂️ 기능 요약 
 
 | 화면 | Epic | 기능 수 |
 | --- | --- | --- |
 | 회원가입/로그인/마이페이지 | 회원 관리 | 10+ |
 | 회상 훈련 | 회상 훈련 | 20+ |
-| 메인페이지/도우미 | 페이지 이동 | 10+ |
 | 감정 캘린더 | 캘린더 | 6 |
-| 커뮤니티 | 커뮤니티 | 6 |
-| 알림 | 알림 | 2 |
+| 보호자 연동 | 연동 관리 | 5 |
 
-> 👉 총 50개 이상의 UI 기능이 구현됨 (상세 기능: 기능 명세서 참조)
-> 
+> 👉 총 40개 이상의 UI 기능 구현 (상세 기능: 기능 명세서 참조)
 
 ---
 
-## 🔌 API 명세 요약
+### 🔌 API 요약
 
-### ✅ 회원 관련 API
-
-- `/api/user/register` – 회원가입
-- `/api/user/login` – 로그인
-- `/api/user/logout` – 로그아웃
-- `/api/user` – 내 정보 조회/수정
-
-### ✅ 회상 훈련 관련 API
-
-- `/api/questions/survey` – 설문 질문 조회
-- `/api/questions/basic` – 기초 질문 조회
-- `/api/questions/personal/generate` – 개인화 질문 생성
-- `/api/calendar/records` – 회상 기록 조회
-- `/api/calendar/emotion` – 감정 분석 통계 조회
-
-### ✅ 커뮤니티 & 알림 API
-
-- `/api/community/videos` – 회상 영상 피드
-- `/api/community/videos/{videoId}/comments` – 댓글 작성
-- `/api/alerts/severe-depression` – 중증 우울 알림
-- `/api/alerts/inactivity` – 장기 미접속 리마인더
-
-> 👉 전체 20+ API 제공 (요청/응답/에러코드 포함 상세 명세 있음)
-> 
+#### ✅ 회원 & 인증 API
+- `POST /api/v1/auth/register` – 회원가입  
+- `POST /api/v1/auth/login` – 로그인  
+- `POST /api/v1/auth/logout` – 로그아웃  
+- `POST /api/v1/auth/reissue` – 토큰 재발급  
+- `GET /api/v1/users/me` – 내 정보 조회  
+- `PATCH /api/v1/users/me` – 내 정보 수정  
+- `DELETE /api/v1/users/me` – 회원 탈퇴  
 
 ---
+
+#### ✅ 회상 훈련 API
+> 모든 질문/답변/감정은 `type` 쿼리로 구분  
+> (`basic | cognitive | personal | survey`)
+
+- `GET /api/v1/questions?type={type}` – 질문 조회  
+- `POST /api/v1/questions/generate?type=personal` – 개인화 질문 생성  
+- `POST /api/v1/answers?type={type}` – 답변 제출 및 평가  
+- `POST /api/v1/emotions?type={type}` – 감정 기록 저장  
+- `GET /api/v1/calendar` – 월간 회상 기록 조회  
+- `GET /api/v1/calendar/{date}/videos` – 특정일 회상 영상 조회  
+- `GET /api/v1/calendar/{date}/emotions` – 특정일 감정 기록/통계 조회  
+
+---
+
+#### ✅ 보호자 연동 API
+- `POST /api/v1/links` – 연동 생성  
+- `GET /api/v1/links` – 내 연동 목록  
+- `GET /api/v1/links/guardians` – 보호자 목록 조회  
+- `GET /api/v1/links/elders` – 노인 목록 조회  
+- `DELETE /api/v1/links/{linkId}` – 연동 해제  
+
+---
+
+> 👉 전체 **확정된 API 20+ 개 제공** (요청/응답/에러코드 상세 명세 포함)
+
 
 ## 🚀 실행 방법
 
