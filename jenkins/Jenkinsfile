@@ -1,0 +1,75 @@
+pipeline {
+    agent any
+
+    stages {
+        stage('Cleanup') {
+            steps {
+                script {
+                    sh 'docker-compose down --remove-orphans || true'
+                }
+            }
+        }
+        stage('Build') {
+            steps {
+                script {
+                    sh 'docker-compose build'
+                }
+            }
+        }
+        stage('Push') {
+            steps {
+                script {
+                    withCredentials([
+                        usernamePassword(
+                          credentialsId: 'dockerhub-credentials',
+                          usernameVariable: 'DOCKER_USERNAME',
+                          passwordVariable: 'DOCKER_PASSWORD'
+                        )
+                    ]) {
+                        sh 'echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin'
+                        sh 'docker-compose push'
+                    }
+                }
+            }
+        }
+        stage('Deploy') {
+            steps {
+                script {
+                    // 여기에 나열된 모든 크리덴셜을 바인딩
+                    withCredentials([
+                        string(credentialsId: 'REDIS_HOST',     variable: 'REDIS_HOST'),
+                        string(credentialsId: 'REDIS_PASSWORD',     variable: 'REDIS_PASSWORD'),
+                        string(credentialsId: 'AWS_ACCESS_KEY',     variable: 'AWS_ACCESS_KEY'),
+                        string(credentialsId: 'AWS_SECRET_KEY',     variable: 'AWS_SECRET_KEY'),
+                        string(credentialsId: 'CLOVA_DOMAIN_CODE',  variable: 'CLOVA_DOMAIN_CODE'),
+                        string(credentialsId: 'CLOVA_DOMAIN_ID',    variable: 'CLOVA_DOMAIN_ID'),
+                        string(credentialsId: 'CLOVA_SECRET_KEY',   variable: 'CLOVA_SECRET_KEY'),
+                        string(credentialsId: 'GMS_API_KEY',        variable: 'GMS_API_KEY'),
+                        string(credentialsId: 'JWT_SECRET',         variable: 'JWT_SECRET'),
+                        string(credentialsId: 'KAKAO_CLIENT_ID',    variable: 'KAKAO_CLIENT_ID'),
+                        string(credentialsId: 'DB_IP',              variable: 'DB_IP'),
+                        string(credentialsId: 'DB_NAME',            variable: 'DB_NAME'),
+                        string(credentialsId: 'DB_USERNAME',        variable: 'DB_USERNAME'),
+                        string(credentialsId: 'DB_PASSWORD',        variable: 'DB_PASSWORD'),
+                        string(credentialsId: 'GRAFANA_USER',        variable: 'GRAFANA_USER'),
+                        string(credentialsId: 'GRAFANA_PW',        variable: 'GRAFANA_PW'),
+                        string(credentialsId: 'DATA_SOURCE_NAME',        variable: 'DATA_SOURCE_NAME'),
+                        string(credentialsId: 'GOOGLE_TTS_API_KEY',        variable: 'GOOGLE_TTS_API_KEY'),
+                        string(credentialsId: 'NEXT_PUBLIC_BACKEND_URL',        variable: 'NEXT_PUBLIC_BACKEND_URL'),
+                        string(credentialsId: 'NEXT_PUBLIC_KAKAO_CLIENT_ID',        variable: 'NEXT_PUBLIC_KAKAO_CLIENT_ID'),
+                        string(credentialsId: 'NEXT_PUBLIC_KAKAO_REDIRECT_URI',        variable: 'NEXT_PUBLIC_KAKAO_REDIRECT_URI'),
+                    ]) {
+                        // 환경변수로 주입된 값을 docker-compose가 .env 또는 직접 참조하도록 구성
+                        sh 'docker-compose up --build -d'
+                    }
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            sh 'docker image prune -f || true'
+        }
+    }
+}

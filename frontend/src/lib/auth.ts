@@ -1,0 +1,138 @@
+// 로그인 상태 및 사용자 타입 확인 유틸리티
+
+export const isLoggedIn = (): boolean => {
+  if (typeof window === 'undefined') return false;
+  const token = localStorage.getItem('role');
+  return !!token;
+};
+
+export const getRole = (): string | null => {
+  if (typeof window === 'undefined') return null;
+  return localStorage.getItem('role');
+};
+
+export const isElderUser = (): boolean => {
+  const role = getRole();
+  return role === 'ELDER';
+};
+
+export const isGuardianUser = (): boolean => {
+  const role = getRole();
+  return role === 'GUARDIAN';
+};
+
+export const logout = (): void => {
+  if (typeof window === 'undefined') return;
+  localStorage.removeItem('token');
+  localStorage.removeItem('role');
+  localStorage.removeItem('userEmail');
+}; 
+
+// 일일 설문조사 완료 상태 관리
+export const setDailySurveyCompleted = (userId: string) => {
+  try {
+    if (typeof window !== 'undefined') {
+      const today = new Date().toDateString();
+      const surveyData = JSON.parse(localStorage.getItem('dailySurveyData') || '{}');
+      surveyData[userId] = {
+        completed: true,
+        completedAt: today
+      };
+      localStorage.setItem('dailySurveyData', JSON.stringify(surveyData));
+    }
+  } catch (error) {
+    console.error('Failed to set daily survey completion status:', error);
+  }
+};
+
+export const isDailySurveyCompleted = (userId: string): boolean => {
+  if (typeof window === 'undefined') return false;
+  
+  const today = new Date().toDateString();
+  const surveyData = JSON.parse(localStorage.getItem('dailySurveyData') || '{}');
+  const userData = surveyData[userId];
+  
+  return userData?.completed && userData?.completedAt === today;
+};
+
+export const getCurrentUserId = (): string | null => {
+  try {
+    if (typeof window === 'undefined') return null;
+    return localStorage.getItem('userId');
+  } catch {
+    return null;
+  }
+}; 
+
+// Recall Training 세션 완료 상태 관리
+export const RECALL_TRAINING_SESSIONS = {
+  memory: 'memory',      // 기억 꺼내기
+  story: 'story',        // 이야기 나누기
+  music: 'music',        // 들려오는 추억
+  photo: 'photo'         // 추억의 시대
+} as const
+
+export type RecallTrainingSession = typeof RECALL_TRAINING_SESSIONS[keyof typeof RECALL_TRAINING_SESSIONS]
+
+export function getCompletedRecallTrainingSessions(): RecallTrainingSession[] {
+  if (typeof window === 'undefined') return []
+  
+  const completed = localStorage.getItem('completedRecallTrainingSessions')
+  return completed ? JSON.parse(completed) : []
+}
+
+export function markRecallTrainingSessionAsCompleted(sessionId: RecallTrainingSession) {
+  if (typeof window === 'undefined') return
+  
+  const completed = getCompletedRecallTrainingSessions()
+  if (!completed.includes(sessionId)) {
+    completed.push(sessionId)
+    localStorage.setItem('completedRecallTrainingSessions', JSON.stringify(completed))
+  }
+}
+
+export function isRecallTrainingSessionCompleted(sessionId: RecallTrainingSession): boolean {
+  const completed = getCompletedRecallTrainingSessions()
+  return completed.includes(sessionId)
+}
+
+export function getIncompleteRecallTrainingSessions(): RecallTrainingSession[] {
+  const allSessions = Object.values(RECALL_TRAINING_SESSIONS)
+  const completed = getCompletedRecallTrainingSessions()
+  return allSessions.filter(session => !completed.includes(session))
+}
+
+export function clearRecallTrainingProgress() {
+  if (typeof window === 'undefined') return
+  localStorage.removeItem('completedRecallTrainingSessions')
+}
+
+// Recall Training 세션 완료 상태 관리
+// 서버 status 결과를 localStorage에 반영하는 함수
+// 단, 사용자가 로컬스토리지를 수동으로 삭제한 경우(진행도 초기화 의도)에는 동기화하지 않음
+export function syncRecallTrainingSessionsFromStatus(statusData: {
+  basic?: boolean;
+  personal?: boolean;
+  cognitiveAudio?: boolean;
+  cognitiveImage?: boolean;
+}): void {
+  if (typeof window === 'undefined') return;
+  
+  // 로컬스토리지에서 completedRecallTrainingSessions가 존재하는지 확인
+  const existingData = localStorage.getItem('completedRecallTrainingSessions');
+  
+  // 로컬스토리지에 데이터가 없는 경우 (사용자가 삭제했거나 최초 방문)
+  // 이 경우 서버 동기화를 하지 않고 사용자의 삭제 의도를 존중
+  if (existingData === null) {
+    console.log('[RecallTraining] 로컬스토리지에서 진행도 데이터가 삭제됨. 서버 동기화 건너뜀.');
+    return;
+  }
+  
+  // 기존 데이터가 있는 경우에만 서버 데이터로 동기화
+  const completed: RecallTrainingSession[] = [];
+  if (statusData.basic) completed.push('memory');
+  if (statusData.personal) completed.push('story');
+  if (statusData.cognitiveAudio) completed.push('music');
+  if (statusData.cognitiveImage) completed.push('photo');
+  localStorage.setItem('completedRecallTrainingSessions', JSON.stringify(completed));
+}
