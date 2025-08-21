@@ -138,6 +138,19 @@ npm run dev
 
 ---
 
+## 📺 미리보기
+
+| 화면 | 미리보기(GIF) |
+| --- | --- |
+| 홈화면 | ![홈화면](./docs/demo/home.gif) |
+| 일일설문 | ![일일설문](./docs/demo/survey.gif) |
+| 회상훈련 - 기초 | ![기초훈련](./docs/demo/basic.gif) |
+| 회상훈련 - 개인화 | ![개인화훈련](./docs/demo/personal.gif) |
+| 회상훈련 - 인지(소리) | ![인지소리훈련](./docs/demo/cognitiveAudio.gif) |
+| 회상훈련 - 인지(이미지) | ![인지이미지훈련](./docs/demo/cognitiveImage.gif) |
+| 감정 캘린더 | ![캘린더](./docs/demo/calendar.gif) |
+
+
 ## 👨‍👩‍👧‍👦 팀 소개
 
 | 이름 | 담당 |
