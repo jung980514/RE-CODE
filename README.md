@@ -148,7 +148,7 @@ npm run dev
 | 회상훈련 - 개인화 | ![개인화훈련](./docs/demo/personal.gif) |
 | 회상훈련 - 인지(소리) | ![인지소리훈련](./docs/demo/cognitiveAudio.gif) |
 | 회상훈련 - 인지(이미지) | ![인지이미지훈련](./docs/demo/cognitiveImage.gif) |
-| 감정 캘린더 | ![캘린더](./docs/demo/calendar.gif) |
+| 감정 캘린더 | ![캘린더](./docs/demo/calender.gif) |
 
 
 ## 👨‍👩‍👧‍👦 팀 소개
